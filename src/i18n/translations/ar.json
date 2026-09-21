@@ -1,0 +1,66 @@
+{
+  "app": {
+    "title": "CIOB GMAO Light",
+    "subtitle": "قطع الغيار والصيانة الصناعية",
+    "offline_ready": "العمل أوفلاين 100%",
+    "skip_to_content": "الانتقال مباشرة للمحتوى الرئيسي"
+  },
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "stock": "مخزون قطع الغيار",
+    "entrepot": "مستودع الأجزاء",
+    "machines": "الآلات والمكونات",
+    "utilisateurs": "العمليات والمشرفين",
+    "settings": "إعدادات النظام",
+    "logout": "تسجيل الخروج",
+    "theme_light": "التحويل للوضع الفاتح",
+    "theme_dark": "التحويل للوضع الداكن"
+  },
+  "header": {
+    "excel_linked": "ملف إكسيل متصل ومباشر",
+    "excel_not_linked": "وضع الذاكرة المحلية",
+    "save_to_excel": "حفظ مباشر في Excel",
+    "import_excel": "استيراد ملف Excel",
+    "export_excel": "تصدير إلى Excel (.xlsx)",
+    "user_role": "الدور والصلاحية"
+  },
+  "common": {
+    "search": "بحث سريع...",
+    "filter": "تصفية",
+    "all": "الكل",
+    "add": "إضافة",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "confirm": "تأكيد",
+    "close": "إغلاق",
+    "loading": "جاري التحميل...",
+    "status": "الحالة",
+    "actions": "الإجراءات",
+    "date": "التاريخ",
+    "quantity": "الكمية",
+    "reference": "المرجع",
+    "designation": "الوصف والاسم",
+    "zone": "المنطقة / الورشة",
+    "technician": "الفني المسؤول",
+    "machine": "الآلة",
+    "type": "النوع"
+  },
+  "stock": {
+    "initial": "المخزون الافتتاحي",
+    "entries": "الإدخالات",
+    "exits": "الإخراجات",
+    "current": "الرصيد الفعلي",
+    "threshold": "حد التنبيه",
+    "status_ok": "سليم",
+    "status_alert": "تنبيه نقص",
+    "status_rupture": "نفاد المخزون"
+  },
+  "errors": {
+    "unexpected": "حدث خطأ غير متوقع",
+    "reload": "إعادة تحميل الصفحة",
+    "retry": "إعادة المحاولة",
+    "details": "التفاصيل التقنية"
+  }
+}

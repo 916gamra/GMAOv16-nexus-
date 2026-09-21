@@ -1,0 +1,66 @@
+{
+  "app": {
+    "title": "CIOB GMAO Light",
+    "subtitle": "Pièces de Rechange & GMAO",
+    "offline_ready": "Mode Hors-ligne Actif",
+    "skip_to_content": "Passer directement au contenu principal"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "stock": "Stock PDR",
+    "entrepot": "Entrepôt Parts",
+    "machines": "Composants / Machines",
+    "utilisateurs": "Opérations & Chefs",
+    "settings": "Paramètres Système",
+    "logout": "Déconnexion",
+    "theme_light": "Passer au mode clair",
+    "theme_dark": "Passer au mode sombre"
+  },
+  "header": {
+    "excel_linked": "Lien direct Excel actif",
+    "excel_not_linked": "Mode mémoire locale",
+    "save_to_excel": "Enregistrer vers Excel",
+    "import_excel": "Importer Excel",
+    "export_excel": "Exporter Excel (.xlsx)",
+    "user_role": "Rôle"
+  },
+  "common": {
+    "search": "Rechercher...",
+    "filter": "Filtrer",
+    "all": "Tous",
+    "add": "Ajouter",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "confirm": "Confirmer",
+    "close": "Fermer",
+    "loading": "Chargement...",
+    "status": "Statut",
+    "actions": "Actions",
+    "date": "Date",
+    "quantity": "Quantité",
+    "reference": "Référence",
+    "designation": "Désignation",
+    "zone": "Zone",
+    "technician": "Technicien",
+    "machine": "Machine",
+    "type": "Type"
+  },
+  "stock": {
+    "initial": "Stock Initial",
+    "entries": "Entrées",
+    "exits": "Sorties",
+    "current": "Stock Actuel",
+    "threshold": "Seuil d'Alerte",
+    "status_ok": "OK",
+    "status_alert": "ALERTE",
+    "status_rupture": "RUPTURE"
+  },
+  "errors": {
+    "unexpected": "Une erreur inattendue est survenue",
+    "reload": "Recharger la page",
+    "retry": "Réessayer",
+    "details": "Détails techniques"
+  }
+}

@@ -1,0 +1,90 @@
+[
+  {
+    "section": "Détourage",
+    "total_kw": 254.27,
+    "total_amp": 530.13,
+    "nb_machines": 13,
+    "nb_moteurs": 21,
+    "remarque": "Zone DET - 13 tours de détourage (DET-01 à DET-13)"
+  },
+  {
+    "section": "FEMB1",
+    "total_kw": 18.9,
+    "total_amp": 43.1,
+    "nb_machines": 18,
+    "nb_moteurs": 15,
+    "remarque": "Finition Emballage Ligne 1"
+  },
+  {
+    "section": "FEMB2",
+    "total_kw": 16.6,
+    "total_amp": 38.3,
+    "nb_machines": 12,
+    "nb_moteurs": 10,
+    "remarque": "Finition Emballage Ligne 2 - Faitouts"
+  },
+  {
+    "section": "FEMB3",
+    "total_kw": 23.4,
+    "total_amp": 52.0,
+    "nb_machines": 21,
+    "nb_moteurs": 18,
+    "remarque": "Finition Emballage Ligne 3 - Bouilloires"
+  },
+  {
+    "section": "FEMB4",
+    "total_kw": 12.8,
+    "total_amp": 29.5,
+    "nb_machines": 15,
+    "nb_moteurs": 11,
+    "remarque": "Finition Emballage Ligne 4"
+  },
+  {
+    "section": "FM",
+    "total_kw": 88.5,
+    "total_amp": 185.0,
+    "nb_machines": 18,
+    "nb_moteurs": 24,
+    "remarque": "Fabrication Mécanique - Tours, Fraiseuses, Rectifieuse"
+  },
+  {
+    "section": "Polissage",
+    "total_kw": 195.0,
+    "total_amp": 390.0,
+    "nb_machines": 17,
+    "nb_moteurs": 28,
+    "remarque": "Zone Polissage - Tours de polissage POA/POC"
+  },
+  {
+    "section": "Presse Hydraulique",
+    "total_kw": 485.0,
+    "total_amp": 920.0,
+    "nb_machines": 23,
+    "nb_moteurs": 35,
+    "remarque": "Zone Emboutissage Lourd - Presses 200T-400T"
+  },
+  {
+    "section": "Presse injection",
+    "total_kw": 112.0,
+    "total_amp": 230.0,
+    "nb_machines": 6,
+    "nb_moteurs": 14,
+    "remarque": "Presse Injection Bakélite"
+  },
+  {
+    "section": "Repoussage",
+    "total_kw": 62.0,
+    "total_amp": 125.0,
+    "nb_machines": 12,
+    "nb_moteurs": 15,
+    "remarque": "Repoussage Métal Spinning"
+  },
+  {
+    "section": "Satinage",
+    "total_kw": 45.0,
+    "total_amp": 78.0,
+    "nb_machines": 9,
+    "nb_moteurs": 12,
+    "remarque": "Satinage Circulaire"
+  }
+]

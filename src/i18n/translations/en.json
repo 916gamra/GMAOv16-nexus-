@@ -1,0 +1,66 @@
+{
+  "app": {
+    "title": "CIOB GMAO Light",
+    "subtitle": "Spare Parts & CMMS",
+    "offline_ready": "100% Offline Mode Active",
+    "skip_to_content": "Skip directly to main content"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "stock": "Spare Parts Stock",
+    "entrepot": "Warehouse Parts",
+    "machines": "Machines & Components",
+    "utilisateurs": "Operations & Supervisors",
+    "settings": "System Settings",
+    "logout": "Log Out",
+    "theme_light": "Switch to light mode",
+    "theme_dark": "Switch to dark mode"
+  },
+  "header": {
+    "excel_linked": "Direct Excel file linked",
+    "excel_not_linked": "Local memory mode",
+    "save_to_excel": "Direct Save to Excel",
+    "import_excel": "Import Excel File",
+    "export_excel": "Export to Excel (.xlsx)",
+    "user_role": "Role"
+  },
+  "common": {
+    "search": "Search...",
+    "filter": "Filter",
+    "all": "All",
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "confirm": "Confirm",
+    "close": "Close",
+    "loading": "Loading...",
+    "status": "Status",
+    "actions": "Actions",
+    "date": "Date",
+    "quantity": "Quantity",
+    "reference": "Reference",
+    "designation": "Designation",
+    "zone": "Zone",
+    "technician": "Technician",
+    "machine": "Machine",
+    "type": "Type"
+  },
+  "stock": {
+    "initial": "Initial Stock",
+    "entries": "Entries",
+    "exits": "Exits",
+    "current": "Current Stock",
+    "threshold": "Alert Threshold",
+    "status_ok": "OK",
+    "status_alert": "ALERT",
+    "status_rupture": "DEPLETED"
+  },
+  "errors": {
+    "unexpected": "An unexpected error occurred",
+    "reload": "Reload page",
+    "retry": "Try again",
+    "details": "Technical details"
+  }
+}

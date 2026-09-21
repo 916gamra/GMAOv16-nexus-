@@ -1,0 +1,30 @@
+[
+  {
+    "id_comp_family": "FAM-MOTEUR",
+    "id_family": "FAM-MOTEUR",
+    "libelle": "Moteur Électrique",
+    "code": "MOT",
+    "description": "Moteur triphasé asynchrone - Principe électromagnétique - Puissance KW, CH, tours, AMP - Family Moteur, Template = specs, Entrepot = real twin"
+  },
+  {
+    "id_comp_family": "FAM-VERIN",
+    "id_family": "FAM-VERIN",
+    "libelle": "Vérin Hydraulique / Pneumatique",
+    "code": "VER",
+    "description": "Vérin linéaire / rotatif - Transmission de force par fluide sous pression"
+  },
+  {
+    "id_comp_family": "FAM-EXT",
+    "id_family": "FAM-EXT",
+    "libelle": "Extracteur / Turbine",
+    "code": "EXT",
+    "description": "Extracteur d'air, turbine de ventilation et aspiration industrielle"
+  },
+  {
+    "id_comp_family": "FAM-COMP",
+    "id_family": "FAM-COMP",
+    "libelle": "Compresseur / Pompe",
+    "code": "CMP",
+    "description": "Compresseur d'air comprimé et pompes de circulation / refroidissement"
+  }
+]

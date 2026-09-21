@@ -1,0 +1,27 @@
+# Logs and temp files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lint_output*.txt
+
+# Dependency directories
+node_modules/
+
+# Production build outputs
+dist/
+dev-dist/
+
+# Local & alternative lockfiles to prevent cloud deployment conflicts (e.g. bun exit status 127)
+bun.lock
+bun.lockb
+yarn.lock
+pnpm-lock.yaml
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local environment configs
+.env.local
+.env.*.local

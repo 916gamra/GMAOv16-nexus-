@@ -1,11 +1,79 @@
-<div align="center">
+# CIOB GMAO Light UI Excel - Version 3
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+تطبيق احترافي لإدارة الصيانة (GMAO) والمخزون، يعمل بالكامل بدون اتصال بالإنترنت (100% Offline Client-Side Execution) مع إمكانية التصدير والاستيراد لملفات Excel و JSON. التطبيق يعتمد على نموذج "Excel Twin" ليطابق تماماً بنية جداول ومعادلات الإكسيل، مع ميزات متقدمة للتسجيل والتدقيق والنسخ الاحتياطي.
 
-  <h1>Built with AI Studio</h2>
+---
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## ✨ المميزات الرئيسية
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+- **العمل دون اتصال (Offline-First):** التطبيق يعمل بالكامل على المتصفح مع حفظ البيانات محلياً باستخدام `IndexedDB` و `LocalStorage`.
+- **نموذج Excel Twin:** بنية البيانات والعمليات الحسابية متطابقة تماماً مع جداول Excel لسهولة الترحيل والفهم.
+- **إدارة المخزون المتقدمة:** حساب الرصيد الفعلي وحالة التنبيه بناءً على حركات الدخول والخروج في الوقت الفعلي.
+- **إدارة المستودع والهياكل:** تنظيم قطع الغيار وفق مفهوم الـ Parts والـ Components المتكامل، والتعامل مع الآلات والمناطق.
+- **التصدير والاستيراد:** يدعم الاستيراد الشامل مع فحص دقيق للبيانات (Validation) وتصدير سريع للبيانات بصيغ Excel.
+- **نظام التدقيق (Audit Trail):** تسجيل كافة العمليات والإجراءات (إضافة، تعديل، حذف) مع حفظ الوقت واسم المستخدم.
+- **النسخ الاحتياطي التلقائي (Auto-Backup):** دعم إنشاء وتخزين نسخ احتياطية تلقائية مع ضغط لتقليل مساحة التخزين، بالإضافة لمراقبة أداء التطبيق.
+- **الأمان المتقدم:** تأمين النظام وتسجيل الدخول عبر كلمات مرور مشفرة (باستخدام `bcryptjs`).
+- **تحسينات الأداء والواجهة:** تحميل ذكي وعرض مبني على Lazy Loading و Pagination لجعل التصفح مرناً وسريعاً.
 
-</div>
+---
+
+## 📂 هيكلية المشروع المنظمة (Clean Architecture File Tree)
+
+تمت إعادة هيكلة التطبيق بالكامل وفصل الاهتمامات (Separation of Concerns) ليكون فائق التنظيم والوضوح:
+
+```text
+src/
+├── presentation/              # 🎨 طبقة العرض والواجهات (Presentation Layer)
+│   ├── components/            # 🧩 العناصر المشتركة والهيكلية
+│   │   ├── common/            # عناصر واجهة المستخدم المشتركة والـ UI (CustomSelect, AnimatedPage, SortieEntreeIcon)
+│   │   └── layout/            # الهيكل العام للتطبيق (Header, Sidebar, MainLayout)
+│   ├── pages/                 # 📄 الصفحات المنظمة بنظام Feature-Based Folders
+│   │   ├── dashboard/         # لوحة التحكم ومراقبة المؤشرات (DashboardView)
+│   │   ├── stock/             # إدارة مخزون قطع الغيار PDR (StockView, AddArticleModal, EditArticleModal)
+│   │   ├── warehouse/         # إدارة المستودع والرفوف وقطع الغيار المركبة (EntrepotView, QuickMovementModal, MouvementsJournalTable)
+│   │   ├── movements/         # حركات المخزون والتدخلات السريعة (SortieRapideView - 5 Flux)
+│   │   ├── machines/          # إدارة الآلات والمسؤولين (MachinesRegisteredView, AddMachineModal, FamilyView, TemplatesView)
+│   │   ├── referentiel/       # جداول المرجعيات المنظمة (TypeView, DesignationView, ZonesView, AddZoneModal, PartTypeView, PartDesignationView, CompFamilyView, CompTemplateView)
+│   │   ├── utilisateurs/      # إدارة حسابات المستخدمين والمشرفين (UtilisateursView, AddUserModal)
+│   │   ├── auth/              # شاشات تسجيل الدخول والـ Splash Screen
+│   │   ├── settings/          # إعدادات النظام المتقدمة (SettingsView)
+│   │   └── system/            # شاشات النظام والتدقيق والروابط الذكية (NexusView, GuideView)
+│   └── router/                # توجيه الصفحات والتنقل السلس (AppRouter)
+│
+├── hooks/                     # ⚡ منطق وإدارة حالة التطبيق المشتركة
+│   ├── useGmaoState.js        # الخطاف المركزي المسؤول عن جلب وتحديث ومعالجة كافة بيانات النظام
+│   ├── useGenericCRUD.js      # خطاف عام لعمليات الإضافة، التعديل والحذف بسهولة
+│   ├── usePWAInstall.js       # منطق تثبيت التطبيق كـ PWA على سطح المكتب والهاتف
+│   └── useOnlineStatus.js     # مراقبة حالة الاتصال بالشبكة
+│
+├── utils/                     # 🛠️ محرك الحسابات والخدمات المساعدة
+│   ├── formulaEngine.js       # محاكاة معادلات إكسيل (SUMIFS وحساب الرصيد الفعلي في الوقت الفعلي)
+│   ├── indexedDBService.js    # قاعدة بيانات المتصفح ذو السعة العالية لتخزين السجلات والحركات
+│   ├── BackupService.js       # نظام النسخ الاحتياطي التلقائي والمضغوط باستخدام LZ-String
+│   ├── AuditService.js        # نظام التدقيق وتسجيل أنشطة المستخدمين (Audit Trail)
+│   ├── PerformanceMonitor.js  # مراقبة وتحليل سرعة استجابة التطبيق
+│   └── validation.js          # مخططات التحقق من صحة البيانات والملفات المستوردة عبر Zod
+│
+├── data/                      # 📊 البيانات الافتراضية للبدء الفوري
+│   ├── seedData.js            # دالة تغذية قاعدة البيانات بالبيانات النموذجية للـ GMAO
+│   └── initialData.json       # مصفوفات البيانات الأولية المرجعية لإكسيل
+│
+├── App.jsx                    # نقطة الانطلاق الرئيسية للتطبيق وربط الحالات
+└── main.jsx                   # ملف الربط بالـ DOM والمكتبات الأساسية
+```
+
+---
+
+## ⚙️ نظام معالجة الأخطاء والـ Validation
+
+- تم تضمين `ErrorBoundary` لعزل أي عطل قد يصيب جزءاً من التطبيق دون انهيار التطبيق كاملاً.
+- يتم التحقق من كافة الملفات المستوردة باستخدام مخططات تحقق `Zod Schemas` لضمان صحة الأرقام، النصوص، وأنواع الحركات قبل حفظها.
+
+---
+
+## 📝 ملاحظات للمطورين
+
+- **إدارة الحالة (State Management):** يتم إدارة الحالة عبر خطاف مركزي مخصص `useGmaoState` للحفاظ على نظافة كود الواجهة وإعادة الحساب في الوقت الفعلي.
+- **الـ Logging & Performance:** يتم تتبع الأخطاء وتسجيل الأداء بواسطة أدوات `Logger` و `PerformanceMonitor` المدمجة.
+- **إضافة ميزات جديدة:** يجب تحديث دوال الاستيراد/التصدير (في `App.jsx`) وأيضاً مخططات التحقق (في `utils/validation.js`) عند إضافة جداول أو كيانات جديدة.
