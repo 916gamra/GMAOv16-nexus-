@@ -23,13 +23,20 @@ import {
 import SortieExterneService from '../../../../application/services/SortieExterneService';
 
 export default function SortieExterneBobinageTab({
+  sorties = [],
+  onAddSortie = null,
+  onUpdateSortie: _onUpdateSortie = null,
+  onDeleteSortie = null,
+  onMarkSortieReturned = null,
+  onMarkSortieMounted = null,
+  onClearSortiesForRealFactory: _onClearSortiesForRealFactory = null,
+  onResetSortiesToBaseline: _onResetSortiesToBaseline = null,
   machines = [],
   warehouseItems = [],
   technicians = [],
   onAddMouvement = null, // Sync back to movement journal if desired
   showToast = null,
 }) {
-  const [sorties, setSorties] = useState(() => SortieExterneService.getSorties());
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [fournisseurFilter, setFournisseurFilter] = useState('ALL');
@@ -79,12 +86,6 @@ export default function SortieExterneBobinageTab({
     id_machine_cible: '',
     note: 'Moteur remonté sur la machine, rotation et intensité vérifiées OK',
   });
-
-  // Sync to local state when storage updates
-  const reloadData = () => {
-    const updated = SortieExterneService.getSorties();
-    setSorties(updated);
-  };
 
   // KPI Stats
   const stats = useMemo(() => {
@@ -172,13 +173,17 @@ export default function SortieExterneBobinageTab({
   const handleSubmitSortie = (e) => {
     e.preventDefault();
     try {
-      const created = SortieExterneService.addSortie(formData);
-      reloadData();
+      let created;
+      if (onAddSortie) {
+        created = onAddSortie(formData);
+      } else {
+        created = SortieExterneService.addSortie(formData);
+      }
       setIsNewModalOpen(false);
-      if (showToast) showToast(`Sortie Externe ${created.code} créée avec succès !`, 'success');
+      if (showToast && created) showToast(`Sortie Externe ${created.code || ''} créée avec succès !`, 'success');
 
       // Sync with global movements if available
-      if (onAddMouvement) {
+      if (onAddMouvement && created) {
         onAddMouvement({
           type: 'Sortie Externe',
           action_id: 'REPARATION_EXTERNE',
@@ -214,8 +219,11 @@ export default function SortieExterneBobinageTab({
   const handleConfirmReturn = (e) => {
     e.preventDefault();
     if (!selectedSortie) return;
-    SortieExterneService.markAsReturned(selectedSortie.id, returnFormData);
-    reloadData();
+    if (onMarkSortieReturned) {
+      onMarkSortieReturned(selectedSortie.id, returnFormData);
+    } else {
+      SortieExterneService.markAsReturned(selectedSortie.id, returnFormData);
+    }
     setIsReturnModalOpen(false);
     if (showToast) showToast(`Moteur ${selectedSortie.code_moteur_reel} marqué comme Retourné OK !`, 'success');
   };
@@ -235,8 +243,11 @@ export default function SortieExterneBobinageTab({
   const handleConfirmMount = (e) => {
     e.preventDefault();
     if (!selectedSortie) return;
-    SortieExterneService.markAsMounted(selectedSortie.id, mountFormData);
-    reloadData();
+    if (onMarkSortieMounted) {
+      onMarkSortieMounted(selectedSortie.id, mountFormData);
+    } else {
+      SortieExterneService.markAsMounted(selectedSortie.id, mountFormData);
+    }
     setIsMountModalOpen(false);
     if (showToast) showToast(`Moteur ${selectedSortie.code_moteur_reel} remonté sur ${mountFormData.id_machine_cible} avec succès !`, 'success');
   };
@@ -244,8 +255,11 @@ export default function SortieExterneBobinageTab({
   // Delete sortie
   const handleDeleteSortie = (sortie) => {
     if (window.confirm(`Confirmer la suppression de la fiche ${sortie.code} (${sortie.code_moteur_reel}) ?`)) {
-      SortieExterneService.deleteSortie(sortie.id);
-      reloadData();
+      if (onDeleteSortie) {
+        onDeleteSortie(sortie.id);
+      } else {
+        SortieExterneService.deleteSortie(sortie.id);
+      }
       if (showToast) showToast(`Fiche ${sortie.code} supprimée.`, 'info');
     }
   };

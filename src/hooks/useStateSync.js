@@ -23,6 +23,11 @@ export function useStateSync(setters, validators) {
     setOperations,
     setMouvements,
     setRawStock,
+    setPreventiveTasks,
+    setPreventiveActions,
+    setPreventiveGuides,
+    setPreventivePlans,
+    setSortiesExterne,
   } = setters;
 
   const { isValidMachineFamilies, isValidMachineTemplates } = validators;
@@ -49,6 +54,11 @@ export function useStateSync(setters, validators) {
             if (fresh.operations) setOperations(fresh.operations);
             if (fresh.mouvements) setMouvements(fresh.mouvements);
             if (fresh.rawStock) setRawStock(fresh.rawStock);
+            if (fresh.preventiveTasks && setPreventiveTasks) setPreventiveTasks(fresh.preventiveTasks);
+            if (fresh.preventiveActions && setPreventiveActions) setPreventiveActions(fresh.preventiveActions);
+            if (fresh.preventiveGuides && setPreventiveGuides) setPreventiveGuides(fresh.preventiveGuides);
+            if (fresh.preventivePlans && setPreventivePlans) setPreventivePlans(fresh.preventivePlans);
+            if (fresh.sortiesExterne && setSortiesExterne) setSortiesExterne(fresh.sortiesExterne);
           }
         } catch (_err) {
           Logger.error('Failed to sync across tabs:', _err, 'useStateSync');

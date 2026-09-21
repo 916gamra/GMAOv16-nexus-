@@ -298,6 +298,7 @@ export class PreventiveService {
     try {
       const keys = [
         STORAGE_KEY_TASKS,
+        'gmao_preventive_tasks_v8',
         'gmao_preventive_tasks_v7',
         'gmao_preventive_tasks_v6',
         'gmao_preventive_tasks_v2',
@@ -307,7 +308,8 @@ export class PreventiveService {
         const data = localStorage.getItem(k);
         if (data) {
           const parsed = JSON.parse(data);
-          if (Array.isArray(parsed) && parsed.length >= 1000) return parsed;
+          // Return any valid array, respecting user modifications and real factory data
+          if (Array.isArray(parsed)) return parsed;
         }
       }
     } catch {

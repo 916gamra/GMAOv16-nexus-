@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Calendar,
   CalendarPlus,
@@ -23,6 +23,16 @@ import TabMainView from './components/TabMainView';
 import TaskImportModal from './components/TaskImportModal';
 
 export default function PreventiveView({
+  tasks = [],
+  actions = [],
+  guides = [],
+  plans: _plans = [],
+  onUpdateTask = null,
+  onDeleteTask: onDeleteTaskProp = null,
+  onUpdateTaskCounter: onUpdateTaskCounterProp = null,
+  onMarkTaskDone: onMarkTaskDoneProp = null,
+  onResetToBaseline: _onResetToBaseline = null,
+  onClearPreventiveForRealFactory: _onClearPreventiveForRealFactory = null,
   machines = [],
   zones = [],
   technicians = [],
@@ -36,48 +46,22 @@ export default function PreventiveView({
   onNavigateToMachine = null,
   onNavigateToReferentiel = null,
 }) {
-  // Master Data from PreventiveService
-  const [actions] = useState(() => PreventiveService.getActions());
-  const [guides] = useState(() => PreventiveService.getGuides());
-  const [tasks, setTasks] = useState(() => PreventiveService.getTasks());
   const [showFormulasModal, setShowFormulasModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [viewMode, setViewMode] = useState('matrix'); // 'matrix' | 'list' | 'calendar' | 'analytics'
-
-  // Écouter les mises à jour en direct (Injection Excel / JSON / Vault)
-  useEffect(() => {
-    const handleTasksUpdated = (e) => {
-      if (e.detail && Array.isArray(e.detail)) {
-        setTasks(e.detail);
-      } else {
-        setTasks(PreventiveService.getTasks());
-      }
-    };
-
-    window.addEventListener('preventive_tasks_updated', handleTasksUpdated);
-
-    // Si la liste est vide ou incomplète (< 1000) à l'ouverture, charger automatiquement le Pack Usine complet (1175 tâches)
-    if (tasks.length < 1000) {
-      PreventiveService.loadFromPublicJson().then((loaded) => {
-        if (loaded && loaded.length > 0) {
-          setTasks(loaded);
-        }
-      });
-    }
-
-    return () => {
-      window.removeEventListener('preventive_tasks_updated', handleTasksUpdated);
-    };
-  }, []);
 
   // ==========================================
   // MAIN VIEW HANDLERS (PRIMARY VIEW)
   // ==========================================
   const handleMarkTaskDone = (id, validationData) => {
     const targetTask = tasks.find((t) => t.id === id);
-    const updated = PreventiveService.markTaskAsDone(id, validationData);
-    setTasks(updated);
+
+    if (onMarkTaskDoneProp) {
+      onMarkTaskDoneProp(id, validationData);
+    } else {
+      PreventiveService.markTaskAsDone(id, validationData);
+    }
 
     // If PDR consumed, synchronize with stock
     if (validationData?.pieces_utilisees?.length > 0 && onAddMouvement) {
@@ -114,20 +98,29 @@ export default function PreventiveView({
   };
 
   const handleDeleteTask = (id) => {
-    const updated = PreventiveService.deleteTask(id);
-    setTasks(updated);
+    if (onDeleteTaskProp) {
+      onDeleteTaskProp(id);
+    } else {
+      PreventiveService.deleteTask(id);
+    }
     if (showToast) showToast('Tâche supprimée du planning.', 'info');
   };
 
   const handleUpdateTaskCounter = (id, newCounterValue) => {
-    const updated = PreventiveService.updateTaskCounter(id, newCounterValue);
-    setTasks(updated);
+    if (onUpdateTaskCounterProp) {
+      onUpdateTaskCounterProp(id, newCounterValue);
+    } else {
+      PreventiveService.updateTaskCounter(id, newCounterValue);
+    }
     if (showToast) showToast('Compteur machine mis à jour.', 'success');
   };
 
   const handleUpdateTaskStatus = (id, newStatus) => {
-    const updated = PreventiveService.updateTaskStatus(id, newStatus);
-    setTasks(updated);
+    if (onUpdateTask) {
+      onUpdateTask(id, { etat: newStatus });
+    } else {
+      PreventiveService.updateTaskStatus(id, newStatus);
+    }
   };
 
   return (
@@ -504,9 +497,8 @@ export default function PreventiveView({
           isOpen={showImportModal}
           onClose={() => setShowImportModal(false)}
           onImportSuccess={(updated) => {
-            setTasks(updated);
             if (showToast) {
-              showToast('Tâches préventives importées avec succès !', 'success');
+              showToast(`Importation réussie : ${updated?.length || 0} tâches prêtes !`, 'success');
             }
           }}
         />

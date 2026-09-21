@@ -17,6 +17,18 @@ import TabGuide from './components/TabGuide';
 import TabActions from './components/TabActions';
 
 export default function PreventiveSecondaryView({
+  actions = [],
+  guides = [],
+  plans: _plans = [],
+  onAddAction = null,
+  onUpdateAction = null,
+  onDeleteAction = null,
+  onAddGuide = null,
+  onUpdateGuide = null,
+  onDeleteGuide = null,
+  onCreatePlanWithTasks = null,
+  onResetToBaseline: _onResetToBaseline = null,
+  onClearPreventiveForRealFactory: _onClearPreventiveForRealFactory = null,
   machines = [],
   zones = [],
   technicians = [],
@@ -29,28 +41,33 @@ export default function PreventiveSecondaryView({
   // Active secondary sub-tab: 'BUILDER' | 'GUIDE' | 'ACTIONS'
   const [activeSubTab, setActiveSubTab] = useState(initialSubTab);
 
-  // Local state initialized from PreventiveService
-  const [actions, setActions] = useState(() => PreventiveService.getActions());
-  const [guides, setGuides] = useState(() => PreventiveService.getGuides());
-
   // ==========================================
   // ACTIONS HANDLERS
   // ==========================================
   const handleAddAction = (actionData) => {
-    const updated = PreventiveService.addAction(actionData);
-    setActions(updated);
+    if (onAddAction) {
+      onAddAction(actionData);
+    } else {
+      PreventiveService.addAction(actionData);
+    }
     if (showToast) showToast(`Action ${actionData.code} (${actionData.libelle}) créée avec succès !`, 'success');
   };
 
   const handleUpdateAction = (id, actionData) => {
-    const updated = PreventiveService.updateAction(id, actionData);
-    setActions(updated);
+    if (onUpdateAction) {
+      onUpdateAction(id, actionData);
+    } else {
+      PreventiveService.updateAction(id, actionData);
+    }
     if (showToast) showToast(`Action mise à jour avec succès !`, 'success');
   };
 
   const handleDeleteAction = (id) => {
-    const updated = PreventiveService.deleteAction(id);
-    setActions(updated);
+    if (onDeleteAction) {
+      onDeleteAction(id);
+    } else {
+      PreventiveService.deleteAction(id);
+    }
     if (showToast) showToast(`Action supprimée.`, 'info');
   };
 
@@ -58,20 +75,29 @@ export default function PreventiveSecondaryView({
   // GUIDES HANDLERS
   // ==========================================
   const handleAddGuide = (guideData) => {
-    const updated = PreventiveService.addGuide(guideData);
-    setGuides(updated);
+    if (onAddGuide) {
+      onAddGuide(guideData);
+    } else {
+      PreventiveService.addGuide(guideData);
+    }
     if (showToast) showToast(`Fiche guide pour ${guideData.composant_nom} créée !`, 'success');
   };
 
   const handleUpdateGuide = (id, guideData) => {
-    const updated = PreventiveService.updateGuide(id, guideData);
-    setGuides(updated);
+    if (onUpdateGuide) {
+      onUpdateGuide(id, guideData);
+    } else {
+      PreventiveService.updateGuide(id, guideData);
+    }
     if (showToast) showToast(`Fiche guide mise à jour !`, 'success');
   };
 
   const handleDeleteGuide = (id) => {
-    const updated = PreventiveService.deleteGuide(id);
-    setGuides(updated);
+    if (onDeleteGuide) {
+      onDeleteGuide(id);
+    } else {
+      PreventiveService.deleteGuide(id);
+    }
     if (showToast) showToast(`Fiche guide supprimée.`, 'info');
   };
 
@@ -79,10 +105,15 @@ export default function PreventiveSecondaryView({
   // PLAN BUILDER HANDLER
   // ==========================================
   const handleCreatePlanWithTasks = (planData, taskItems) => {
-    const result = PreventiveService.createPlanWithTasks(planData, taskItems);
+    let result;
+    if (onCreatePlanWithTasks) {
+      result = onCreatePlanWithTasks(planData, taskItems);
+    } else {
+      result = PreventiveService.createPlanWithTasks(planData, taskItems);
+    }
     
     if (showToast) {
-      showToast(`Plan ${result.plan.code} généré avec succès (${result.tasks.length} tâches programmées) !`, 'success');
+      showToast(`Plan ${result?.plan?.code || planData.code} généré avec succès (${result?.tasks?.length || taskItems.length} tâches programmées) !`, 'success');
     }
     // Navigate to primary view to see the generated planning
     if (onNavigateToMainView) {

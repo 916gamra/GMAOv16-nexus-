@@ -26,6 +26,14 @@ import GuideView from '../pages/system/GuideView';
 import PreventiveView from '../pages/preventive/PreventiveView';
 import PreventiveSecondaryView from '../pages/preventive/PreventiveSecondaryView';
 
+import {
+  PreventiveContext,
+  SortieExterneContext,
+  StockContext,
+  WarehouseContext,
+  MachinesContext,
+} from '../../context/GmaoDomainContext';
+
 export default function AppRouter({
   currentTab, setCurrentTab: _setCurrentTab, props
 }) {
@@ -33,158 +41,168 @@ export default function AppRouter({
   const { isCurrentTabLoading } = usePageOrchestrator(currentTab);
 
   return (
-    <div className="w-full min-w-0 relative">
-      <AnimatePresence mode="wait">
-        {isCurrentTabLoading ? (
-          <motion.div
-            key={`skel-${currentTab}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.16, ease: 'easeOut' }}
-            className="w-full min-w-0"
-          >
-            <LoadingSkeleton currentTab={currentTab} />
-          </motion.div>
-        ) : (
-          <div
-            key={`view-${currentTab}`}
-            className="w-full min-w-0"
-          >
-            {currentTab === 'dashboard' && (
-              <ErrorBoundary sectionName="Tableau de Bord Operations">
-                <DashboardView {...props.dashboard} />
-              </ErrorBoundary>
-            )}
+    <StockContext.Provider value={props.stock}>
+      <WarehouseContext.Provider value={props.entrepot}>
+        <MachinesContext.Provider value={props.machines}>
+          <PreventiveContext.Provider value={props.preventive}>
+            <SortieExterneContext.Provider value={props.sortie}>
+              <div className="w-full min-w-0 relative">
+                <AnimatePresence mode="wait">
+                  {isCurrentTabLoading ? (
+                    <motion.div
+                      key={`skel-${currentTab}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.16, ease: 'easeOut' }}
+                      className="w-full min-w-0"
+                    >
+                      <LoadingSkeleton currentTab={currentTab} />
+                    </motion.div>
+                  ) : (
+                    <div
+                      key={`view-${currentTab}`}
+                      className="w-full min-w-0"
+                    >
+                      {currentTab === 'dashboard' && (
+                        <ErrorBoundary sectionName="Tableau de Bord Operations">
+                          <DashboardView {...props.dashboard} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'stock' && (
-              <ErrorBoundary sectionName="Gestion de Stock & PDR">
-                <StockView {...props.stock} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'stock' && (
+                        <ErrorBoundary sectionName="Gestion de Stock & PDR">
+                          <StockView {...props.stock} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'sortie' && (
-              <ErrorBoundary sectionName="Saisie Directe & Sortie Rapide">
-                <SortieRapideView {...props.sortie} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'sortie' && (
+                        <ErrorBoundary sectionName="Saisie Directe & Sortie Rapide">
+                          <SortieRapideView {...props.sortie} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'entrepot' && (
-              <ErrorBoundary sectionName="Magasin & Entrepôt Réserve">
-                <EntrepotView {...props.entrepot} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'entrepot' && (
+                        <ErrorBoundary sectionName="Magasin & Entrepôt Réserve">
+                          <EntrepotView {...props.entrepot} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'types' && (
-              <ErrorBoundary sectionName="Référentiel Types d'Équipements">
-                <TypeView {...props.types} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'types' && (
+                        <ErrorBoundary sectionName="Référentiel Types d'Équipements">
+                          <TypeView {...props.types} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'designations' && (
-              <ErrorBoundary sectionName="Référentiel Désignations & Diagnostic">
-                <DesignationView {...props.designations} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'designations' && (
+                        <ErrorBoundary sectionName="Référentiel Désignations & Diagnostic">
+                          <DesignationView {...props.designations} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'machines' && (
-              <ErrorBoundary sectionName="Parc Machines Enregistrées">
-                <MachinesRegisteredView {...props.machines} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'machines' && (
+                        <ErrorBoundary sectionName="Parc Machines Enregistrées">
+                          <MachinesRegisteredView {...props.machines} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'preventive' && (
-              <ErrorBoundary sectionName="Planning & Matrice Préventive">
-                <PreventiveView {...props.preventive} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'preventive' && (
+                        <ErrorBoundary sectionName="Planning & Matrice Préventive">
+                          <PreventiveView {...props.preventive} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'preventive_referentiel' && (
-              <ErrorBoundary sectionName="Ingénierie & Référentiel Préventif">
-                <PreventiveSecondaryView {...props.preventiveReferentiel} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'preventive_referentiel' && (
+                        <ErrorBoundary sectionName="Ingénierie & Référentiel Préventif">
+                          <PreventiveSecondaryView {...props.preventiveReferentiel} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'comp_groups' && (
-              <ErrorBoundary sectionName="Groupes d'Organes">
-                <CompGroupView {...props.compGroups} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'comp_groups' && (
+                        <ErrorBoundary sectionName="Groupes d'Organes">
+                          <CompGroupView {...props.compGroups} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'comp_families' && (
-              <ErrorBoundary sectionName="Familles d'Organes">
-                <CompFamilyView {...props.compFamilies} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'comp_families' && (
+                        <ErrorBoundary sectionName="Familles d'Organes">
+                          <CompFamilyView {...props.compFamilies} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'comp_templates' && (
-              <ErrorBoundary sectionName="Modèles d'Organes">
-                <CompTemplateView {...props.compTemplates} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'comp_templates' && (
+                        <ErrorBoundary sectionName="Modèles d'Organes">
+                          <CompTemplateView {...props.compTemplates} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'part_types' && (
-              <ErrorBoundary sectionName="Types de Pièces Détachées">
-                <PartTypeView {...props.partTypes} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'part_types' && (
+                        <ErrorBoundary sectionName="Types de Pièces Détachées">
+                          <PartTypeView {...props.partTypes} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'part_designations' && (
-              <ErrorBoundary sectionName="Désignations Pièces Détachées">
-                <PartDesignationView {...props.partDesignations} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'part_designations' && (
+                        <ErrorBoundary sectionName="Désignations Pièces Détachées">
+                          <PartDesignationView {...props.partDesignations} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'families' && (
-              <ErrorBoundary sectionName="Familles de Machines">
-                <FamilyView {...props.families} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'families' && (
+                        <ErrorBoundary sectionName="Familles de Machines">
+                          <FamilyView {...props.families} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'templates' && (
-              <ErrorBoundary sectionName="Modèles de Machines">
-                <TemplatesView {...props.templates} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'templates' && (
+                        <ErrorBoundary sectionName="Modèles de Machines">
+                          <TemplatesView {...props.templates} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'blueprints' && (
-              <ErrorBoundary sectionName="Plans d'Arborescence Machines">
-                <BlueprintMachineView {...props.blueprints} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'blueprints' && (
+                        <ErrorBoundary sectionName="Plans d'Arborescence Machines">
+                          <BlueprintMachineView {...props.blueprints} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'zones' && (
-              <ErrorBoundary sectionName="Référentiel Zones & Seteur">
-                <ZonesView {...props.zones} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'zones' && (
+                        <ErrorBoundary sectionName="Référentiel Zones & Seteur">
+                          <ZonesView {...props.zones} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'utilisateurs' && (
-              <ErrorBoundary sectionName="Gestion des Utilisateurs">
-                <UtilisateursView {...props.utilisateurs} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'utilisateurs' && (
+                        <ErrorBoundary sectionName="Gestion des Utilisateurs">
+                          <UtilisateursView {...props.utilisateurs} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'settings' && (
-              <ErrorBoundary sectionName="Paramètres & Sauvegardes">
-                <SettingsView {...props.settings} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'settings' && (
+                        <ErrorBoundary sectionName="Paramètres & Sauvegardes">
+                          <SettingsView {...props.settings} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'nexus' && (
-              <ErrorBoundary sectionName="Nexus Assistant IA">
-                <NexusView {...props.nexus} />
-              </ErrorBoundary>
-            )}
+                      {currentTab === 'nexus' && (
+                        <ErrorBoundary sectionName="Nexus Assistant IA">
+                          <NexusView {...props.nexus} />
+                        </ErrorBoundary>
+                      )}
 
-            {currentTab === 'guide' && (
-              <ErrorBoundary sectionName="Manuel & Guide Utilisateur">
-                <GuideView {...props.guide} />
-              </ErrorBoundary>
-            )}
-          </div>
-        )}
-      </AnimatePresence>
-    </div>
+                      {currentTab === 'guide' && (
+                        <ErrorBoundary sectionName="Manuel & Guide Utilisateur">
+                          <GuideView {...props.guide} />
+                        </ErrorBoundary>
+                      )}
+                    </div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </SortieExterneContext.Provider>
+          </PreventiveContext.Provider>
+        </MachinesContext.Provider>
+      </WarehouseContext.Provider>
+    </StockContext.Provider>
   );
 }

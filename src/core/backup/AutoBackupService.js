@@ -4,21 +4,36 @@ export const BACKUP_STORAGE_KEY = 'gmao_snapshots_history';
 export const MAX_SNAPSHOTS = 10;
 
 const CRITICAL_KEYS = [
+  'gmao_full_state_v1',
+  'gmao_raw_stock_v6',
   'gmao_spare_parts',
+  'gmao_mouvements',
   'gmao_movements',
   'gmao_machines',
   'gmao_families',
   'gmao_templates',
+  'gmao_blueprints_v1',
   'gmao_types',
   'gmao_diagnostics',
   'gmao_zones',
   'gmao_technicians',
   'gmao_operations',
   'gmao_warehouse_items',
+  'gmao_warehouse_items_v1',
+  'gmao_comp_groups_v1',
+  'gmao_comp_families_v1',
+  'gmao_comp_templates_v1',
   'gmao_part_types',
+  'gmao_part_types_v1',
   'gmao_part_designations',
+  'gmao_part_designations_v1',
+  'gmao_preventive_tasks_v8',
+  'gmao_preventive_actions_v2',
+  'gmao_preventive_guides_v2',
+  'gmao_preventive_plans_v2',
+  'gmao_sortie_externe_bobinage_v1',
   'gmao_users',
-  'gmao_access_logs'
+  'gmao_access_logs',
 ];
 
 export class AutoBackupService {
@@ -133,6 +148,10 @@ export class AutoBackupService {
         localStorage.setItem(key, JSON.stringify(value));
       }
 
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('gmao:state_synced', { detail: snapshot.data }));
+      }
+
       Logger.info(`[AutoBackupService] Successfully restored snapshot: ${snapshotId}`);
       return true;
     } catch (err) {
@@ -209,6 +228,10 @@ export class AutoBackupService {
         if (CRITICAL_KEYS.includes(key)) {
           localStorage.setItem(key, JSON.stringify(value));
         }
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('gmao:state_synced', { detail: data }));
       }
 
       Logger.info('[AutoBackupService] Full backup imported successfully');

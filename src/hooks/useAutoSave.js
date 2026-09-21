@@ -25,6 +25,11 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
     operations,
     mouvements,
     rawStock,
+    preventiveTasks,
+    preventiveActions,
+    preventiveGuides,
+    preventivePlans,
+    sortiesExterne,
   } = state;
 
   const saveTimer = useRef(null);
@@ -49,6 +54,11 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
       operations,
       mouvements,
       rawStock,
+      preventiveTasks,
+      preventiveActions,
+      preventiveGuides,
+      preventivePlans,
+      sortiesExterne,
     };
 
     // Avoid saving if state has not changed
@@ -67,6 +77,11 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
       storageService.setItem('gmao_comp_templates_v1', compTemplates);
       storageService.setItem('gmao_part_types_v1', partTypes);
       storageService.setItem('gmao_part_designations_v1', partDesignations);
+      if (preventiveTasks) storageService.setItem('gmao_preventive_tasks_v8', preventiveTasks);
+      if (preventiveActions) storageService.setItem('gmao_preventive_actions_v2', preventiveActions);
+      if (preventiveGuides) storageService.setItem('gmao_preventive_guides_v2', preventiveGuides);
+      if (preventivePlans) storageService.setItem('gmao_preventive_plans_v2', preventivePlans);
+      if (sortiesExterne) storageService.setItem('gmao_sortie_externe_bobinage_v1', sortiesExterne);
 
       // High performance single-transaction batch save to IndexedDB
       indexedDBService.setItemsBatch({
@@ -75,6 +90,8 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
         gmao_warehouse_items_v1: warehouseItems,
         gmao_mouvements: mouvements,
         gmao_raw_stock_v6: rawStock,
+        gmao_preventive_tasks_v8: preventiveTasks || [],
+        gmao_sortie_externe_bobinage_v1: sortiesExterne || [],
       });
 
       window.dispatchEvent(new CustomEvent('gmao:state_saved', { detail: { timestamp: Date.now() } }));
@@ -102,6 +119,11 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
     operations,
     mouvements,
     rawStock,
+    preventiveTasks,
+    preventiveActions,
+    preventiveGuides,
+    preventivePlans,
+    sortiesExterne,
   ]);
 
   // Debounce saving

@@ -267,6 +267,14 @@ export default function SortieRapideView({
   machines = [],
   technicians = [],
   operations = [],
+  sortiesExterne = [],
+  onAddSortieExterne = null,
+  onUpdateSortieExterne = null,
+  onDeleteSortieExterne = null,
+  onMarkSortieReturned = null,
+  onMarkSortieMounted = null,
+  onClearSortiesForRealFactory = null,
+  onResetSortiesToBaseline = null,
   onAddMouvement,
   onUpdateMouvement,
   onDeleteMouvement,
@@ -1602,6 +1610,14 @@ export default function SortieRapideView({
             transition={{ duration: 0.22, ease: 'easeOut' }}
           >
             <SortieExterneBobinageTab
+              sorties={sortiesExterne}
+              onAddSortie={onAddSortieExterne}
+              onUpdateSortie={onUpdateSortieExterne}
+              onDeleteSortie={onDeleteSortieExterne}
+              onMarkSortieReturned={onMarkSortieReturned}
+              onMarkSortieMounted={onMarkSortieMounted}
+              onClearSortiesForRealFactory={onClearSortiesForRealFactory}
+              onResetSortiesToBaseline={onResetSortiesToBaseline}
               machines={machines}
               warehouseItems={warehouseItems}
               technicians={technicians}
