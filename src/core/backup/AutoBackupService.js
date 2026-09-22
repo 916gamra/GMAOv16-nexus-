@@ -193,9 +193,11 @@ export class AutoBackupService {
       snapshotDataCache.set(snapshotId, fullSnapshot);
 
       // 2. Asynchronously save full snapshot to IndexedDB (virtually unlimited capacity)
-      indexedDBService.setItem(`gmao_snap_${snapshotId}`, fullSnapshot).catch((idbErr) => {
-        Logger.warn('[AutoBackupService] IndexedDB snapshot persistence warning', idbErr);
-      });
+      if (indexedDBService && typeof indexedDBService.setItem === 'function') {
+        indexedDBService.setItem(`gmao_snap_${snapshotId}`, fullSnapshot).catch((idbErr) => {
+          Logger.warn('[AutoBackupService] IndexedDB snapshot persistence warning', idbErr);
+        });
+      }
 
       // 3. Store ONLY lightweight metadata in localStorage to guarantee ZERO quota exhaustion
       const metadata = {
@@ -255,10 +257,12 @@ export class AutoBackupService {
 
     // 2. Check IndexedDB
     try {
-      const fromIDB = await indexedDBService.getItem(`gmao_snap_${snapshotId}`);
-      if (fromIDB && fromIDB.data) {
-        snapshotDataCache.set(snapshotId, fromIDB);
-        return fromIDB;
+      if (indexedDBService && typeof indexedDBService.getItem === 'function') {
+        const fromIDB = await indexedDBService.getItem(`gmao_snap_${snapshotId}`);
+        if (fromIDB && fromIDB.data) {
+          snapshotDataCache.set(snapshotId, fromIDB);
+          return fromIDB;
+        }
       }
     } catch (e) {
       Logger.warn(`[AutoBackupService] IDB read failed for ${snapshotId}`, e);
@@ -321,7 +325,9 @@ export class AutoBackupService {
 
       // Also persist to IndexedDB
       try {
-        await indexedDBService.setItemsBatch(snapshot.data);
+        if (indexedDBService && typeof indexedDBService.setItemsBatch === 'function') {
+          await indexedDBService.setItemsBatch(snapshot.data);
+        }
       } catch (idbErr) {
         Logger.warn('[AutoBackupService] IDB batch sync warning on restore', idbErr);
       }
@@ -346,7 +352,9 @@ export class AutoBackupService {
   static deleteSnapshot(snapshotId) {
     try {
       snapshotDataCache.delete(snapshotId);
-      indexedDBService.deleteItem(`gmao_snap_${snapshotId}`).catch(() => {});
+      if (indexedDBService && typeof indexedDBService.deleteItem === 'function') {
+        indexedDBService.deleteItem(`gmao_snap_${snapshotId}`).catch(() => {});
+      }
 
       const history = this.listSnapshots();
       const filtered = history.filter((s) => s.id !== snapshotId);
