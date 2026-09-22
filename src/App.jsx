@@ -346,6 +346,14 @@ export default function App() {
         linkedFileName={linkedFileName}
         onDirectLink={handleDirectFileLink}
         onDirectSave={handleDirectSave}
+        stockItems={stockItems}
+        machines={machines}
+        zones={zones}
+        technicians={technicians}
+        preventiveTasks={preventiveTasks}
+        onMarkTaskDone={handleMarkTaskDone}
+        onAddMouvement={entityActions.handleAddMouvement}
+        showToast={showToast}
       >
         <AppRouter
           currentTab={currentTab}

@@ -8,6 +8,9 @@ export default function Sidebar({
   setMobileMenuOpen,
   counts,
   currentUser,
+  fileInputRef,
+  handleImportFile,
+  handleExportExcel,
   onLogout,
 }) {
   return (
@@ -27,6 +30,9 @@ export default function Sidebar({
         setMobileMenuOpen={setMobileMenuOpen}
         counts={counts}
         currentUser={currentUser}
+        fileInputRef={fileInputRef}
+        handleImportFile={handleImportFile}
+        handleExportExcel={handleExportExcel}
         onLogout={onLogout}
       />
     </>

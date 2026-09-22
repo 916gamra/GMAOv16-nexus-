@@ -1,19 +1,25 @@
 import { useState, useEffect } from 'react';
 
 /**
- * Hook detecting mobile devices, screen width, orientation, and OS.
+ * Enterprise Automatic Device & Viewport Detection Hook.
+ * Automatically identifies mobile phones, tablets, touch devices, and responsive breakpoints.
  */
-export function useMobileDetect(breakpoint = 768) {
-  const [isMobile, setIsMobile] = useState(() => {
+export function useMobileDetect(breakpoint = 1024) {
+  const checkIsMobile = () => {
     if (typeof window === 'undefined') return false;
-    return window.innerWidth < breakpoint || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  });
+    const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+    const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
+    const isSmallScreen = window.innerWidth < breakpoint;
+    return isMobileUA || isSmallScreen;
+  };
 
-  const [isTouchDevice, setIsTouchDevice] = useState(() => {
+  const checkIsTouch = () => {
     if (typeof window === 'undefined') return false;
     return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  });
+  };
 
+  const [isMobile, setIsMobile] = useState(checkIsMobile);
+  const [isTouchDevice, setIsTouchDevice] = useState(checkIsTouch);
   const [orientation, setOrientation] = useState(() => {
     if (typeof window === 'undefined') return 'portrait';
     return window.innerHeight > window.innerWidth ? 'portrait' : 'landscape';
@@ -23,13 +29,16 @@ export function useMobileDetect(breakpoint = 768) {
     if (typeof window === 'undefined') return;
 
     const handleResize = () => {
-      const mobileStatus = window.innerWidth < breakpoint || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      setIsMobile(mobileStatus);
+      setIsMobile(checkIsMobile());
+      setIsTouchDevice(checkIsTouch());
       setOrientation(window.innerHeight > window.innerWidth ? 'portrait' : 'landscape');
     };
 
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
+    window.addEventListener('resize', handleResize, { passive: true });
+    window.addEventListener('orientationchange', handleResize, { passive: true });
+
+    // Initial check
+    handleResize();
 
     return () => {
       window.removeEventListener('resize', handleResize);

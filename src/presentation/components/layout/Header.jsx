@@ -7,8 +7,7 @@ import {
   Save,
   FileSpreadsheet,
   Bell,
-  Keyboard,
-  Smartphone
+  Keyboard
 } from 'lucide-react';
 import PWAInstallButton from '../common/PWAInstallButton';
 import LanguageSwitcher from '../common/LanguageSwitcher';
@@ -31,7 +30,6 @@ export default function Header({
   onDirectSave,
   currentUser,
   onOpenShortcuts,
-  onOpenMobileSimulator,
 }) {
   const { t } = useTranslation();
   const activeParent = getParentModuleForTab(currentTab);
@@ -588,7 +586,7 @@ export default function Header({
           {/* Export Excel Icon Button - Sleek Dark Neutral Style */}
           <button
             onClick={onExportWithTracking}
-            className="w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-slate-900 hover:bg-black text-white flex items-center justify-center transition shadow-[0_2px_8px_rgba(0,0,0,0.18)] hover:shadow-md cursor-pointer shrink-0 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-hidden group"
+            className="hidden sm:flex w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-slate-900 hover:bg-black text-white items-center justify-center transition shadow-[0_2px_8px_rgba(0,0,0,0.18)] hover:shadow-md cursor-pointer shrink-0 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-hidden group"
             title={t('header.export_excel') || "Exporter Excel"}
             aria-label={t('header.export_excel') || "Exporter Excel"}
           >
@@ -598,24 +596,12 @@ export default function Header({
           {/* Action Icon Circles */}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-zinc-600 hover:text-black hover:border-zinc-300 transition shadow-[0_2px_6px_rgba(0,0,0,0.04)] hover:shadow-md cursor-pointer shrink-0 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-hidden"
+            className="hidden sm:flex w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-white border border-zinc-200 items-center justify-center text-zinc-600 hover:text-black hover:border-zinc-300 transition shadow-[0_2px_6px_rgba(0,0,0,0.04)] hover:shadow-md cursor-pointer shrink-0 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-hidden"
             title="Importer JSON / Excel"
             aria-label="Importer un fichier de données JSON ou Excel"
           >
             <Upload size={16} aria-hidden="true" />
           </button>
-
-          {/* Mobile Simulator Mode Button */}
-          {onOpenMobileSimulator && (
-            <button
-              onClick={onOpenMobileSimulator}
-              className="w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-blue-50 border border-blue-200/90 hover:bg-blue-100 flex items-center justify-center text-blue-700 transition shadow-[0_2px_6px_rgba(37,99,235,0.15)] cursor-pointer shrink-0 focus-visible:ring-2 focus-visible:ring-blue-500"
-              title="تجربة وضع الموبايل (GMAO Mobile)"
-              aria-label="تجربة وضع الموبايل"
-            >
-              <Smartphone size={16} className="text-blue-600" aria-hidden="true" />
-            </button>
-          )}
 
           <button
             onClick={onOpenShortcuts}

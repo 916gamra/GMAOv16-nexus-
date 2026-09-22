@@ -23,6 +23,8 @@ import {
   FingerprintPattern,
   Boxes,
   Calendar,
+  Download,
+  Upload,
 } from 'lucide-react';
 import { HubIcon } from '../common/icons/HubIcon';
 import { CategoryIcon } from '../common/icons/CategoryIcon';
@@ -38,6 +40,9 @@ export default function MobileSidebarDrawer({
   setMobileMenuOpen,
   counts = {},
   currentUser,
+  fileInputRef,
+  _handleImportFile,
+  handleExportExcel,
   onLogout,
 }) {
   // Sidebar Dark / Light Theme state (persisted in localStorage)
@@ -584,6 +589,44 @@ export default function MobileSidebarDrawer({
               associées.
             </div>
           </div>
+        </div>
+
+        {/* Quick Excel Synchronization for Mobile */}
+        <div className="px-3 pb-2 flex items-center gap-2">
+          {handleExportExcel && (
+            <button
+              onClick={() => {
+                handleExportExcel();
+                setMobileMenuOpen(false);
+              }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                isDark
+                  ? 'bg-slate-800/80 border-slate-700 text-emerald-400 hover:bg-slate-700'
+                  : 'bg-white border-slate-200 text-emerald-700 hover:bg-emerald-50'
+              }`}
+              title="Exporter les données au format Excel"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export Excel</span>
+            </button>
+          )}
+          {fileInputRef && (
+            <button
+              onClick={() => {
+                fileInputRef.current?.click();
+                setMobileMenuOpen(false);
+              }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                isDark
+                  ? 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-700'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+              }`}
+              title="Importer un fichier Excel ou JSON"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Import Excel</span>
+            </button>
+          )}
         </div>
 
         {/* PWA Install Button Container */}
