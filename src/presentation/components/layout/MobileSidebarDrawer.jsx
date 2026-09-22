@@ -16,6 +16,7 @@ import {
   Warehouse,
   Lightbulb,
   Settings,
+  Settings2,
   Sun,
   Moon,
   LogOut,
@@ -381,6 +382,22 @@ export default function MobileSidebarDrawer({
                   <span>Planning Préventif</span>
                 </span>
                 <span className={getBadgeClass('preventive')}>{counts.preventive || 150}</span>
+              </button>
+
+              {/* Référentiel, Guides, Actions & Concepteur de Plans */}
+              <button
+                onClick={() => navTo('preventive_referentiel')}
+                className={getTabClass('preventive_referentiel', true)}
+              >
+                <span className="flex items-center gap-2">
+                  <Settings2
+                    className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-purple-400' : 'text-purple-600'}`}
+                  />
+                  <span>Ingénierie & Référentiel</span>
+                </span>
+                <span className={getBadgeClass('preventive_referentiel')}>
+                  {(counts.preventiveGuides || 0) + (counts.preventiveActions || 0) || 'Guides'}
+                </span>
               </button>
             </div>
           </div>

@@ -80,3 +80,32 @@ The following pages are brought into strict compliance:
    - `/src/workers/stockWorker.js` and `/src/hooks/useStockWorker.js` offload heavy calculations.
 3. **Undo / Redo Manager**: [INTEGRATED & ACTIVE]
    - Centralized history manager `/src/utils/undoRedoManager.js` and `/src/hooks/useUndoRedo.js` available for mission-critical operations.
+
+---
+
+## 5. UI/UX Design System Standard: The Collapsible Parent-Grouped Table/Matrix Pattern (Excel Light Accordion Standard)
+To ensure optimal ergonomics, clarity, and consistency across dense data tables (Preventive Calendars, 52-Week Matrix, Multi-Machine Planning, Warehouse Locations, and Inventory), all matrix and list tables MUST adhere to this unified standard:
+
+### 1. Structural Principles
+- **Parent-Entity Grouping (Single Row per Entity by Default)**:
+  - Records are grouped by their primary logical parent (e.g. `Machine`, `Équipement`, `Zone`, `Famille d'Articles`).
+  - In its collapsed default state, each parent displays as **exactly 1 compact row**.
+  - This collapsed row provides an instantaneous summary: Parent ID, Name, Total Children count (`X tâches`), action badges summary, collective progress/status badge (e.g., `X retards`, `Terminé`, `X/Y fait`), and collapsed timeline cells indicating scheduled actions.
+
+- **Interactive In-Table Accordion Expansion**:
+  - Clicking anywhere on the parent row or the chevron toggles accordion expansion.
+  - When expanded, detailed sub-rows appear directly below the parent with a visual tree connector (`└─`).
+  - Each sub-row contains granular attributes (Composant, Action code, Périodicité, Responsable, Statut, Action triggers: Valider / OT Correctif / Imprimer, and specific day/week action pins).
+
+- **Entity-Centric Pagination**:
+  - Pagination size (`pageSize`) strictly counts **Parent Entities (e.g. 20 machines per page)**, never fragmented individual child rows.
+  - Slicing by parent ensures that all tasks of a given machine remain unified in the same view without being split across pages.
+  - Supported page size presets: `20`, `50`, `100`, `200`, `Tout (0)`.
+
+- **Global Batch Controls (Tout déplier / Tout replier)**:
+  - The table sub-header MUST feature a dedicated batch toggle button allowing technicians to expand or collapse all currently displayed parent groups with a single click.
+
+- **Excel Light Aesthetic & Hierarchy**:
+  - Clean `border-slate-200` gridlines, subtle alternating zebra rows (`even:bg-slate-50/60`), sticky left numbering, and high-contrast typography without unnecessary visual clutter.
+  - Interactive cells with micro-animations (`hover:scale-110`, `active:scale-95`).
+

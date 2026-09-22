@@ -24,7 +24,6 @@ import MainLayout from './presentation/components/layout/MainLayout';
 import AppModals from './presentation/modals/AppModals';
 import AppRouter from './presentation/router/AppRouter';
 import { useAppRouterProps } from './presentation/router/useAppRouterProps';
-import PreventiveService from './application/services/PreventiveService';
 
 export default function App() {
   const { user: currentUser } = useAuth();
@@ -321,7 +320,10 @@ export default function App() {
           families: effectiveFamilies.length,
           templates: effectiveTemplates.length,
           blueprints: (blueprints || []).length,
-          preventive: PreventiveService.getTasks().length || 1175,
+          preventive: (preventiveTasks || []).length || 1175,
+          preventiveGuides: (preventiveGuides || []).length,
+          preventiveActions: (preventiveActions || []).length,
+          preventivePlans: (preventivePlans || []).length,
           warehouse: warehouseItemsComputed.length,
           entrepot: (entrepotComponents || []).length,
           comp_groups: (compGroups || []).length,

@@ -52,10 +52,10 @@ export default function BackupManagerModal({ isOpen, onClose, onDataRestored }) 
     }
   };
 
-  const handleExecuteRestore = (id) => {
+  const handleExecuteRestore = async (id) => {
     setIsRestoring(true);
-    setTimeout(() => {
-      const ok = AutoBackupService.restoreSnapshot(id);
+    try {
+      const ok = await AutoBackupService.restoreSnapshot(id);
       setIsRestoring(false);
       setConfirmRestoreId(null);
       if (ok) {
@@ -71,7 +71,10 @@ export default function BackupManagerModal({ isOpen, onClose, onDataRestored }) 
       } else {
         setErrorMsg('Erreur lors de la restauration du point.');
       }
-    }, 300);
+    } catch {
+      setIsRestoring(false);
+      setErrorMsg('Erreur inattendue lors de la restauration.');
+    }
   };
 
   const handleDelete = (id) => {

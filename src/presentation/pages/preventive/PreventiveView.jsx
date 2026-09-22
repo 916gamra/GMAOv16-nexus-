@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Table2,
   BarChart3,
+  Factory,
   X,
   Calculator,
   Clock,
@@ -49,7 +50,7 @@ export default function PreventiveView({
   const [showFormulasModal, setShowFormulasModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [viewMode, setViewMode] = useState('matrix'); // 'matrix' | 'list' | 'calendar' | 'analytics'
+  const [viewMode, setViewMode] = useState('matrix'); // 'matrix' | 'grouped' | 'calendar' | 'list' | 'analytics'
 
   // ==========================================
   // MAIN VIEW HANDLERS (PRIMARY VIEW)
@@ -155,16 +156,30 @@ export default function PreventiveView({
 
           {/* Right Column: 3D Circular Action Buttons */}
           <div className="flex items-center gap-2.5 shrink-0 relative">
+            {/* 3D Switch Button: Grouped by Machine */}
+            <Action3DButton
+              variant="circle"
+              color={viewMode === 'grouped' ? 'indigo' : 'slate'}
+              icon={Factory}
+              onClick={() => setViewMode((prev) => (prev === 'grouped' ? 'matrix' : 'grouped'))}
+              title={
+                viewMode === 'grouped'
+                  ? 'Basculer vers Matrice S1-S52'
+                  : 'Vue Synthétique Groupée par Machine'
+              }
+              className={viewMode === 'grouped' ? 'ring-2 ring-indigo-400/80' : ''}
+            />
+
             {/* 3D Switch Button: Tables (Matrice / Liste) vs Calendar */}
             <Action3DButton
               variant="circle"
-              color={viewMode === 'calendar' ? 'teal' : 'indigo'}
+              color={viewMode === 'calendar' ? 'teal' : 'slate'}
               icon={viewMode === 'calendar' ? Table2 : CalendarDays}
               onClick={() => setViewMode((prev) => (prev === 'calendar' ? 'matrix' : 'calendar'))}
               title={
                 viewMode === 'calendar'
-                  ? 'Basculer vers Mode Tableaux (Matrice / Liste)'
-                  : 'Basculer vers Mode Calendrier Hebdomadaire'
+                  ? 'Basculer vers Matrice S1-S52'
+                  : 'Basculer vers Calendrier Mensuel'
               }
               className={viewMode === 'calendar' ? 'ring-2 ring-teal-400/80' : ''}
             />

@@ -92,7 +92,7 @@ export class BackupService {
         }
       }
 
-      const res = AutoBackupService.restoreSnapshot(targetId);
+      const res = await AutoBackupService.restoreSnapshot(targetId);
       console.log(`✅ Backup ${targetId} restored successfully`);
       return res;
     } catch (error) {
