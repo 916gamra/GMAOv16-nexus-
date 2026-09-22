@@ -6,3 +6,9 @@ export const INITIAL_PLANS = [];
 export { INITIAL_ACTIONS } from './INITIAL_ACTIONS.js';
 export { INITIAL_GUIDES } from './INITIAL_GUIDES.js';
 
+// Modular Preventive Domain Services
+export { ActionService } from './ActionService.js';
+export { GuideService } from './GuideService.js';
+export { PlanService } from './PlanService.js';
+export { TaskService } from './TaskService.js';
+
