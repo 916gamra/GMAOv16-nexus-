@@ -1,3 +1,5 @@
+import { Logger } from '../logger/LoggerService.js';
+
 /**
  * خدمة التخزين المؤقت متعددة المستويات (L1 Memory, L2 LocalStorage)
  * @module CacheService
@@ -25,7 +27,7 @@ export class CacheService {
       try {
         localStorage.setItem(`gmao_cache_${key}`, JSON.stringify(cacheItem));
       } catch (e) {
-        console.warn('فشل حفظ العنصر في LocalStorage Cache:', e);
+        Logger.warn('فشل حفظ العنصر في LocalStorage Cache:', e);
       }
     }
   }

@@ -2,6 +2,8 @@
  * Conflict Resolution Service for GMAO Application
  * Solves data conflicts when merging local & external Excel/JSON datasets
  */
+import { Logger } from '../core/logger/LoggerService.js';
+
 export class ConflictResolutionService {
   static STRATEGIES = {
     LAST_WRITE_WINS: 'LAST_WRITE_WINS',
@@ -18,10 +20,10 @@ export class ConflictResolutionService {
     const remoteTime = new Date(remote.updated_at || remote.timestamp || remote.date || 0).getTime();
 
     if (localTime >= remoteTime) {
-      console.log('✅ Local version wins (newer or equal)');
+      Logger.debug('✅ Local version wins (newer or equal)');
       return local;
     } else {
-      console.log('✅ Remote version wins (newer)');
+      Logger.debug('✅ Remote version wins (newer)');
       return remote;
     }
   }
@@ -30,7 +32,7 @@ export class ConflictResolutionService {
    * Resolve conflict using Local Version Wins
    */
   static resolveLocalWins(local = {}) {
-    console.log('✅ Local version wins:', local?.id || local?.ref || '');
+    Logger.debug('✅ Local version wins:', local?.id || local?.ref || '');
     return local;
   }
 
@@ -38,7 +40,7 @@ export class ConflictResolutionService {
    * Resolve conflict using Server / Remote Version Wins
    */
   static resolveServerWins(_local = {}, remote = {}) {
-    console.log('✅ Server/Remote version wins');
+    Logger.debug('✅ Server/Remote version wins');
     return remote;
   }
 
@@ -46,7 +48,7 @@ export class ConflictResolutionService {
    * Resolve conflict using Property Field Merge Strategy
    */
   static resolveMerge(local = {}, remote = {}) {
-    console.log('🔄 Merging versions...');
+    Logger.debug('🔄 Merging versions...');
 
     const merged = {
       ...local,
@@ -67,7 +69,7 @@ export class ConflictResolutionService {
       }
     }
 
-    console.log(`✅ Merged with ${merged.conflicts.length} field conflicts resolved`);
+    Logger.debug(`✅ Merged with ${merged.conflicts.length} field conflicts resolved`);
     return merged;
   }
 
@@ -118,7 +120,7 @@ export class ConflictResolutionService {
       }
     }
 
-    console.log(`✅ Resolved ${resolved.length} items collection`);
+    Logger.debug(`✅ Resolved ${resolved.length} items collection`);
     return resolved;
   }
 }

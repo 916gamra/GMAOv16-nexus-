@@ -64,7 +64,7 @@ export class SecurityService {
     try {
       const encrypted = this.encrypt(data);
       localStorage.setItem(key, encrypted);
-      console.log(`✅ Data saved securely under key: ${key}`);
+      Logger.debug(`✅ Data saved securely under key: ${key}`);
     } catch (error) {
       Logger.error(`❌ Failed to save secure item: ${key}`, error);
     }
@@ -81,7 +81,7 @@ export class SecurityService {
       if (!encrypted) return null;
       return this.decrypt(encrypted);
     } catch (error) {
-      console.error(`❌ Failed to get secure item for key: ${key}`, error);
+      Logger.error(`❌ Failed to get secure item for key: ${key}`, error);
       return null;
     }
   }

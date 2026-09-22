@@ -1,3 +1,5 @@
+import { Logger } from '../logger/LoggerService.js';
+
 /**
  * خدمة الإشعارات الموحدة للتطبيق
  * @module NotificationService
@@ -34,7 +36,7 @@ export class NotificationService {
     // إشعار جميع المستمعين
     this.#listeners.forEach(listener => listener(notification));
 
-    // تسجيل في الـ Console كـ Fallback
+    // تسجيل عبر الـ Logger الموحد
     const icons = {
       success: '✅',
       error: '❌',
@@ -42,12 +44,14 @@ export class NotificationService {
       info: 'ℹ️'
     };
 
+    const formattedMessage = `${icons[type] || '📢'} ${message}`;
+
     if (type === 'error') {
-      console.error(`${icons[type] || '📢'} ${message}`);
+      Logger.error(formattedMessage);
     } else if (type === 'warning') {
-      console.warn(`${icons[type] || '📢'} ${message}`);
+      Logger.warn(formattedMessage);
     } else {
-      console.log(`${icons[type] || '📢'} ${message}`);
+      Logger.info(formattedMessage);
     }
 
     return notification;

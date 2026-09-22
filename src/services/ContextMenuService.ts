@@ -9,6 +9,8 @@ export interface ContextMenuItem {
   onClick?: () => void;
 }
 
+import { Logger } from '../core/logger/LoggerService.js';
+
 export interface ContextMenuState {
   isOpen: boolean;
   x: number;
@@ -88,7 +90,7 @@ export class ContextMenuService {
       try {
         listener(ContextMenuService.state);
       } catch (err) {
-        console.error('Error in ContextMenu listener:', err);
+        Logger.error('Error in ContextMenu listener:', err);
       }
     });
   };

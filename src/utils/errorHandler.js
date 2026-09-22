@@ -1,6 +1,8 @@
 /**
  * Custom Error Class for GMAO Application
  */
+import { Logger } from '../core/logger/LoggerService.js';
+
 export class AppError extends Error {
   constructor(message, code = 'GENERIC_ERROR', details = {}) {
     super(message);
@@ -22,7 +24,7 @@ export class ErrorHandler {
    * @returns {AppError}
    */
   static handle(error, customUserMessage = null) {
-    console.error('❌ [GMAO App Error]:', error);
+    Logger.error('❌ [GMAO App Error]:', error);
     
     const userMsg = customUserMessage || error?.message || 'Une erreur inattendue est survenue.';
     

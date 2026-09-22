@@ -9,17 +9,19 @@
  * @param {Function} [props.onClick] - Optional click handler callback (table, id) => void
  * @param {string} [props.className] - Optional custom CSS classes
  */
+import { Logger } from '../core/logger/LoggerService.js';
+
 function SmartLink({ id, table, children, onClick, className = '' }) {
   const handleClick = (e) => {
     if (e) e.stopPropagation();
-    console.log(`🔗 Navigating to ${table} with filter: ${id}`);
+    Logger.debug(`🔗 Navigating to ${table} with filter: ${id}`);
     
     if (id) {
       try {
         localStorage.setItem('activeFilter', id);
         localStorage.setItem('gmao_smart_filter', JSON.stringify({ table, filterId: id, timestamp: Date.now() }));
       } catch (err) {
-        console.warn('⚠️ Could not save smart filter to localStorage:', err);
+        Logger.warn('⚠️ Could not save smart filter to localStorage:', err);
       }
     }
     

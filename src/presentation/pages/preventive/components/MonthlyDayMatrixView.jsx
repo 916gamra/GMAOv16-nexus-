@@ -21,6 +21,7 @@ import {
   ArrowDown,
 } from 'lucide-react';
 import ViewSwitchButtonGroup from './ViewSwitchButtonGroup';
+import { Logger } from '../../../../core/logger/LoggerService.js';
 
 const MONTH_NAMES = [
   'Janvier',
@@ -406,7 +407,7 @@ export default function MonthlyDayMatrixView({
       link.click();
       document.body.removeChild(link);
     } catch (e) {
-      console.error('Export error:', e);
+      Logger.error('Export error in MonthlyDayMatrixView:', e);
     }
   };
 

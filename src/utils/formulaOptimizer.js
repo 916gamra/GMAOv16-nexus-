@@ -2,6 +2,7 @@
  * Formula Optimizer for CIOB GMAO Light UI
  * Provides high-speed indexed calculations, memoization, and batch stats calculation.
  */
+import { Logger } from '../core/logger/LoggerService.js';
 
 export class FormulaOptimizer {
   constructor() {
@@ -84,7 +85,7 @@ export class FormulaOptimizer {
     });
 
     const end = performance.now();
-    console.log(`✅ Calculated ${articles.length} stocks in ${(end - start).toFixed(2)}ms`);
+    Logger.debug(`✅ Calculated ${articles.length} stocks in ${(end - start).toFixed(2)}ms`);
     return results;
   }
 
@@ -95,7 +96,7 @@ export class FormulaOptimizer {
       const key = `${articles.length}_${movements.length}`;
 
       if (cache.has(key)) {
-        console.log('💾 Using cached formula results');
+        Logger.debug('💾 Using cached formula results');
         return cache.get(key);
       }
 
@@ -147,7 +148,7 @@ export class FormulaOptimizer {
     }
 
     const end = performance.now();
-    console.log(`✅ Calculated statistics in ${(end - start).toFixed(2)}ms`);
+    Logger.debug(`✅ Calculated statistics in ${(end - start).toFixed(2)}ms`);
     return stats;
   }
 

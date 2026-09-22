@@ -1,5 +1,6 @@
 // src/utils/baselinePreventive.js
 import { INITIAL_ACTIONS, INITIAL_GUIDES } from '../application/services/preventive/index.js';
+import { Logger } from '../core/logger/LoggerService.js';
 
 // Load baseline preventive data
 let cachedPreventiveTasks = null;
@@ -35,7 +36,7 @@ export async function loadBaselinePreventiveTasks() {
         }
       }
     } catch (err) {
-      console.warn(`Could not load ${url}:`, err);
+      Logger.warn(`Could not load ${url}:`, err);
     }
   }
 

@@ -1,55 +1,47 @@
 # 📋 GMAO v16 Nexus — دليل تنفيذ الإصلاحات المعمارية الشامل (GMAO Fixes Guide)
 
-هذا الدليل يوثق الإصلاحات الأساسية والخدمات المركزية التي تم إنشاؤها وفقاً لخطة التطوير الشاملة.
+دليل شامل لكافة الخدمات المركزية، المخازن الموحدة، وهيكلية الصيانة الوقائية المفككة لدعم المطورين والوكلاء البرمجيين.
 
 ---
 
-## 🎯 ملخص الإصلاحات والخدمات المنفذة
+## 🎯 ملخص الخدمات المركزية والمخازن المنفذة
 
-### 1. نظام تسجيل موحد (Unified Logger)
-- **المسار:** `src/core/utils/Logger.js`
-- **الوظيفة:** استبدال `console.log` بنظام تسجيل محكوم بمستويات (DEBUG, INFO, WARN, ERROR, SILENT) مع إمكانية التفعيل والتعطيل في بيئة الإنتاج لمنع تسريب البيانات وتحسين الأداء.
+### 1. نظام التسجيل الموحد (Unified Logger)
+- **المسار الأساسي:** `src/core/utils/Logger.js` و `src/core/logger/LoggerService.js`
+- **الوظيفة:** استبدال `console.log` بنظام تسجيل محكوم بمستويات (DEBUG, INFO, WARN, ERROR) مع إمكانية التفعيل والتعطيل التلقائي في بيئة الإنتاج لمنع تسريب البيانات الحساسة وحفظ الأداء.
 
-### 2. خدمة التحقق من صحة البيانات (Zod Validation Service)
-- **المسار:** `src/core/utils/ValidationService.js`
-- **الوظيفة:** مخططات تحقق قوية لكافة الكيانات الأساسية (`StockItem`, `Machine`, `Zone`, `Movement`) مع رسائل خطأ دقيقة ومنع إدخال بيانات غير متوافقة.
+### 2. خدمة الإشعارات والتنبيهات الموحدة (Notification Service)
+- **المسارات:** `src/services/NotificationService.js` و `src/core/utils/NotificationService.js`
+- **الوظيفة:** إدارة الرسائل والتنبيهات بنمط النشر/الاشتراك (Pub/Sub) بدلاً من `window.alert` لضمان التوافق مع بيئة iFrame. تشتمل على تنبيهات مخصصة لإنشاء الأوامر وحركات المخزون وحالات انتهاء الصلاحية والتصدير.
 
-### 3. خدمة الإشعارات المركزية (Notification Service)
-- **المسار:** `src/core/utils/NotificationService.js`
-- **الوظيفة:** إدارة الرسائل والتنبيهات بنمط النشر/الاشتراك (Pub/Sub) بدلاً من `window.alert` لضمان التوافقية مع بيئة iFrame وواجهات المستخدم التفاعلية.
+### 3. خدمة الصلاحيات والأمان الموحدة (PermissionService)
+- **المسار:** `src/application/services/PermissionService.js`
+- **الوظيفة:** توحيد التحكم بالأدوار والصلاحيات (RBAC) بالربط المباشر مع `AuthService` و `RBACService` للتحقق السريع عبر `PermissionService.can(permission)`.
 
-### 4. إدارة الحالة المركزية بـ Zustand (Zustand Stores)
-- **المسارات:** 
-  - `src/stores/useStockStore.js`
-  - `src/stores/useMachineStore.js`
-- **الوظيفة:** مخازن حالة تفاعلية وموحدة مع دوال CRUD مدمجة بالتحقق التلقائي وتسجيل العمليات وتحديث الأرصدة.
+### 4. خدمة البحث والفلترة متعددة الرموز (SearchService)
+- **المسار:** `src/application/services/SearchService.js`
+- **الوظيفة:** توفير خوارزميات البحث السريع متعدد الحقول (Multi-token Search)، والتطبيع ضد اللهجات والهمزات، والمطابقة الضبابية (Fuzzy Search) للمقالات والآلات والمهام الوقائية.
 
-### 5. التخزين المؤقت متعدد المستويات (Multi-Level Cache Service)
-- **المسار:** `src/core/utils/CacheService.js`
-- **الوظيفة:** تخزين L1 في الذاكرة الحية (RAM) و L2 في التخزين المحلي (LocalStorage) مع فترات صلاحية (TTL) قابلة للتخصيص.
+### 5. خدمة التصدير والاستيراد الشاملة (ExportImportService)
+- **المسار:** `src/application/services/ExportImportService.js`
+- **الوظيفة:** تصدير واستيراد متقدم لملفات Excel (.xlsx) و JSON مع معالجة الأخطاء والتكامل مع نظام الإشعارات.
 
-### 6. البحث السريع المفهرس (Search Service)
-- **المسار:** `src/core/utils/SearchService.js`
-- **الوظيفة:** فهرسة الذاكرة للبحث الفوري متعدد الكلمات (Multi-token) والتطابق التقريبي (Fuzzy matching) عبر آلاف السجلات.
-
-### 7. الجداول الافتراضية عالية الأداء (Virtualized Table)
-- **المسار:** `src/presentation/components/common/VirtualizedTable.jsx`
-- **الوظيفة:** عرض الجداول الضخمة باستخدام `react-window` لتثبيت معدل الإطارات عند 60fps دون تجميد واجهة المستخدم.
-
-### 8. تفكيك وهيكلة خدمة الصيانة الوقائية (Modular Preventive Services)
+### 6. مخازن الحالة الموحدة (Zustand Stores)
 - **المسارات:**
-  - `src/application/services/preventive/ActionService.js`
-  - `src/application/services/preventive/GuideService.js`
-  - `src/application/services/preventive/PlanService.js`
-  - `src/application/services/preventive/TaskService.js`
-- **الوظيفة:** فصل المسؤوليات بدقة مع الحفاظ الكامل على التوافق مع الكود القائم.
+  - `src/stores/useStockStore.js`: إدارة المخزون، الحركات، والتحقق التلقائي من تكرار المراجع.
+  - `src/stores/useMachineStore.js`: إدارة سجل الآلات والورش والمناطق.
+  - `src/stores/useWarehouseStore.js`: إدارة مستودع المكونات والقوالب وعائلات القطع.
+  - `src/stores/index.js`: نقطة تصدير موحدة لكافة المخازن.
 
-### 9. خدمة التصدير والاستيراد الموحدة (Export / Import Service)
-- **المسار:** `src/core/utils/ExportImportService.js`
-- **الوظيفة:** قراءة وتصدير ملفات Excel و JSON بضمانات معالجة الأخطاء والتنبيهات المباشرة.
-
-### 10. نظام التحكم في الصلاحيات والأمان (Permission & RBAC System)
+### 7. تفكيك وهيكلة خدمة الصيانة الوقائية (Modular Preventive Services)
 - **المسارات:**
-  - `src/core/security/PermissionService.js`
-  - `src/presentation/components/common/PermissionGate.jsx`
-- **الوظيفة:** بوابات صلاحية تعتمد على الأدوار (RBAC) لحماية الإجراءات الحساسة (حذف، تعديل) في واجهات المستخدم.
+  - `src/application/services/preventive/ActionService.js`: إدارة الأفعال القياسية (Actions).
+  - `src/application/services/preventive/GuideService.js`: إدارة الأدلة الفنية للمكونات (Guides).
+  - `src/application/services/preventive/PlanService.js`: إدارة خطط الصيانة، التوزيع عبر 52 أسبوعاً، وتوليد المهام.
+  - `src/application/services/preventive/TaskService.js`: إدارة وتنفيذ المهام الوقائية، الاستيراد من Excel، وتحميل بيانات المصنع الحقيقية.
+  - `src/application/services/preventive/index.js`: واجهة موحدة للتصدير.
+- **التوافق التراجعي:** كائن `PreventiveService.js` يستمر في العمل كـ Facade موحد لتفادي كسر أي واجهة مستخدم سابقة.
+
+### 8. مكون الجدول الافتراضي عالي الأداء (VirtualizedTable)
+- **المسار:** `src/presentation/components/VirtualizedTable.jsx`
+- **الوظيفة:** استخدام `react-window` لمعالجة وعرض آلاف السجلات بدون أي بطء أو تجميد في واجهة المستخدم، مع استجابة تامة لأبعاد الشاشة.

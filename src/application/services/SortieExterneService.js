@@ -2,6 +2,8 @@
 // SERVICE SORTIE EXTERNE BOBINAGE & REPARATION
 // ARCHITECTURE: ref (Coordonnées externes / Bon bobinier) | code (Adresse interne SORT-EXT-xxx) | id (Passeport unique complet)
 
+import { Logger } from '../../core/logger/LoggerService.js';
+
 const STORAGE_KEY = 'gmao_sortie_externe_bobinage_v1';
 
 // Seed Initial réaliste issu des archives de l'usine (POA-08, SAT-16, DET-01, DET-06, etc.)
@@ -149,7 +151,7 @@ class SortieExterneService {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sorties));
     } catch (e) {
-      console.error('Erreur sauvegarde sorties externes:', e);
+      Logger.error('Erreur sauvegarde sorties externes:', e);
     }
   }
 

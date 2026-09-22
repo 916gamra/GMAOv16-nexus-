@@ -6,6 +6,7 @@
 // 4. Tâches d'Exécution & Matrice S1-S52 (Suivi, validation, liaison Correctif)
 
 import * as XLSX from 'xlsx';
+import { Logger } from '../../core/logger/LoggerService.js';
 import {
   INITIAL_ACTIONS,
   INITIAL_GUIDES,
@@ -570,7 +571,7 @@ export class PreventiveService {
           }
         }
       } catch (err) {
-        console.warn(`Could not load ${url}:`, err);
+        Logger.warn(`Could not load ${url}:`, err);
       }
     }
     if (allTasks.length > 0) {
@@ -947,7 +948,7 @@ export class PreventiveService {
         window.dispatchEvent(new CustomEvent('gmao_mouvements_updated', { detail: updatedMovements }));
       }
     } catch (err) {
-      console.warn('Could not record automatic stock sortie:', err);
+      Logger.warn('Could not record automatic stock sortie:', err);
     }
   }
 
@@ -987,7 +988,7 @@ export class PreventiveService {
         window.dispatchEvent(new CustomEvent('gmao_machines_updated', { detail: { id_machine: task.id_machine } }));
       }
     } catch (err) {
-      console.warn('Could not record machine intervention history:', err);
+      Logger.warn('Could not record machine intervention history:', err);
     }
   }
 
@@ -1010,7 +1011,7 @@ export class PreventiveService {
       };
       return JSON.stringify(vault, null, 2);
     } catch (err) {
-      console.error('Erreur export unified vault:', err);
+      Logger.error('Erreur export unified vault:', err);
       return null;
     }
   }
@@ -1040,7 +1041,7 @@ export class PreventiveService {
       }
       return true;
     } catch (err) {
-      console.error('Erreur import unified vault:', err);
+      Logger.error('Erreur import unified vault:', err);
       return false;
     }
   }

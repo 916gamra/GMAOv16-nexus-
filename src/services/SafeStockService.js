@@ -1,5 +1,6 @@
 import { AppError, ErrorHandler } from '../utils/errorHandler';
 import { PerformanceOptimizer } from '../utils/performanceOptimizer';
+import { Logger } from '../core/logger/LoggerService.js';
 
 /**
  * Safe Stock Service with Error Handling & Fallbacks
@@ -12,7 +13,7 @@ export class SafeStockService {
    */
   static async loadData(db) {
     try {
-      console.log('🔄 Loading data safely...');
+      Logger.debug('🔄 Loading data safely...');
 
       if (!db || typeof db.getAll !== 'function') {
         throw new AppError('Invalid database interface provided', 'INVALID_DB');
@@ -25,10 +26,10 @@ export class SafeStockService {
         throw new AppError('Aucun article trouvé dans la base de données.', 'NO_ARTICLES');
       }
 
-      console.log('✅ Data loaded successfully');
+      Logger.debug('✅ Data loaded successfully');
       return { articles: articles || [], movements: movements || [] };
     } catch (error) {
-      console.error('❌ Error loading data:', error);
+      Logger.error('❌ Error loading data:', error);
 
       if (error instanceof AppError) {
         ErrorHandler.handle(error);
@@ -49,7 +50,7 @@ export class SafeStockService {
    */
   static async calculateAllStocks(articles = [], movements = []) {
     try {
-      console.log('🔄 Safe stock calculation started...');
+      Logger.debug('🔄 Safe stock calculation started...');
       
       if (!Array.isArray(articles)) {
         throw new AppError('Invalid articles payload provided', 'INVALID_ARTICLES');
@@ -75,15 +76,15 @@ export class SafeStockService {
             alerte,
           };
         } catch (itemErr) {
-          console.warn(`⚠️ Error calculating stock for ${article?.ref || 'item'}:`, itemErr);
+          Logger.warn(`⚠️ Error calculating stock for ${article?.ref || 'item'}:`, itemErr);
           return article; // Return original article item without crashing
         }
       });
 
-      console.log('✅ Stocks calculated successfully');
+      Logger.debug('✅ Stocks calculated successfully');
       return results;
     } catch (error) {
-      console.error('❌ Error calculating stocks:', error);
+      Logger.error('❌ Error calculating stocks:', error);
       ErrorHandler.handle(error, 'Erreur lors du calcul des stocks.');
       return articles; // Safe fallback
     }

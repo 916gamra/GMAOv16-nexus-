@@ -4,6 +4,7 @@ import CustomSelect from '../../components/common/CustomSelect';
 import QuickMovementModal from './QuickMovementModal';
 import { storageService } from '../../../utils/storageService';
 import { useSmartTableLoader } from '../../hooks/useSmartTableLoader';
+import { Logger } from '../../../core/logger/LoggerService.js';
 import {
   Boxes,
   Plus,
@@ -1021,7 +1022,7 @@ export default function EntrepotView({
       link.click();
       document.body.removeChild(link);
     } catch (e) {
-      console.error('Export error:', e);
+      Logger.error('Export error in EntrepotView:', e);
     }
   };
 

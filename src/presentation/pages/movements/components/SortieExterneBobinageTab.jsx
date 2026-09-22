@@ -21,6 +21,7 @@ import {
   User,
 } from 'lucide-react';
 import SortieExterneService from '../../../../application/services/SortieExterneService';
+import { Logger } from '../../../../core/logger/LoggerService.js';
 
 export default function SortieExterneBobinageTab({
   sorties = [],
@@ -199,7 +200,7 @@ export default function SortieExterneBobinageTab({
         });
       }
     } catch (err) {
-      console.error(err);
+      Logger.error('Erreur creation sortie externe:', err);
       alert('Erreur lors de la création de la sortie.');
     }
   };

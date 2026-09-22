@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import Action3DButton from '../../../components/common/Action3DButton';
 import PreventiveService from '../../../../application/services/PreventiveService';
+import { Logger } from '../../../../core/logger/LoggerService.js';
 
 export default function TabPlanBuilder({
   machines = [],
@@ -284,7 +285,7 @@ export default function TabPlanBuilder({
         }
       }, 1500);
     } catch (err) {
-      console.error('Erreur import Excel:', err);
+      Logger.error('Erreur import Excel:', err);
       setImportStatus({
         type: 'error',
         message: `Erreur d'import Excel: ${err?.message || 'Fichier invalide'}`,
@@ -312,7 +313,7 @@ export default function TabPlanBuilder({
         }
       }, 1400);
     } catch (err) {
-      console.error('Erreur chargement JSON:', err);
+      Logger.error('Erreur chargement JSON:', err);
       setImportStatus({
         type: 'error',
         message: `Erreur: ${err?.message || 'Impossible de charger les fichiers JSON'}`,

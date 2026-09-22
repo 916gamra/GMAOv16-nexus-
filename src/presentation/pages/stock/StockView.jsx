@@ -11,6 +11,7 @@ import { usePermission } from '../../components/common/PermissionGate.jsx';
 import Action3DButton from '../../components/common/Action3DButton';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
 import { contextMenu } from '../../../services/ContextMenuService';
+import { Logger } from '../../../core/logger/LoggerService.js';
 import {
   Search,
   AlertTriangle,
@@ -349,7 +350,7 @@ export default function StockView({
       link.click();
       document.body.removeChild(link);
     } catch (e) {
-      console.error('Export error:', e);
+      Logger.error('Export error in StockView:', e);
     }
   };
 

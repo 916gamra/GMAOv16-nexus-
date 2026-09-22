@@ -3,6 +3,8 @@
  * Provides high-speed O(1) indexed lookup logic for movement calculation,
  * preventing UI freeze on large datasets (10,000+ articles, 100,000+ movements).
  */
+import { Logger } from '../core/logger/LoggerService.js';
+
 export class PerformanceOptimizer {
   /**
    * Index movements by article reference in O(N) time.
@@ -66,7 +68,7 @@ export class PerformanceOptimizer {
    * @returns {Array} Articles enriched with stockActuel and alert status
    */
   static calculateAllStocksFast(articles = [], movements = []) {
-    console.log('🔄 Calculating stocks (optimized)...');
+    Logger.debug('🔄 Calculating stocks (optimized)...');
     
     const movementIndex = this.indexMovementsByRef(movements);
     const start = performance.now();
@@ -90,7 +92,7 @@ export class PerformanceOptimizer {
     });
 
     const end = performance.now();
-    console.log(`✅ Calculated ${articles.length} stocks in ${(end - start).toFixed(2)}ms`);
+    Logger.debug(`✅ Calculated ${articles.length} stocks in ${(end - start).toFixed(2)}ms`);
 
     return results;
   }

@@ -14,7 +14,7 @@ export class BackupService {
    */
   static async createBackup(dbOrReason = 'Sauvegarde manuelle') {
     try {
-      console.log('🔄 Creating backup snapshot...');
+      Logger.debug('🔄 Creating backup snapshot...');
 
       // If a database wrapper with getAll is passed
       if (dbOrReason && typeof dbOrReason === 'object' && typeof dbOrReason.getAll === 'function') {
@@ -32,18 +32,17 @@ export class BackupService {
         };
 
         localStorage.setItem(backupId, JSON.stringify(backupData));
-        console.log(`✅ Backup created: ${backupId}`);
+        Logger.debug(`✅ Backup created: ${backupId}`);
         return backupData;
       }
 
       // Default AutoBackupService snapshot creation across all GMAO collections
       const reason = typeof dbOrReason === 'string' ? dbOrReason : 'Sauvegarde manuelle';
       const snapshot = AutoBackupService.createSnapshot(reason, true);
-      console.log('✅ Backup snapshot created successfully');
+      Logger.debug('✅ Backup snapshot created successfully');
       return snapshot;
     } catch (error) {
-      console.error('❌ Backup creation failed:', error);
-      Logger.error('Backup failed:', error);
+      Logger.error('❌ Backup creation failed:', error);
       return null;
     }
   }
@@ -55,7 +54,7 @@ export class BackupService {
    */
   static async restoreBackup(dbOrSnapshotId, backupId) {
     try {
-      console.log('🔄 Restoring backup...');
+      Logger.debug('🔄 Restoring backup...');
 
       // Case 1: restoreBackup(db, 'backup_1234567890')
       if (dbOrSnapshotId && typeof dbOrSnapshotId === 'object' && backupId) {
@@ -68,7 +67,7 @@ export class BackupService {
             }
           }
         }
-        console.log('✅ Backup restored from DB handler');
+        Logger.debug('✅ Backup restored from DB handler');
         return true;
       }
 
@@ -87,17 +86,16 @@ export class BackupService {
               }
             });
           }
-          console.log(`✅ Backup ${targetId} restored successfully`);
+          Logger.debug(`✅ Backup ${targetId} restored successfully`);
           return true;
         }
       }
 
       const res = await AutoBackupService.restoreSnapshot(targetId);
-      console.log(`✅ Backup ${targetId} restored successfully`);
+      Logger.debug(`✅ Backup ${targetId} restored successfully`);
       return res;
     } catch (error) {
-      console.error('❌ Restore failed:', error);
-      Logger.error('Restore failed:', error);
+      Logger.error('❌ Restore failed:', error);
       return false;
     }
   }
@@ -129,7 +127,7 @@ export class BackupService {
       }
     });
 
-    console.log(`✅ Found ${backups.length} backups`);
+    Logger.debug(`✅ Found ${backups.length} backups`);
     return backups;
   }
 

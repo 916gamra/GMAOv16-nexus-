@@ -48,6 +48,8 @@ export class Logger {
   }
 
   static table(data) {
-    console.table(data);
+    if (this.currentLevel <= this.LOG_LEVELS.DEBUG) {
+      console.table(data);
+    }
   }
 }

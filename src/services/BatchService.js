@@ -3,6 +3,8 @@
  * Processes large arrays or async operations in controlled chunks (batches)
  * to maintain fluid 60fps rendering without freezing UI thread.
  */
+import { Logger } from '../core/logger/LoggerService.js';
+
 export class BatchService {
   /**
    * @param {number} batchSize - Number of items per batch (default: 100)
@@ -37,23 +39,23 @@ export class BatchService {
 
     try {
       const batch = this.queue.splice(0, this.batchSize);
-      console.log(`🔄 Processing batch chunk of ${batch.length} operations...`);
+      Logger.debug(`🔄 Processing batch chunk of ${batch.length} operations...`);
 
       const results = await Promise.all(
         batch.map((op) => {
           try {
             return typeof op === 'function' ? op() : op;
           } catch (err) {
-            console.error('⚠️ Operation in batch failed:', err);
+            Logger.warn('⚠️ Operation in batch failed:', err);
             return null;
           }
         })
       );
 
-      console.log('✅ Batch chunk processed successfully');
+      Logger.debug('✅ Batch chunk processed successfully');
       return results;
     } catch (error) {
-      console.error('❌ Batch chunk processing error:', error);
+      Logger.error('❌ Batch chunk processing error:', error);
       throw error;
     } finally {
       this.isProcessing = false;
