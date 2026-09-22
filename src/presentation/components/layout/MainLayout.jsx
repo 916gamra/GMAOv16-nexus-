@@ -5,6 +5,7 @@ import Header from './Header';
 import ContextMenu from '../common/ContextMenu';
 import AutoSaveIndicator from '../common/AutoSaveIndicator';
 import KeyboardShortcutsModal from '../common/KeyboardShortcutsModal';
+import MobileSimulatorModal from '../mobile/MobileSimulatorModal';
 import { keyboardShortcuts } from '../../../services/KeyboardShortcutsService';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -26,6 +27,7 @@ export default function MainLayout({
 }) {
   const { user, logout } = useAuth();
   const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
+  const [mobileSimulatorOpen, setMobileSimulatorOpen] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounter = useRef(0);
 
@@ -234,6 +236,7 @@ export default function MainLayout({
         onDirectSave={onDirectSave}
         currentUser={user}
         onOpenShortcuts={() => setShortcutsModalOpen(true)}
+        onOpenMobileSimulator={() => setMobileSimulatorOpen(true)}
       />
 
       {/* Content Layout */}
@@ -278,6 +281,12 @@ export default function MainLayout({
       <KeyboardShortcutsModal
         isOpen={shortcutsModalOpen}
         onClose={() => setShortcutsModalOpen(false)}
+      />
+
+      {/* Interactive Mobile Mode Simulator Modal */}
+      <MobileSimulatorModal
+        isOpen={mobileSimulatorOpen}
+        onClose={() => setMobileSimulatorOpen(false)}
       />
     </div>
   );

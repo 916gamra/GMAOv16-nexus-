@@ -7,7 +7,8 @@ import {
   Save,
   FileSpreadsheet,
   Bell,
-  Keyboard
+  Keyboard,
+  Smartphone
 } from 'lucide-react';
 import PWAInstallButton from '../common/PWAInstallButton';
 import LanguageSwitcher from '../common/LanguageSwitcher';
@@ -30,6 +31,7 @@ export default function Header({
   onDirectSave,
   currentUser,
   onOpenShortcuts,
+  onOpenMobileSimulator,
 }) {
   const { t } = useTranslation();
   const activeParent = getParentModuleForTab(currentTab);
@@ -602,6 +604,18 @@ export default function Header({
           >
             <Upload size={16} aria-hidden="true" />
           </button>
+
+          {/* Mobile Simulator Mode Button */}
+          {onOpenMobileSimulator && (
+            <button
+              onClick={onOpenMobileSimulator}
+              className="w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-blue-50 border border-blue-200/90 hover:bg-blue-100 flex items-center justify-center text-blue-700 transition shadow-[0_2px_6px_rgba(37,99,235,0.15)] cursor-pointer shrink-0 focus-visible:ring-2 focus-visible:ring-blue-500"
+              title="تجربة وضع الموبايل (GMAO Mobile)"
+              aria-label="تجربة وضع الموبايل"
+            >
+              <Smartphone size={16} className="text-blue-600" aria-hidden="true" />
+            </button>
+          )}
 
           <button
             onClick={onOpenShortcuts}
