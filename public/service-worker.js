@@ -47,6 +47,12 @@ self.addEventListener('activate', (event) => {
 // Stratégie Fetch
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+
+  // Cache API supports GET only
+  if (request.method !== 'GET') {
+    return;
+  }
+
   const url = new URL(request.url);
 
   // Ignorer les requêtes non-HTTP/HTTPS (ex: chrome-extension://)

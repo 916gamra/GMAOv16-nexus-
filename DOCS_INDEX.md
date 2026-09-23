@@ -14,6 +14,7 @@
 | 🏭 **المواصفة التشغيلية لكل الشاشات** | [`docs/MODULES_SPECIFICATION.md`](./docs/MODULES_SPECIFICATION.md) | **توثيق وظيفي تفصيلي**: فلسفة كل شاشة، مكوناتها، الجداول المتطابقة مع إكسيل، وتفاصيل الأعمدة والمعادلات. |
 | 📐 **معادلات إكسيل المرجعية** | [`EXCEL_FORMULAS.md`](./EXCEL_FORMULAS.md) | **المرجع الحسابي**: كافة معادلات `SUMIFS`, `COUNTIF`, ومطابقتها البرمجية في محرك الجافاسكريبت. |
 | 🏛️ **دستور القواعد والمعايير المعمارية** | [`docs/SYSTEM_RULES.md`](./docs/SYSTEM_RULES.md) | **دستور النظام المعماري**: المبادئ الـ 9، معايير Excel Twin، أزرار 3D، مسار التنقل الذكي، وتوحيد الجداول. |
+| 🧪 **استراتيجية الاختبار الشاملة** | [`src/tests/testing-strategy.md`](./src/tests/testing-strategy.md) | **استراتيجية وضمان الجودة**: اختبارات الوحدة (Unit)، التكامل (Integration)، التدفقات (E2E)، الأداء، والأمان. |
 | 🔄 **إدارة الحالة والمعمارية الموحدة** | [`docs/STATE_MANAGEMENT_AND_ARCHITECTURE.md`](./docs/STATE_MANAGEMENT_AND_ARCHITECTURE.md) | **إدارة الحالة ومنسق النظام**: معمارية Orchestrator، القواعد الـ 4، عدم فقدان البيانات، ومعيار الجداول المجمعة (Accordion). |
 | ⚙️ **هرم المكونات وثلاثية ID/CODE/REF** | [`docs/COMPOSANTS_HIERARCHIE_ET_IDENTIFIANTS.md`](./docs/COMPOSANTS_HIERARCHIE_ET_IDENTIFIANTS.md) | **هندسة المكونات والتسميات**: فلسفة 4 مستويات (Groupe -> Famille -> Template -> Entrepôt)، وفلسفة التمييز بين ID و CODE و REF. |
 

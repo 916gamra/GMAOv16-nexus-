@@ -50,15 +50,15 @@ export function useAppCalculations({
       );
 
       const entrees =
-        mvtSummary[itemRefKey]?.entrees ||
-        mvtSummary[normRefKey]?.entrees ||
-        mvtSummary[padRefKey]?.entrees ||
-        (itemDesigKey ? mvtSummary[itemDesigKey]?.entrees || 0 : 0);
+        mvtSummary[itemRefKey]?.entrees ??
+        mvtSummary[normRefKey]?.entrees ??
+        mvtSummary[padRefKey]?.entrees ??
+        (itemDesigKey ? (mvtSummary[itemDesigKey]?.entrees ?? 0) : 0);
       const sorties =
-        mvtSummary[itemRefKey]?.sorties ||
-        mvtSummary[normRefKey]?.sorties ||
-        mvtSummary[padRefKey]?.sorties ||
-        (itemDesigKey ? mvtSummary[itemDesigKey]?.sorties || 0 : 0);
+        mvtSummary[itemRefKey]?.sorties ??
+        mvtSummary[normRefKey]?.sorties ??
+        mvtSummary[padRefKey]?.sorties ??
+        (itemDesigKey ? (mvtSummary[itemDesigKey]?.sorties ?? 0) : 0);
 
       let stockInitial = 0;
       if (item.stockInitial !== undefined && item.stockInitial !== null && item.stockInitial !== '' && !isNaN(Number(item.stockInitial))) {

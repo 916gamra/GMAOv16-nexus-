@@ -16,6 +16,12 @@ export function safeNum(val, defaultVal = NaN) {
     if (typeof val === 'number') {
       return Number.isFinite(val) ? val : defaultVal;
     }
+    if (typeof val === 'string') {
+      // Normalize French formatted numbers: remove NBSP/spaces, replace comma with dot
+      const cleanStr = val.replace(/[\s\u00A0\u202F\u2009]/g, '').replace(',', '.');
+      const parsed = Number(cleanStr);
+      return Number.isFinite(parsed) ? parsed : defaultVal;
+    }
     const parsed = Number(val);
     return Number.isFinite(parsed) ? parsed : defaultVal;
   } catch (error) {
@@ -230,8 +236,8 @@ export function validateMovementWithContext(mvt, context) {
       errors.push("La référence de l'article (Ref) est requise.");
     }
 
-    if (qty <= 0) {
-      errors.push('La quantité doit être un nombre strictly positif.');
+    if (!Number.isFinite(qty) || qty <= 0) {
+      errors.push('La quantité doit être un nombre strictement positif.');
     }
 
     const validTypes = [

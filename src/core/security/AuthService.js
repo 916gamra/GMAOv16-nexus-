@@ -263,10 +263,6 @@ export class AuthService {
 
     const storedAdminPin = localStorage.getItem('gmao_admin_pin');
     if (!storedAdminPin) {
-      // Fallback: Check if PIN matches admin default
-      if (cleanPin === 'admin123' || cleanPin === '1234') {
-        return this.createAdminSession('ADMIN', 'PIN_DEFAULT');
-      }
       throw new Error("Aucun code PIN chiffré n'est configuré dans les Paramètres. Utilisez le mot de passe habituel.");
     }
 

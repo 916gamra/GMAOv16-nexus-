@@ -21,8 +21,11 @@ export class StockCalculationService {
    */
   static getMovementHash(movements) {
     if (!Array.isArray(movements) || movements.length === 0) return 'mvt_0';
-    const last = movements[movements.length - 1];
-    return `mvt_${movements.length}_${last?.id || last?.code_bon || Date.now()}`;
+    const len = movements.length;
+    const first = movements[0];
+    const mid = movements[Math.floor(len / 2)];
+    const last = movements[len - 1];
+    return `mvt_${len}_${first?.id || first?.code_bon || '0'}_${mid?.quantite || '0'}_${last?.id || last?.code_bon || '0'}`;
   }
 
   /**
@@ -214,12 +217,13 @@ export class StockCalculationService {
         throw err;
       });
 
-    this.movementQueue.set(key, nextTask);
+    // Keep queue alive even if task rejects
+    this.movementQueue.set(key, nextTask.catch(() => {}));
     return nextTask;
   }
 
   /**
-   * Generates a comprehensive Stock Report according to Excel Twin rules.
+   * Generates a comprehensive Stock Report according to Excel Twin rules in O(A + M).
    */
   static generateStockReport(articles = [], movements = []) {
     try {
@@ -231,9 +235,32 @@ export class StockCalculationService {
       const ruptureItems = [];
       const alerteItems = [];
 
+      // Single-pass O(M) index
+      const mvtIndex = new Map();
+      movements.forEach((m) => {
+        if (!m) return;
+        const r = String(m.ref || m.Ref || '').toLowerCase().trim();
+        if (!r) return;
+        if (!mvtIndex.has(r)) {
+          mvtIndex.set(r, { entrees: 0, sorties: 0 });
+        }
+        const entry = mvtIndex.get(r);
+        const typeStr = String(m.type || '').toLowerCase();
+        const qty = safeNum(m.quantite || m.quantity, 0);
+        if (typeStr.includes('entr')) {
+          entry.entrees += qty;
+        } else if (typeStr.includes('sort')) {
+          entry.sorties += qty;
+        }
+      });
+
+      // Single-pass O(A) calculations
       articles.forEach((art) => {
         if (!art) return;
-        const currentStock = this.calculateStockActuel(art, movements);
+        const refKey = String(art.ref || '').toLowerCase().trim();
+        const mTotals = mvtIndex.get(refKey) || { entrees: 0, sorties: 0 };
+        const init = safeNum(art.stockInitial || art.initialStock, 0);
+        const currentStock = Math.max(0, init + mTotals.entrees - mTotals.sorties);
         const status = this.getAlertStatus(art, currentStock);
         const unitPrice = safeNum(art.prixUnitaire || art.unitPrice || art.prix_unitaire, 0);
         const itemVal = currentStock * unitPrice;
@@ -244,7 +271,7 @@ export class StockCalculationService {
         const reportItem = {
           ref: art.ref,
           designation: art.designation || art.name || '',
-          stockInitial: safeNum(art.stockInitial, 0),
+          stockInitial: init,
           stockActuel: currentStock,
           unitPrice,
           totalValue: itemVal,
@@ -278,12 +305,12 @@ export class StockCalculationService {
     } catch (error) {
       Logger.error('❌ Error generating stock report', error, 'StockCalc');
       return {
-        generatedAt: new Date().toISOString(),
-        totalArticles: 0,
+        totalArticles: articles.length,
         totalQuantity: 0,
         totalValue: 0,
         summary: { rupture: 0, alerte: 0, ok: 0 },
-        error: error.message,
+        ruptureItems: [],
+        alerteItems: [],
       };
     }
   }

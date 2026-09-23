@@ -3,6 +3,7 @@ import * as bcrypt from 'bcryptjs';
 import { Container } from '../core/di/Container.js';
 import { accessLogService } from '../utils/AccessLogService';
 import { vaultService } from '../utils/vaultService';
+import { storageService } from '../utils/storageService';
 
 const AuthContext = createContext(null);
 const BCRYPT_ROUNDS = 10;
@@ -101,7 +102,7 @@ export const AuthProvider = ({ children }) => {
     setAccounts(defaultAccounts.map(({ passwordHash: _passwordHash, ...rest }) => rest));
 
     // Also sync admin PIN hash with storage
-    localStorage.setItem('gmao_admin_pin', btoa(`CIOB_GMAO_SECURE_SALT:${cleanPin}`));
+    localStorage.setItem('gmao_admin_pin', storageService.hashPin(cleanPin));
 
     return true;
   }, []);

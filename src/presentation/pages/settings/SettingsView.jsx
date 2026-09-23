@@ -172,20 +172,7 @@ export default function SettingsView({
     );
   });
 
-  const [tempPin, setTempPin] = useState(() => {
-    const saved = localStorage.getItem('gmao_admin_pin');
-    if (saved) {
-      try {
-        const raw = atob(saved);
-        if (raw.startsWith('CIOB_GMAO_SECURE_SALT:')) {
-          return raw.replace('CIOB_GMAO_SECURE_SALT:', '');
-        }
-      } catch {
-        // Ignore parsing errors gracefully
-      }
-    }
-    return '1234';
-  });
+  const [tempPin, setTempPin] = useState('');
 
   const [auditTarget, setAuditTarget] = useState('machines'); // machines, zones, utilisateurs
   const [showAuditUserModal, setShowAuditUserModal] = useState(false);
@@ -3075,7 +3062,7 @@ export default function SettingsView({
                         const vault = await vaultService.decryptVault(currentMasterPin);
                         await vaultService.encryptVault(vault, tempPin);
                         await vaultService.setPinHash(tempPin);
-                        localStorage.setItem('gmao_admin_pin', btoa(`CIOB_GMAO_SECURE_SALT:${tempPin}`));
+                        localStorage.setItem('gmao_admin_pin', storageService.hashPin(tempPin));
                         localStorage.setItem('gmao_admin_role', tempRole.trim());
                         showToast('Master PIN modifié — Coffre-fort re-chiffré avec la nouvelle clé !', 'success');
                         setCurrentMasterPin('');

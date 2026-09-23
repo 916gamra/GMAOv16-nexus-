@@ -453,19 +453,35 @@ export function useAppExcelOperations({
       const backupDate = createAutomaticBackup(`Avant Liaison Directe : ${file.name}`);
 
       const arrayBuffer = await file.arrayBuffer();
-      const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+      const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array', cellDates: true });
 
+      const importedData = {};
       if (workbook.SheetNames.includes('Stock_Actuel')) {
-        const parsedStock = XLSX.utils.sheet_to_json(workbook.Sheets['Stock_Actuel']);
-        if (parsedStock.length > 0) setRawStock(parsedStock);
+        importedData.Stock_Actuel = XLSX.utils.sheet_to_json(workbook.Sheets['Stock_Actuel']);
       }
       if (workbook.SheetNames.includes('Machines_Registered')) {
-        const parsedMch = XLSX.utils.sheet_to_json(workbook.Sheets['Machines_Registered']);
-        if (parsedMch.length > 0) setMachines(parsedMch);
+        importedData.Machines = XLSX.utils.sheet_to_json(workbook.Sheets['Machines_Registered']);
       }
       if (workbook.SheetNames.includes('Mouvements')) {
-        const parsedMvt = XLSX.utils.sheet_to_json(workbook.Sheets['Mouvements']);
-        if (parsedMvt.length > 0) setMouvements(parsedMvt);
+        importedData.Mouvement = XLSX.utils.sheet_to_json(workbook.Sheets['Mouvements']);
+      }
+
+      const validation = validateImportedData(importedData);
+      if (!validation.valid && (validation.errors.stock.length > 0 || validation.errors.movements.length > 0)) {
+        showToast(
+          `⚠️ Données liées avec des avertissements (${validation.errors.stock.length} erreurs stock, ${validation.errors.movements.length} erreurs mouvements)`,
+          'warning'
+        );
+      }
+
+      if (importedData.Stock_Actuel && importedData.Stock_Actuel.length > 0) {
+        setRawStock(importedData.Stock_Actuel.map(sanitizeObject));
+      }
+      if (importedData.Machines && importedData.Machines.length > 0) {
+        setMachines(importedData.Machines.map(sanitizeObject));
+      }
+      if (importedData.Mouvement && importedData.Mouvement.length > 0) {
+        setMouvements(importedData.Mouvement.map(sanitizeObject));
       }
 
       setLinkedFileHandle(handle);

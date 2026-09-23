@@ -9,19 +9,22 @@ export class PermissionService {
   static PERMISSIONS = PERMISSIONS;
 
   /**
-   * استخراج المستخدم الحالي من التخزين
+   * استخراج المستخدم الحالي من التخزين بآلية الفشل المغلق
    */
   static getCurrentUser() {
     try {
-      const stored = localStorage.getItem('gmao_current_user') || localStorage.getItem('current_user');
-      if (stored) {
-        return JSON.parse(stored);
+      const sessionStr = localStorage.getItem('gmao_session_v2') || localStorage.getItem('gmao_current_user');
+      if (sessionStr) {
+        const parsed = JSON.parse(sessionStr);
+        if (parsed && parsed.role) {
+          return parsed;
+        }
       }
     } catch {
       // ignore
     }
-    // افتراضي مسؤول للمعاينة السلسة
-    return { username: 'Admin', role: ROLES.ADMIN };
+    // Fail-closed: الزائر الافتراضي عند عدم وجود جلسة
+    return { username: 'Visiteur', role: ROLES.VIEWER };
   }
 
   /**
