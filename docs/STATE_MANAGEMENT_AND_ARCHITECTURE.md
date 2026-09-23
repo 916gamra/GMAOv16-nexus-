@@ -59,7 +59,30 @@
 
 ---
 
-## 4. خارطة توحيد الشاشات والوحدات (Standardization Roadmap)
+## 4. محرك الفهرسة التزايدي ومسلمات الأمان الرياضي (Incremental Stock Index & Invariants)
+
+لضمان دقة $O(1)$ في تحديث الأرصدة ومنع أي تباعد حسابي أو تراجع خاطئ، يلتزم `IncrementalStockIndex.ts` بالمسلمات التالية المعتمدة باختبارات الخاصية الرياضية (*Property-Based Testing* via `fast-check`):
+
+### Stock Index Invariants (Verified by property tests)
+- **P1 (Consistency):** incremental `applyDelta` produces identical final state to `rebuild` for any sequence of movements.
+- **P2 (Reversibility):** `applyDelta(m)` followed by `rollbackDelta(m)` is a no-op that restores the exact prior state.
+- **P3 (Atomicity):** `updateDelta(a→b)` ≡ `rollbackDelta(a)` + `applyDelta(b)`.
+- **P4 (Non-negativity):** `calculateCurrentStock` $\ge 0$ for any combination of inputs.
+- **Design rule (No Clamping in Totals):** raw running totals (`entrees`, `sorties`) are **NEVER** clamped. Clamping (`Math.max(0, ...)`) belongs to `calculateCurrentStock` strictly at calculation/display time.
+- **Design rule (Explicit Type Aliases & Accents):** unknown movement types are logged with warning tags rather than being silently dropped or incorrectly matched.
+- **Design rule (Orders Separation):** `COMMANDE` is tracked as an independent `commandes` counter that provides instant visibility without skewing physical on-hand stock.
+- **Design rule (Single Write Path):** `MovementRepository` is the sole authorized writer to the index and broadcast coordinator (`add`, `edit`, `remove`, `bulkReplace`). No UI component or `useMemo` is permitted to invoke `index.rebuild` directly.
+
+### 🔵 Technical Debt: notifyAll() on every mutation
+- **Status:** Temporary (v3.0 Transition)
+- **Reason:** `useAppCalculations` computes `stockItems` and `warehouseItemsComputed` based on `rawStock`/`warehouseItems` + `globalVersion`.
+- **Impact:** Any single movement currently triggers a version tick that refreshes the computed stock lists.
+- **Target (v3.1):** Remove `notifyAll()` from `add/edit/remove`. Move per-row balance read into `<StockRow>` via `useStockValue(ref)` and `<WarehouseRow>` via `useStockValue(id_warehouse_item)`. `useAppCalculations` will return only static catalog fields.
+- **Trigger for fix:** When table views exceed 500 rows or low-spec mobile shopfloor devices report frame drops.
+
+---
+
+## 5. خارطة توحيد الشاشات والوحدات (Standardization Roadmap)
 
 1. **الخروج الخارجي واللف الورشوي (`SortieRapideView` / `SortieExterneBobinageTab`):**
    - عزل الحالة في `useSortieExterneSubState.js`.

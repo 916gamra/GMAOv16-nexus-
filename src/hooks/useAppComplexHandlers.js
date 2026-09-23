@@ -3,13 +3,14 @@ import { SparePartApplicationService } from '../application/services/SparePartAp
 import { MachineApplicationService } from '../application/services/MachineApplicationService';
 import { TaskApplicationService } from '../application/services/TaskApplicationService';
 import { Logger } from '../core/logger/LoggerService';
+import { movementRepository } from '../application/MovementRepository';
 
 export function useAppComplexHandlers({
   zones, setZones,
   operations, setOperations,
   technicians, setTechnicians,
   _machines, setMachines,
-  _mouvements, setMouvements,
+  mouvements, setMouvements,
   setTypes,
   rawStock, setRawStock,
   setDesignations,
@@ -285,10 +286,14 @@ export function useAppComplexHandlers({
   const handleAddMouvement = async (newMvtOrArray) => {
     const service = new TaskApplicationService();
     if (Array.isArray(newMvtOrArray)) {
-      const saved = await Promise.all(newMvtOrArray.map(m => service.createTask(m)));
+      const saved = await Promise.all(newMvtOrArray.map((m) => service.createTask(m)));
+      for (const m of saved) {
+        movementRepository.add(m);
+      }
       setMouvements((prev) => [...saved, ...prev]);
     } else {
       const saved = await service.createTask(newMvtOrArray);
+      movementRepository.add(saved);
       setMouvements((prev) => [saved, ...prev]);
     }
   };
@@ -319,11 +324,17 @@ export function useAppComplexHandlers({
   };
 
   const handleUpdateMouvement = async (id, updatedMvt) => {
+    const oldMvt = (mouvements || []).find(
+      (m) => m.id === id || m.code_bon === id || (updatedMvt && updatedMvt.code_bon && m.code_bon === updatedMvt.code_bon)
+    );
     const service = new TaskApplicationService();
     try {
       await service.updateTask(id, updatedMvt);
     } catch (err) {
       Logger.warn('[useAppComplexHandlers] Task update warning:', err);
+    }
+    if (oldMvt) {
+      movementRepository.edit(oldMvt, updatedMvt);
     }
     setMouvements((prev) =>
       prev.map((m) =>
@@ -334,11 +345,15 @@ export function useAppComplexHandlers({
     );
   };
   const handleDeleteMouvement = async (id) => {
+    const oldMvt = (mouvements || []).find((m) => m.id === id || m.code_bon === id);
     const service = new TaskApplicationService();
     try {
       await service.deleteTask(id);
     } catch (err) {
       Logger.warn('[useAppComplexHandlers] Task delete warning:', err);
+    }
+    if (oldMvt) {
+      movementRepository.remove(oldMvt);
     }
     setMouvements((prev) => prev.filter((m) => m.id !== id && m.code_bon !== id));
   };

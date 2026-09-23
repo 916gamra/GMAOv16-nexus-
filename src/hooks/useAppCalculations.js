@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useSyncExternalStore, useEffect, useRef } from 'react';
 import { safeNum, calculateStockStatus } from '../utils/formulaEngine';
 import { INITIAL_STOCK_LOOKUP } from '../utils/baselineStock';
 import { INITIAL_FAMILIES, INITIAL_TEMPLATES } from '../data/seedData';
+import { stockIndexStore } from '../application/StockIndexStore';
 
 /**
  * Hook to compute real-time stock calculations, warehouse stock, KPIs, and fallback lists
@@ -14,60 +15,58 @@ export function useAppCalculations({
   templates = [],
   warehouseItems = [],
 }) {
+  const hydratedRef = useRef(false);
+
+  // Sync initial movements once on startup or when bulk data changes
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    if (!mouvements || mouvements.length === 0) return;
+
+    if (stockIndexStore.isHydrated()) {
+      hydratedRef.current = true;
+      return;
+    }
+
+    const deltas = mouvements.map((m) => ({
+      ref: m.ref || m['Référence'] || m['Reference'] || '',
+      type: m.type || m['Type (Entrée/Sortie)'] || '',
+      quantity: safeNum(m.quantite != null ? m.quantite : m['Quantité'], 0),
+    }));
+    stockIndexStore.index.rebuild(deltas);
+    stockIndexStore.markHydrated();
+    stockIndexStore.notifyAll();
+    hydratedRef.current = true;
+  }, [mouvements]);
+
+  // Subscribe to index version changes
+  const globalVersion = useSyncExternalStore(
+    stockIndexStore.subscribeAll,
+    stockIndexStore.getGlobalVersion,
+    () => 0
+  );
+
   // Compute Full Stock with Dynamic Live Calculations (Formula F, G, H, J)
   const stockItems = useMemo(() => {
-    // Map entries and sorties by ref
-    const mvtSummary = {};
-    mouvements.forEach((m) => {
-      const r = String(m.ref || m['Référence'] || m['Reference'] || '')
-        .trim()
-        .toLowerCase();
-      if (!r) return;
-      if (!mvtSummary[r]) {
-        mvtSummary[r] = { entrees: 0, sorties: 0 };
-      }
-      const q = safeNum(m.quantite != null ? m.quantite : m['Quantité'], 0);
-      const t = String(m.type || m['Type (Entrée/Sortie)'] || '').toLowerCase();
-      if (t.includes('entr')) {
-        mvtSummary[r].entrees += q;
-      } else if (t.includes('sort')) {
-        mvtSummary[r].sorties += q;
-      }
-    });
-
     return rawStock.map((item) => {
-      const itemRefKey = String(item.ref || '')
-        .trim()
-        .toLowerCase();
+      const itemRef = String(item.ref || '').trim();
+      const itemRefKey = itemRef.toLowerCase();
       const itemDesigKey = String(item.designation || '')
         .trim()
         .toLowerCase();
 
-      // Support matching unpadded and padded variants (e.g. courroie1 vs courroie01)
-      const normRefKey = itemRefKey.replace(/^([a-zA-Z\u00C0-\u017F\s_-]+?)0+(\d+)$/, '$1$2');
-      const padRefKey = itemRefKey.replace(/^([a-zA-Z\u00C0-\u017F\s_-]+?)(\d+)$/, (_match, p1, p2) =>
-        p2.length === 1 ? `${p1}0${p2}` : `${p1}${p2}`
-      );
-
-      const entrees =
-        mvtSummary[itemRefKey]?.entrees ??
-        mvtSummary[normRefKey]?.entrees ??
-        mvtSummary[padRefKey]?.entrees ??
-        (itemDesigKey ? (mvtSummary[itemDesigKey]?.entrees ?? 0) : 0);
-      const sorties =
-        mvtSummary[itemRefKey]?.sorties ??
-        mvtSummary[normRefKey]?.sorties ??
-        mvtSummary[padRefKey]?.sorties ??
-        (itemDesigKey ? (mvtSummary[itemDesigKey]?.sorties ?? 0) : 0);
+      const totals = stockIndexStore.index.getTotals(itemRef);
 
       let stockInitial = 0;
-      if (item.stockInitial !== undefined && item.stockInitial !== null && item.stockInitial !== '' && !isNaN(Number(item.stockInitial))) {
+      if (
+        item.stockInitial !== undefined &&
+        item.stockInitial !== null &&
+        item.stockInitial !== '' &&
+        !isNaN(Number(item.stockInitial))
+      ) {
         stockInitial = Number(item.stockInitial);
       } else {
         const baseline =
           INITIAL_STOCK_LOOKUP.get(itemRefKey) ||
-          INITIAL_STOCK_LOOKUP.get(normRefKey) ||
-          INITIAL_STOCK_LOOKUP.get(padRefKey) ||
           (itemDesigKey ? INITIAL_STOCK_LOOKUP.get(itemDesigKey) : null);
         if (baseline && baseline.qty > 0) {
           stockInitial = baseline.qty;
@@ -75,18 +74,24 @@ export function useAppCalculations({
       }
 
       const seuil = safeNum(item.seuil, 3);
-      const { stockActuel, alerte } = calculateStockStatus(stockInitial, entrees, sorties, seuil);
+      const { stockActuel, alerte } = calculateStockStatus(
+        stockInitial,
+        totals.entrees,
+        totals.sorties,
+        seuil
+      );
 
       return {
         ...item,
         stockInitial,
-        entrees,
-        sorties,
+        entrees: totals.entrees,
+        sorties: totals.sorties,
+        commandes: totals.commandes,
         stockActuel,
         alerte,
       };
     });
-  }, [rawStock, mouvements]);
+  }, [rawStock, globalVersion]);
 
   const effectiveDesignations = useMemo(() => {
     if (
@@ -140,32 +145,11 @@ export function useAppCalculations({
   const diagnostics = effectiveDesignations;
 
   const warehouseItemsComputed = useMemo(() => {
-    const mvtSummary = {};
-    mouvements.forEach((m) => {
-      const r = String(m.ref || m['Référence'] || m['Reference'] || '')
-        .trim()
-        .toLowerCase();
-      if (!r) return;
-      if (!mvtSummary[r]) {
-        mvtSummary[r] = { entrees: 0, sorties: 0 };
-      }
-      const q = safeNum(m.quantite != null ? m.quantite : m['Quantité'], 0);
-      const t = String(m.type || m['Type (Entrée/Sortie)'] || '').toLowerCase();
-      if (t.includes('entr')) {
-        mvtSummary[r].entrees += q;
-      } else if (t.includes('sort')) {
-        mvtSummary[r].sorties += q;
-      }
-    });
-
     return warehouseItems.map((item) => {
-      const r = String(item.id_warehouse_item || '')
-        .trim()
-        .toLowerCase();
+      const itemKey = String(item.id_warehouse_item || item.ref || '').trim();
       const initial = safeNum(item.stockInitial, 1);
-      const entrees = mvtSummary[r]?.entrees || 0;
-      const sorties = mvtSummary[r]?.sorties || 0;
-      const stockActuel = initial + entrees - sorties;
+      const totals = stockIndexStore.index.getTotals(itemKey);
+      const stockActuel = initial + totals.entrees - totals.sorties;
 
       const seuil = safeNum(item.seuil, 0);
       let alerte = 'OK';
@@ -175,14 +159,15 @@ export function useAppCalculations({
       return {
         ...item,
         stockInitial: initial,
-        entrees,
-        sorties,
+        entrees: totals.entrees,
+        sorties: totals.sorties,
+        commandes: totals.commandes,
         stockActuel,
         seuil,
         alerte,
       };
     });
-  }, [warehouseItems, mouvements]);
+  }, [warehouseItems, globalVersion]);
 
   // Stock KPIs
   const stockKPIs = useMemo(() => {
