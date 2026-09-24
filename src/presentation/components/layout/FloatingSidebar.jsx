@@ -61,6 +61,20 @@ const MODULE_THEME = {
     sidebarShadowLight: 'shadow-[0_20px_50px_-8px_rgba(99,102,241,0.22),0_8px_20px_-4px_rgba(0,0,0,0.12),inset_0_1px_3px_rgba(255,255,255,0.95)]',
     sidebarShadowDark: 'shadow-[0_20px_50px_-8px_rgba(0,0,0,0.7),0_0_35px_rgba(99,102,241,0.35),inset_0_1px_2px_rgba(255,255,255,0.2)]',
   },
+  corrective: {
+    borderLight: 'border-amber-400/50',
+    borderDark: 'border-amber-400/40',
+    ringLight: 'ring-amber-400/20',
+    ringDark: 'ring-amber-400/15',
+    shadowLight: 'shadow-[0_6px_16px_-2px_rgba(245,158,11,0.18),0_2px_6px_-1px_rgba(0,0,0,0.04),inset_0_1px_2px_rgba(255,255,255,0.9)]',
+    shadowDark: 'shadow-[0_6px_18px_-2px_rgba(0,0,0,0.4),0_0_10px_rgba(245,158,11,0.15),inset_0_1px_1px_rgba(255,255,255,0.12)]',
+    iconLight: 'text-amber-600',
+    iconDark: 'text-amber-300',
+    sidebarBorderLight: 'border-amber-300/80',
+    sidebarBorderDark: 'border-amber-500/35',
+    sidebarShadowLight: 'shadow-[0_20px_50px_-8px_rgba(245,158,11,0.22),0_8px_20px_-4px_rgba(0,0,0,0.12),inset_0_1px_3px_rgba(255,255,255,0.95)]',
+    sidebarShadowDark: 'shadow-[0_20px_50px_-8px_rgba(0,0,0,0.7),0_0_35px_rgba(245,158,11,0.35),inset_0_1px_2px_rgba(255,255,255,0.2)]',
+  },
   entrepot: {
     borderLight: 'border-indigo-400/50',
     borderDark: 'border-indigo-400/40',
@@ -277,14 +291,14 @@ export default function FloatingSidebar({
             }}
             aria-label={`Menu de navigation (Actuellement : ${activeLabel}) - Survoler pour ouvrir`}
             title={`Module actif : ${activeLabel}\nApprochez la souris pour ouvrir la navigation`}
-            className={`group relative w-[54px] h-[54px] rounded-[22px] border flex items-center justify-center transition-all duration-700 ease-out cursor-pointer shadow-md hover:shadow-xl hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-hidden ${
+            className={`group relative w-[54px] h-[54px] rounded-[22px] border flex items-center justify-center transition-all duration-300 ease-out cursor-pointer shadow-md hover:shadow-xl hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-hidden ${
               isTranslucent
-                ? 'opacity-40 hover:opacity-100'
+                ? 'opacity-90 hover:opacity-100'
                 : 'opacity-100'
             } ${
               isDark
-                ? 'bg-slate-900/65 hover:bg-slate-800/95 border-slate-700/60 hover:border-slate-600 backdrop-blur-xs hover:backdrop-blur-xl'
-                : 'bg-white/65 hover:bg-white/95 border-slate-200/70 hover:border-slate-300 backdrop-blur-xs hover:backdrop-blur-xl'
+                ? 'bg-slate-900/90 hover:bg-slate-800/95 border-slate-700/80 hover:border-slate-600 backdrop-blur-md hover:backdrop-blur-xl'
+                : 'bg-white/95 hover:bg-white border-slate-200/90 hover:border-slate-300 backdrop-blur-md hover:backdrop-blur-xl'
             }`}
           >
             {/* Glass magnifying convex light reflection */}

@@ -14,6 +14,8 @@ import {
   Upload,
   BookOpen,
   Package,
+  Sparkles,
+  Plus,
 } from 'lucide-react';
 import AnimatedPage from '../../components/common/AnimatedPage';
 import Action3DButton from '../../components/common/Action3DButton';
@@ -46,6 +48,8 @@ export default function PreventiveView({
   onCreateCorrective = null,
   onNavigateToMachine = null,
   onNavigateToReferentiel = null,
+  preventiveRecommendations = [],
+  onAddAction = null,
 }) {
   const [showFormulasModal, setShowFormulasModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
@@ -235,6 +239,55 @@ export default function PreventiveView({
             />
           </div>
         </div>
+
+        {/* Anti-Recurrence Predictive Suggestions from Corrective Nexus */}
+        {preventiveRecommendations && preventiveRecommendations.length > 0 && (
+          <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-indigo-500/10 border border-amber-300 dark:border-amber-700/60 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <span>Pont Prédictif Correctif → Préventif</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+                    {preventiveRecommendations.length} récidives détectées
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                  Machines ayant subi ≥ 3 pannes récentes sur un même organe ({preventiveRecommendations.map((r) => r.machine).join(', ')}). Créer des routines de contrôle pour éradiquer ces pannes.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {preventiveRecommendations.slice(0, 2).map((rec, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    if (onAddAction) {
+                      onAddAction({
+                        id_action: `ACT-PREV-${Date.now().toString().slice(-4)}`,
+                        nom_action: `Contrôle systématique ${rec.anomalie.replace(/_/g, ' ')} (${rec.machine})`,
+                        description: rec.recommendedAction,
+                        type_action: 'MECANIQUE',
+                        periodicite_jours: rec.suggestedIntervalDays,
+                        machine: rec.machine,
+                      });
+                      showToast?.(`Tâche préventive créée pour ${rec.machine}`, 'success');
+                    } else {
+                      showToast?.(`Recommandation transmise à l'ingénierie pour ${rec.machine}`, 'success');
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Créer routine: {rec.machine}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ========================================================================= */}
         {/* MAIN VIEW CONTENT                                                         */}

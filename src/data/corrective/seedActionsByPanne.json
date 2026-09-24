@@ -1,0 +1,371 @@
+{
+  "court_circuit": [
+    "réparation et branchement de prise",
+    "réparation et réglage du moteur",
+    "vérification et réparation de machine",
+    "réparation du circuit de puissanse",
+    "mesure les bobinage de moteur",
+    "changement de câble d'alimentation"
+  ],
+  "Manque_de_phase": [
+    "réparation et réglage de la machine",
+    "réparatione et branchement de câble d'alimentation",
+    "changement de relais thermique",
+    "réparation de problème",
+    "vérification et branchement de fil électrique",
+    "Changement de commutateur"
+  ],
+  "Moteur_grillé": [
+    "vérification et débranchement du moteur",
+    "dégagement de ventilateur et roulement renvoyé"
+  ],
+  "Pb_Au_niveau_de_la_batterie": [
+    "Vérification, démontage et débronchoment de batterie détériorée",
+    "changement de batterie par d'autre déjà utilisée",
+    "bronchoment de batterie",
+    "rectification des fiches de batterie.",
+    "dépannage de chargeur pour charger la batterie."
+  ],
+  "Pb_Au_niveau_du_moteur": [
+    "démontage et changement de moteur",
+    "changement le bouton poussoir arrêt du moteur.",
+    "Débranchement du moteur",
+    "Mesure la bobine du moteur",
+    "Essai le moteur",
+    "Transfert du moteur au bobinage"
+  ],
+  "Pb_D_armoire_électrique": [
+    "nettoyage d'armoire électrique",
+    "Changement d'emplacement de l'armoire électrique",
+    "Nettoyage et contrôle les câble de l'armoire"
+  ],
+  "Pb_De_bouton_marche": [
+    "vérification et changement de boton marche.",
+    "montage et fixation de bouton marche"
+  ],
+  "Pb_De_bouton_poussoir": [
+    "réparation de bouton poussoir"
+  ],
+  "Pb_De_câble_d_alimentation": [
+    "changememnt de câble d'alimentation",
+    "tirage de câble d'alimentation",
+    "branchement de câble d'alimentation",
+    "verification et réparation de câble d'alimentation"
+  ],
+  "Pb_De_charbone": [
+    "démontage de la meule",
+    "commander de charbone",
+    "changement de charbone",
+    "modification et branchement de charbone"
+  ],
+  "Pb_De_commande": [
+    "réparation de bouton",
+    "Modification dans l'armoire électrique",
+    "Changement de relais de niveau"
+  ],
+  "Pb_De_commutateur": [
+    "réparation et branchement de commutateur",
+    "réglage et fixation de commutateur",
+    "Branchement de fil dans commutateur"
+  ],
+  "Pb_De_contacteur": [
+    "dépannage de la machine",
+    "changement et branchement de contacteur",
+    "vérification et changement de contacteur neuf"
+  ],
+  "Pb_de_rotation": [
+    "changement de rotation des machines",
+    "changement de sens de rotation",
+    "changement la phase d'alimentation"
+  ],
+  "Pb_De_démarrage": [
+    "Changement de bouton poussoir marche",
+    "réparation de câble",
+    "Fixation de boîte de contacteur"
+  ],
+  "Pb_de_fiche": [
+    "édition et branchement de fiche",
+    "Changement de fiche",
+    "Branchement de câble d'alimentation"
+  ],
+  "Pb_De_fin_de_course": [
+    "réglage le fin de course",
+    "démontage la fin de course",
+    "réglage la roulette bloqué la fin de course",
+    "monte le fin du course électrique.",
+    "Réparation du fin de course"
+  ],
+  "Pb_De_marche": [
+    "réparation de machine",
+    "changement de fusible",
+    "vérification de la partie électrique",
+    "changement de relais thermique",
+    "changement de charbonne",
+    "réparation et branchement de file électrique",
+    "actione le multi 9 et dépannage de la machine",
+    "réparation au niveau de la boite de commande",
+    "réparation de la meule",
+    "changement des vis de fixation de fin de course",
+    "changement le bloc du bouton marche."
+  ],
+  "Pb_De_masse_électrique": [
+    "réparation et réglage de poste",
+    "changement de câble et prise électrique",
+    "réparation de machine",
+    "vérification et élimination de la masse électrique",
+    "changement de file de résistance",
+    "Vérification de toute la machine",
+    "Contrôle générale de l'armoire électrique",
+    "Reparation les fils de commande",
+    "Changement porte fusible",
+    "Changement les lampe de commande"
+  ],
+  "Pb_De_pédale": [
+    "réparation et branchement de câble de commande de pédale",
+    "réparation de pédale",
+    "Changement de ressort",
+    "Changement de câble de pédale"
+  ],
+  "Pb_De_résistance": [
+    "démontage des résistances et dépannage de la machine",
+    "nettoyage des résistances",
+    "changement des résistances par autre neuf",
+    "branchement des résistances"
+  ],
+  "Pb_De_soudage": [
+    "changement de fil de soudage",
+    "changement de bande de soudage",
+    "Réglage au niveau du bras de soudage",
+    "changement de fusible de Soudage",
+    "vérification et changement des fusibles",
+    "édition du tapie de soudage",
+    "Serrage vis de transformateur"
+  ],
+  "Pb_D_éclairage": [
+    "édition des lampe LED neuf à tous les machine.",
+    "changement et montage des lampes"
+  ],
+  "Pb_Du_multi9": [
+    "débranchement et changement du multi9"
+  ],
+  "Fuite_d_huile": [
+    "nettoyage de réservoir",
+    "Serrage de flexible",
+    "Contrôle les fuites d'huile",
+    "nettoyage filtre d'huile",
+    "Changement de joint torique",
+    "chongement des joint chevron",
+    "Demonter le verin"
+  ],
+  "Manque_d_huile": [
+    "Ajout d'huile au réservoir"
+  ],
+  "Pb_Au_niveau_de_flexible": [
+    "Changement de flexible"
+  ],
+  "Pb_Au_niveau_de_pompe_de_refroidissement": [
+    "montage de pompe de refroidissement"
+  ],
+  "Pb_Au_niveau_de_pompe_hydraulique": [
+    "démontage la pompe hydraulique",
+    "changement le pompe hydraulique",
+    "réparation de pompe hydraulique"
+  ],
+  "Pb_Au_niveau_du vérin": [
+    "ajoute d'huile au niveau du vérin",
+    "nettoyage et verification le partie hydraulique"
+  ],
+  "Pb_De_graissage": [
+    "contrôle le circuit du graissage",
+    "Ajout d'huile au niveau du centrale du graissage",
+    "graissage des glissières"
+  ],
+  "Pb_De_pression": [
+    "réglage du pression",
+    "Contrôle les distributeurs de pression",
+    "Nettoyage tiroir de distributeur",
+    "Démonte la pompe",
+    "Montage du pompe"
+  ],
+  "Pb_De_raccorde": [
+    "Changement de raccorde"
+  ],
+  "Pb_De_vidange": [
+    "changement d'huile",
+    "Nettoyage filtre d'huile"
+  ],
+  "Pb_D_emboutissage": [
+    "Démonter limiteur de pression",
+    "Changement de manomètre",
+    "Monter limiteur de pression",
+    "Changement d'huile"
+  ],
+  "Fuite_d_air": [
+    "réparation de fuite d'air",
+    "branchement du tuyau d'air",
+    "changement du tuyau d'air",
+    "changement de raccorde rapide",
+    "Changement de joint du vérin"
+  ],
+  "Manque_d_air": [
+    "ouverture de la vanne d'air"
+  ],
+  "Pb_de_filtre": [
+    "Nettoyage de filtre",
+    "Monter les filtres"
+  ],
+  "Pb_Au_niveau_de_raccorde_tournante": [
+    "Changement de raccorde"
+  ],
+  "Pb_Au_niveau_des_pédales": [
+    "Changement du pédale pneumatique"
+  ],
+  "Pb_Au_niveau_des tuyaux": [
+    "réparation du tuyau d'air"
+  ],
+  "Pb_Au_niveau_du_distributeur": [
+    "démontage et nettoyage le distributeur",
+    "réparation le joint de distributeur",
+    "Changement du distributeur"
+  ],
+  "Pb_D_aspiration": [
+    "Changement de pompe à vide",
+    "Contrôler les palettes",
+    "Nettoyage du filtre"
+  ],
+  "Pb_De_branchement_d_air": [
+    "Branchement de machine par alimentation d'air"
+  ],
+  "Pb_De_freinage": [
+    "réglage et réparation de distributeur",
+    "Changement des plaquette de frein"
+  ],
+  "Pb_Du_dégagement_des_bavures": [
+    "Réparation du distributeur",
+    "Réglage de fin de course de dégagement"
+  ],
+  "Blocage_de_la_chute_d'aluminium": [
+    "Dégagement de chute d'aluminium"
+  ],
+  "Pb_Au_niveau_de courroie": [
+    "Changement de courroie",
+    "Dépannage de courroie",
+    "Montage de courroie"
+  ],
+  "Pb_Au_niveau_de_la broche": [
+    "Rectification d'axe de la broche",
+    "Montage d'axe de la broche",
+    "Réparation d'axe de la broche"
+  ],
+  "Pb_Au_niveau_de_la_pompe": [
+    "changement de pompe"
+  ],
+  "Pb_Au_niveau_de_la table": [
+    "Changement le sens de rotation",
+    "Nettoyage du filtre de pompe de graissage",
+    "Réparation et fixation de la table",
+    "Perçage et taraudage les trous de fixation de la table"
+  ],
+  "Pb_Au_niveau_de_poulie": [
+    "Rectification de la poulie",
+    "Changement de poulie",
+    "Montage et fixation de poulie",
+    "Ajoute le chemin de graissage pour la poulie"
+  ],
+  "Pb_De_taquai": [
+    "Rectification de taquai",
+    "Réglage de taquai",
+    "Dépannage de taquai",
+    "Changement des roulements",
+    "Monter nouveau roulement de nouveau taquia"
+  ],
+  "Pb_De_centrage": [
+    "Centrage disque rainure",
+    "Nettoyage générale de la machine",
+    "démontage des roulement et changement"
+  ],
+  "Pb_De_cisaillage": [
+    "Réglage de cisaille",
+    "Dépannage de cisaille"
+  ],
+  "Pb_De_clavette": [
+    "montage de clavette",
+    "Rectification de clavette",
+    "changement de clavette"
+  ],
+  "Pb_De_coincement": [
+    "Régalge et graissage de la machine",
+    "Vérification et dépannage de la machine",
+    "changement de rotation"
+  ],
+  "Pb_De_coulisseau": [
+    "Montage de coulisseau"
+  ],
+  "Pb de porte outil": [
+    "Demonter porte outil",
+    "Changement les vis de fixation"
+  ],
+  "Pb_De_goupille": [
+    "changement de goupille",
+    "monter le goupille",
+    "Ajouter circlips dans le goupille."
+  ],
+  "Pb_De_montage": [
+    "Montage de taquai",
+    "Monage le roulement",
+    "Montage le mécanisme de la table",
+    "Montage de la table avec la machine",
+    "Montage l'axe de la broche",
+    "Montage du moteur",
+    "Montage de la poulie",
+    "Monter les vérins"
+  ],
+  "Pb_De_mouvement": [
+    "Réparation du transpalette"
+  ],
+  "Pb_De_ressort": [
+    "Monter le ressort",
+    "Réparation de ressort",
+    "Réglage et tandage de ressort",
+    "changement de ressort"
+  ],
+  "Pb_De_rivetage": [
+    "Réglage le mécanisme de la machine",
+    "Réparation au niveau de tige",
+    "Réparation de la machine",
+    "Changement de pignon",
+    "changement de ressort du clavette d'embrayage",
+    "changement de rivet",
+    "Réglage de guide de rivet"
+  ],
+  "Pb_De_roulement": [
+    "Changement des roulements",
+    "Dégagement des roulements"
+  ],
+  "Pb_De_roulette": [
+    "Vérification et démontage des roulettes",
+    "Fixation des roulettes"
+  ],
+  "Pb_De_carter": [
+    "Nettoyage de carter",
+    "Fixation de carter"
+  ],
+  "Gestion stock": [
+    "Vérification quantité des courroies",
+    "Gérer stock magasin",
+    "inventaire",
+    "Rangement des extincteurs"
+  ],
+  "Rangement d'atelier": [
+    "Liberer l'espace"
+  ],
+  "branchement": [
+    "Canalisation de câble\nFixation du machine",
+    "Déplacement du machine \nFixation du machine",
+    "Branchement du machine"
+  ],
+  "Pb l'axe de la broche": [
+    "Demonter l'axe",
+    "Rectification de l'axe"
+  ]
+}

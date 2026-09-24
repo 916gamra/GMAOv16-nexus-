@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, Factory, Calendar, Menu } from 'lucide-react';
+import { LayoutDashboard, Package, Factory, Calendar, Wrench, Menu } from 'lucide-react';
 import { useTranslation } from '../../../i18n/I18nContext';
 import { getParentModuleForTab } from '../../../presentation/components/layout/navConfig';
 
@@ -48,6 +48,14 @@ export function BottomNavigation({
       badge: counts.preventive ? counts.preventive : null,
       active: activeParentId === 'preventive',
       onClick: () => onTabChange?.('preventive'),
+    },
+    {
+      id: 'corrective',
+      label: t('nav.corrective') || 'Correctif',
+      icon: Wrench,
+      badge: counts.corrective ? counts.corrective : null,
+      active: activeParentId === 'corrective',
+      onClick: () => onTabChange?.('corrective'),
     },
     {
       id: 'menu',

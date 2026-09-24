@@ -360,11 +360,12 @@ export default function Header({
       <div className="px-2.5 sm:px-5 py-2 flex items-center justify-between gap-1.5 sm:gap-3 w-full min-w-0">
         {/* Left: Desktop Brand Pill Capsule + Mobile Menu Button & Parent Module Title badge */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 min-w-0">
-          {/* Mobile Menu Button */}
+          {/* Universal Menu Drawer Button (Accessible on both Desktop & Mobile for complete navigation) */}
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="lg:hidden w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-zinc-700 hover:text-black shadow-xs hover:shadow-md cursor-pointer transition-all shrink-0 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-hidden"
-            aria-label="Ouvrir le menu de navigation"
+            className="w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-white border border-zinc-200/90 flex items-center justify-center text-zinc-700 hover:text-black hover:border-zinc-300 shadow-xs hover:shadow-md cursor-pointer transition-all shrink-0 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-hidden"
+            aria-label="Ouvrir le menu de navigation complet"
+            title="Menu complet des modules et sections (Toutes les pages)"
             aria-haspopup="dialog"
           >
             <Menu size={16} />

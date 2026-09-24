@@ -6,6 +6,7 @@ export const SortieExterneContext = createContext(null);
 export const StockContext = createContext(null);
 export const WarehouseContext = createContext(null);
 export const MachinesContext = createContext(null);
+export const CorrectiveContext = createContext(null);
 
 export function usePreventiveContext() {
   const ctx = useContext(PreventiveContext);
@@ -29,5 +30,10 @@ export function useWarehouseContext() {
 
 export function useMachinesContext() {
   const ctx = useContext(MachinesContext);
+  return ctx;
+}
+
+export function useCorrectiveContext() {
+  const ctx = useContext(CorrectiveContext);
   return ctx;
 }

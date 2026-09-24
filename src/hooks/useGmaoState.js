@@ -8,6 +8,7 @@ import { useUserSubState } from './useUserSubState';
 import { useMovementSubState } from './useMovementSubState';
 import { usePreventiveSubState } from './usePreventiveSubState';
 import { useSortieExterneSubState } from './useSortieExterneSubState';
+import { useCorrectiveSubState } from './useCorrectiveSubState';
 import { useGmaoPersistence } from './useGmaoPersistence';
 
 // Re-export baseline stock items for consumers
@@ -28,6 +29,7 @@ export function useGmaoState() {
   const movementSub = useMovementSubState(groupedState);
   const preventiveSub = usePreventiveSubState(groupedState);
   const sortieExterneSub = useSortieExterneSubState(groupedState);
+  const correctiveSub = useCorrectiveSubState();
 
   // 2. Persistence & Multi-tab synchronization
   useGmaoPersistence({
@@ -42,6 +44,7 @@ export function useGmaoState() {
       preventiveGuides: preventiveSub.guides,
       preventivePlans: preventiveSub.plans,
       sortiesExterne: sortieExterneSub.sortiesExterne,
+      correctiveInterventions: correctiveSub.interventions,
     },
     setters: {
       setTypes: stockSub.setTypes,
@@ -67,6 +70,7 @@ export function useGmaoState() {
       setPreventiveGuides: preventiveSub.setGuides,
       setPreventivePlans: preventiveSub.setPlans,
       setSortiesExterne: sortieExterneSub.setSortiesExterne,
+      setCorrectiveInterventions: correctiveSub.setInterventions,
     },
     validators: {
       isValidMachineFamilies: machineSub.isValidMachineFamilies,
@@ -146,5 +150,22 @@ export function useGmaoState() {
     handleMarkSortieMounted: sortieExterneSub.handleMarkSortieMounted,
     handleClearSortiesForRealFactory: sortieExterneSub.handleClearSortiesForRealFactory,
     handleResetSortiesToBaseline: sortieExterneSub.handleResetSortiesToBaseline,
+    // Corrective Nexus state & handlers
+    correctiveInterventions: correctiveSub.interventions,
+    setCorrectiveInterventions: correctiveSub.setInterventions,
+    activeLiveInterventionId: correctiveSub.activeLiveId,
+    correctiveKpis: correctiveSub.kpis,
+    correctiveParetoAnomalies: correctiveSub.paretoAnomalies,
+    correctiveParetoMachines: correctiveSub.paretoMachines,
+    correctiveParetoTypes: correctiveSub.paretoTypes,
+    correctivePreventiveRecommendations: correctiveSub.preventiveRecommendations,
+    handleAddDemandeIntervention: correctiveSub.addDemandeIntervention,
+    handleConvertToBt: correctiveSub.convertToBt,
+    handleStartLiveIntervention: correctiveSub.startLiveIntervention,
+    handleClotureIntervention: correctiveSub.clotureIntervention,
+    handleUpdateCorrectiveIntervention: correctiveSub.updateIntervention,
+    handleDeleteCorrectiveIntervention: correctiveSub.deleteIntervention,
+    handleBulkImportCorrective: correctiveSub.bulkImportInterventions,
+    handleResetCorrectiveToSeed: correctiveSub.resetToSeedData,
   };
 }

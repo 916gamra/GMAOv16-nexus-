@@ -25,6 +25,7 @@ import NexusView from '../pages/system/NexusView';
 import GuideView from '../pages/system/GuideView';
 import PreventiveView from '../pages/preventive/PreventiveView';
 import PreventiveSecondaryView from '../pages/preventive/PreventiveSecondaryView';
+import CorrectiveView from '../pages/corrective/CorrectiveView';
 
 import {
   PreventiveContext,
@@ -32,6 +33,7 @@ import {
   StockContext,
   WarehouseContext,
   MachinesContext,
+  CorrectiveContext,
 } from '../../context/GmaoDomainContext';
 
 export default function AppRouter({
@@ -46,7 +48,8 @@ export default function AppRouter({
         <MachinesContext.Provider value={props.machines}>
           <PreventiveContext.Provider value={props.preventive}>
             <SortieExterneContext.Provider value={props.sortie}>
-              <div className="w-full min-w-0 relative">
+              <CorrectiveContext.Provider value={props.corrective}>
+                <div className="w-full min-w-0 relative">
                 <AnimatePresence mode="wait">
                   {isCurrentTabLoading ? (
                     <motion.div
@@ -195,10 +198,21 @@ export default function AppRouter({
                           <GuideView {...props.guide} />
                         </ErrorBoundary>
                       )}
+
+                      {(currentTab === 'corrective' || currentTab.startsWith('corrective_')) && (
+                        <ErrorBoundary sectionName="Maintenance Corrective Nexus">
+                          <CorrectiveView
+                            {...props.corrective}
+                            subTab={currentTab === 'corrective' ? 'corrective_di' : currentTab}
+                            onSubTabChange={_setCurrentTab}
+                          />
+                        </ErrorBoundary>
+                      )}
                     </div>
                   )}
                 </AnimatePresence>
               </div>
+              </CorrectiveContext.Provider>
             </SortieExterneContext.Provider>
           </PreventiveContext.Provider>
         </MachinesContext.Provider>

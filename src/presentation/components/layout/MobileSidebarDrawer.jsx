@@ -23,6 +23,7 @@ import {
   FingerprintPattern,
   Boxes,
   Calendar,
+  Wrench,
   Download,
   Upload,
 } from 'lucide-react';
@@ -403,6 +404,80 @@ export default function MobileSidebarDrawer({
                 <span className={getBadgeClass('preventive_referentiel')}>
                   {(counts.preventiveGuides || 0) + (counts.preventiveActions || 0) || 'Guides'}
                 </span>
+              </button>
+            </div>
+          </div>
+
+          {/* GROUPE: MAINTENANCE CORRECTIVE (CORRECTIF NEXUS) */}
+          <div>
+            <div className="px-3 mb-1.5 text-[10px] font-bold tracking-wider text-amber-500 uppercase flex items-center gap-1.5">
+              <Wrench className="w-3.5 h-3.5 text-amber-500" />
+              <span>Maintenance Corrective Nexus</span>
+            </div>
+            <div className="space-y-1">
+              <button onClick={() => navTo('corrective')} className={getTabClass('corrective')}>
+                <span className="flex items-center gap-2.5">
+                  <Wrench
+                    className={`w-4 h-4 shrink-0 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}
+                  />
+                  <span>Correctif Hub (Vue d'ensemble)</span>
+                </span>
+                <span className={getBadgeClass('corrective')}>{counts.corrective || 'Live'}</span>
+              </button>
+
+              <button
+                onClick={() => navTo('corrective_di')}
+                className={getTabClass('corrective_di', true)}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                  <span>1. Demandes (DI)</span>
+                </span>
+                <span className={getBadgeClass('corrective_di')}>DI</span>
+              </button>
+
+              <button
+                onClick={() => navTo('corrective_bt')}
+                className={getTabClass('corrective_bt', true)}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                  <span>2. Bons de Travail (BT)</span>
+                </span>
+                <span className={getBadgeClass('corrective_bt')}>BT</span>
+              </button>
+
+              <button
+                onClick={() => navTo('corrective_live')}
+                className={getTabClass('corrective_live', true)}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>3. Intervention Live & Chrono</span>
+                </span>
+                <span className={getBadgeClass('corrective_live')}>Live</span>
+              </button>
+
+              <button
+                onClick={() => navTo('corrective_cloture')}
+                className={getTabClass('corrective_cloture', true)}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                  <span>4. Clôture & Rapports</span>
+                </span>
+                <span className={getBadgeClass('corrective_cloture')}>Rapport</span>
+              </button>
+
+              <button
+                onClick={() => navTo('corrective_analyse')}
+                className={getTabClass('corrective_analyse', true)}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                  <span>5. Analyse & Pareto 80/20</span>
+                </span>
+                <span className={getBadgeClass('corrective_analyse')}>Pareto</span>
               </button>
             </div>
           </div>
