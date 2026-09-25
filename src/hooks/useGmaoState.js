@@ -29,7 +29,7 @@ export function useGmaoState() {
   const movementSub = useMovementSubState(groupedState);
   const preventiveSub = usePreventiveSubState(groupedState);
   const sortieExterneSub = useSortieExterneSubState(groupedState);
-  const correctiveSub = useCorrectiveSubState();
+  const correctiveSub = useCorrectiveSubState(groupedState);
 
   // 2. Persistence & Multi-tab synchronization
   useGmaoPersistence({
@@ -45,6 +45,10 @@ export function useGmaoState() {
       preventivePlans: preventiveSub.plans,
       sortiesExterne: sortieExterneSub.sortiesExterne,
       correctiveInterventions: correctiveSub.interventions,
+      correctiveActionsByPanne: correctiveSub.actionsByPanne,
+      correctivePanneCategories: correctiveSub.panneCategories,
+      correctiveTravauxAFaire: correctiveSub.travauxAFaire,
+      correctiveIntervenants: correctiveSub.intervenants,
     },
     setters: {
       setTypes: stockSub.setTypes,
@@ -71,6 +75,10 @@ export function useGmaoState() {
       setPreventivePlans: preventiveSub.setPlans,
       setSortiesExterne: sortieExterneSub.setSortiesExterne,
       setCorrectiveInterventions: correctiveSub.setInterventions,
+      setCorrectiveActionsByPanne: correctiveSub.setActionsByPanne,
+      setCorrectivePanneCategories: correctiveSub.setPanneCategories,
+      setCorrectiveTravauxAFaire: correctiveSub.setTravauxAFaire,
+      setCorrectiveIntervenants: correctiveSub.setIntervenants,
     },
     validators: {
       isValidMachineFamilies: machineSub.isValidMachineFamilies,
@@ -153,6 +161,18 @@ export function useGmaoState() {
     // Corrective Nexus state & handlers
     correctiveInterventions: correctiveSub.interventions,
     setCorrectiveInterventions: correctiveSub.setInterventions,
+    correctiveActionsByPanne: correctiveSub.actionsByPanne,
+    setCorrectiveActionsByPanne: correctiveSub.setActionsByPanne,
+    correctivePanneCategories: correctiveSub.panneCategories,
+    setCorrectivePanneCategories: correctiveSub.setPanneCategories,
+    correctiveTravauxAFaire: correctiveSub.travauxAFaire,
+    setCorrectiveTravauxAFaire: correctiveSub.setTravauxAFaire,
+    correctiveIntervenants: correctiveSub.intervenants,
+    setCorrectiveIntervenants: correctiveSub.setIntervenants,
+    handleGetCorrectiveActionsForPanne: correctiveSub.getActionsForPanne,
+    handleAddCorrectiveActionForPanne: correctiveSub.addActionForPanne,
+    handleResetCorrectiveActions: correctiveSub.resetCorrectiveActionsToSeed,
+    handleForceSyncCorrectiveSeed: correctiveSub.forceSyncAllSeedData,
     activeLiveInterventionId: correctiveSub.activeLiveId,
     correctiveKpis: correctiveSub.kpis,
     correctiveParetoAnomalies: correctiveSub.paretoAnomalies,

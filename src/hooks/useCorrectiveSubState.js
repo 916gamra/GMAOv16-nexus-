@@ -1,23 +1,123 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { storageService } from '../utils/storageService';
-import initialSeed from '../data/corrective/seedCorrectiveInterventions.json';
+import { loadBaselineCorrectiveData } from '../utils/baselineCorrective';
 import { CorrectiveIntervention } from '../domain/corrective/entities/CorrectiveIntervention';
 import { CorrectiveCalculationService } from '../domain/corrective/services/CorrectiveCalculationService';
 import { movementRepository } from '../application/MovementRepository';
 
 const STORAGE_KEY = 'gmao_corrective_interventions';
 const ACTIVE_LIVE_KEY = 'gmao_corrective_active_live';
+const STORAGE_KEY_ACTIONS_BY_PANNE = 'gmao_corrective_actions_by_panne_v4';
+const STORAGE_KEY_PANNE_CATEGORIES = 'gmao_corrective_panne_categories_v4';
+const STORAGE_KEY_TRAVAUX = 'gmao_corrective_travaux_v4';
+const STORAGE_KEY_INTERVENANTS = 'gmao_corrective_intervenants_v4';
+const STORAGE_KEY_CORRECTIVE_INIT = 'gmao_corrective_initialized_v2';
 
-export function useCorrectiveSubState() {
+// Helper to deep-merge dictionaries while guaranteeing baseline seed presence
+function mergeDictsWithBaseline(saved, baseline) {
+  if (!saved || typeof saved !== 'object') return { ...(baseline || {}) };
+  if (!baseline || typeof baseline !== 'object') return { ...saved };
+  const merged = { ...baseline };
+  for (const [key, val] of Object.entries(saved)) {
+    if (!merged[key]) {
+      merged[key] = val;
+    } else if (Array.isArray(val) && Array.isArray(merged[key])) {
+      const set = new Set(merged[key]);
+      val.forEach((item) => set.add(item));
+      merged[key] = Array.from(set);
+    }
+  }
+  return merged;
+}
+
+// Helper to merge string arrays while guaranteeing baseline seed presence
+function mergeArraysWithBaseline(saved, baseline, keyField = null) {
+  if (!Array.isArray(saved) || saved.length === 0) return [...(baseline || [])];
+  if (!Array.isArray(baseline) || baseline.length === 0) return [...saved];
+  if (!keyField) {
+    const set = new Set(baseline);
+    saved.forEach((item) => {
+      if (item && typeof item === 'string') set.add(item.trim());
+    });
+    return Array.from(set);
+  }
+  const map = new Map();
+  baseline.forEach((item) => {
+    const k = String(item[keyField] || JSON.stringify(item)).toLowerCase();
+    map.set(k, item);
+  });
+  saved.forEach((item) => {
+    const k = String(item[keyField] || JSON.stringify(item)).toLowerCase();
+    if (!map.has(k)) {
+      map.set(k, item);
+    }
+  });
+  return Array.from(map.values());
+}
+
+export function useCorrectiveSubState(groupedState = {}) {
+  // 1. Interventions State (persisted in storage, injected from baseline on first launch)
   const [interventions, setInterventions] = useState(() => {
     try {
-      const saved = storageService.getItem(STORAGE_KEY);
+      const saved = groupedState.correctiveInterventions || storageService.getItem(STORAGE_KEY);
       if (Array.isArray(saved) && saved.length > 0) {
         return saved;
       }
-      return initialSeed || [];
+      return [];
     } catch {
-      return initialSeed || [];
+      return [];
+    }
+  });
+
+  // 2. Actions par Panne Dictionary
+  const [actionsByPanne, setActionsByPanne] = useState(() => {
+    try {
+      const saved =
+        groupedState.correctiveActionsByPanne ||
+        storageService.getItem(STORAGE_KEY_ACTIONS_BY_PANNE) ||
+        storageService.getItem('gmao_corrective_actions_by_panne_v2');
+      return saved && typeof saved === 'object' ? saved : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // 3. Panne Categories Dictionary
+  const [panneCategories, setPanneCategories] = useState(() => {
+    try {
+      const saved =
+        groupedState.correctivePanneCategories ||
+        storageService.getItem(STORAGE_KEY_PANNE_CATEGORIES) ||
+        storageService.getItem('gmao_corrective_panne_categories_v1');
+      return saved && typeof saved === 'object' ? saved : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // 4. Travail à Faire Standard Descriptions
+  const [travauxAFaire, setTravauxAFaire] = useState(() => {
+    try {
+      const saved =
+        groupedState.correctiveTravauxAFaire ||
+        storageService.getItem(STORAGE_KEY_TRAVAUX) ||
+        storageService.getItem('gmao_corrective_travaux_v1');
+      return Array.isArray(saved) ? saved : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // 5. Intervenants Correctifs
+  const [intervenants, setIntervenants] = useState(() => {
+    try {
+      const saved =
+        groupedState.correctiveIntervenants ||
+        storageService.getItem(STORAGE_KEY_INTERVENANTS) ||
+        storageService.getItem('gmao_corrective_intervenants_v1');
+      return Array.isArray(saved) ? saved : [];
+    } catch {
+      return [];
     }
   });
 
@@ -28,6 +128,191 @@ export function useCorrectiveSubState() {
       return null;
     }
   });
+
+  // Initial Bootstrap: Load baseline corrective data from public data folder on first run
+  useEffect(() => {
+    const isAlreadyInitialized = storageService.getItem(STORAGE_KEY_CORRECTIVE_INIT);
+    const existingInStorage = storageService.getItem(STORAGE_KEY);
+
+    if (!isAlreadyInitialized || !existingInStorage || existingInStorage.length === 0) {
+      loadBaselineCorrectiveData().then((baseline) => {
+        if (!baseline) return;
+
+        if (baseline.interventions && baseline.interventions.length > 0) {
+          setInterventions((prev) => {
+            const currentList = prev && prev.length > 0 ? prev : (storageService.getItem(STORAGE_KEY) || []);
+            const merged = mergeArraysWithBaseline(currentList, baseline.interventions, 'id');
+            storageService.setItem(STORAGE_KEY, merged);
+            return merged;
+          });
+        }
+
+        if (baseline.actionsByPanne && Object.keys(baseline.actionsByPanne).length > 0) {
+          setActionsByPanne((prev) => {
+            const merged = mergeDictsWithBaseline(prev, baseline.actionsByPanne);
+            storageService.setItem(STORAGE_KEY_ACTIONS_BY_PANNE, merged);
+            return merged;
+          });
+        }
+
+        if (baseline.panneCategories && Object.keys(baseline.panneCategories).length > 0) {
+          setPanneCategories((prev) => {
+            const merged = mergeDictsWithBaseline(prev, baseline.panneCategories);
+            storageService.setItem(STORAGE_KEY_PANNE_CATEGORIES, merged);
+            return merged;
+          });
+        }
+
+        if (baseline.travauxAFaire && baseline.travauxAFaire.length > 0) {
+          setTravauxAFaire((prev) => {
+            const merged = mergeArraysWithBaseline(prev, baseline.travauxAFaire);
+            storageService.setItem(STORAGE_KEY_TRAVAUX, merged);
+            return merged;
+          });
+        }
+
+        if (baseline.intervenants && baseline.intervenants.length > 0) {
+          setIntervenants((prev) => {
+            const merged = mergeArraysWithBaseline(prev, baseline.intervenants, 'nom');
+            storageService.setItem(STORAGE_KEY_INTERVENANTS, merged);
+            return merged;
+          });
+        }
+
+        storageService.setItem(STORAGE_KEY_CORRECTIVE_INIT, 'true');
+      });
+    }
+  }, []);
+
+  // Auto-persist dictionary state changes
+  useEffect(() => {
+    try {
+      storageService.setItem(STORAGE_KEY_ACTIONS_BY_PANNE, actionsByPanne);
+    } catch (e) {
+      console.error('Failed to save corrective actionsByPanne:', e);
+    }
+  }, [actionsByPanne]);
+
+  useEffect(() => {
+    try {
+      storageService.setItem(STORAGE_KEY_PANNE_CATEGORIES, panneCategories);
+    } catch (e) {
+      console.error('Failed to save corrective panneCategories:', e);
+    }
+  }, [panneCategories]);
+
+  useEffect(() => {
+    try {
+      storageService.setItem(STORAGE_KEY_TRAVAUX, travauxAFaire);
+    } catch (e) {
+      console.error('Failed to save corrective travauxAFaire:', e);
+    }
+  }, [travauxAFaire]);
+
+  useEffect(() => {
+    try {
+      storageService.setItem(STORAGE_KEY_INTERVENANTS, intervenants);
+    } catch (e) {
+      console.error('Failed to save corrective intervenants:', e);
+    }
+  }, [intervenants]);
+
+  // Robust Search for Actions by Panne (normalized matching)
+  const getActionsForPanne = useCallback((anomalie) => {
+    if (!anomalie || !actionsByPanne) return [];
+    const anom = String(anomalie).trim();
+    if (!anom) return [];
+
+    // Exact key
+    if (actionsByPanne[anom]) return actionsByPanne[anom];
+
+    // Underscore variation
+    const withUnder = anom.replace(/\s+/g, '_');
+    if (actionsByPanne[withUnder]) return actionsByPanne[withUnder];
+
+    // Space variation
+    const withSpace = anom.replace(/_/g, ' ');
+    if (actionsByPanne[withSpace]) return actionsByPanne[withSpace];
+
+    // Normalized lowercase compare
+    const lower = anom.toLowerCase().replace(/_/g, ' ').trim();
+    for (const [key, acts] of Object.entries(actionsByPanne)) {
+      if (key.toLowerCase().replace(/_/g, ' ').trim() === lower) {
+        return acts;
+      }
+    }
+
+    // Substring contains compare
+    for (const [key, acts] of Object.entries(actionsByPanne)) {
+      const normKey = key.toLowerCase().replace(/_/g, ' ').trim();
+      if (normKey.includes(lower) || lower.includes(normKey)) {
+        return acts;
+      }
+    }
+
+    return [];
+  }, [actionsByPanne]);
+
+  // Dynamically add a new standard action to any panne
+  const addActionForPanne = useCallback((panneKey, actionText) => {
+    if (!panneKey || !actionText) return;
+    const cleanAction = String(actionText).trim();
+    if (!cleanAction) return;
+
+    setActionsByPanne((prev) => {
+      const existing = prev[panneKey] || [];
+      if (existing.includes(cleanAction)) return prev;
+      const updated = {
+        ...prev,
+        [panneKey]: [...existing, cleanAction],
+      };
+      try {
+        storageService.setItem(STORAGE_KEY_ACTIONS_BY_PANNE, updated);
+      } catch {}
+      return updated;
+    });
+  }, []);
+
+  // Reset standard corrective action & panne dictionaries back to factory seeds
+  const resetCorrectiveActionsToSeed = useCallback(async () => {
+    const baseline = await loadBaselineCorrectiveData();
+    if (!baseline) return;
+
+    setActionsByPanne(baseline.actionsByPanne || {});
+    setPanneCategories(baseline.panneCategories || {});
+    setTravauxAFaire(baseline.travauxAFaire || []);
+    setIntervenants(baseline.intervenants || []);
+
+    storageService.setItem(STORAGE_KEY_ACTIONS_BY_PANNE, baseline.actionsByPanne || {});
+    storageService.setItem(STORAGE_KEY_PANNE_CATEGORIES, baseline.panneCategories || {});
+    storageService.setItem(STORAGE_KEY_TRAVAUX, baseline.travauxAFaire || []);
+    storageService.setItem(STORAGE_KEY_INTERVENANTS, baseline.intervenants || []);
+
+    // Sync legacy keys
+    storageService.setItem('gmao_corrective_actions_by_panne_v2', baseline.actionsByPanne || {});
+    storageService.setItem('gmao_corrective_panne_categories_v1', baseline.panneCategories || {});
+    storageService.setItem('gmao_corrective_travaux_v1', baseline.travauxAFaire || []);
+    storageService.setItem('gmao_corrective_intervenants_v1', baseline.intervenants || []);
+  }, []);
+
+  // Force authoritative sync of all real factory data
+  const forceSyncAllSeedData = useCallback(async () => {
+    const baseline = await loadBaselineCorrectiveData();
+    if (!baseline) return { interventionsCount: 0 };
+
+    setInterventions(baseline.interventions || []);
+    storageService.setItem(STORAGE_KEY, baseline.interventions || []);
+    await resetCorrectiveActionsToSeed();
+
+    return {
+      interventionsCount: (baseline.interventions || []).length,
+      pannesCount: Object.values(baseline.panneCategories || {}).reduce((acc, curr) => acc + (curr?.length || 0), 0),
+      categoriesCount: Object.keys(baseline.panneCategories || {}).length,
+      travauxCount: (baseline.travauxAFaire || []).length,
+      actionsCount: Object.keys(baseline.actionsByPanne || {}).length,
+      intervenantsCount: (baseline.intervenants || []).length,
+    };
+  }, [resetCorrectiveActionsToSeed]);
 
   // Save to persistent storage
   useEffect(() => {
@@ -231,15 +516,30 @@ export function useCorrectiveSubState() {
   }, []);
 
   // 8. Reset to baseline seed
-  const resetToSeedData = useCallback(() => {
-    setInterventions(initialSeed || []);
+  const resetToSeedData = useCallback(async () => {
+    const baseline = await loadBaselineCorrectiveData();
+    if (!baseline) return;
+    setInterventions(baseline.interventions || []);
     setActiveLiveId(null);
-    storageService.setItem(STORAGE_KEY, initialSeed || []);
-  }, []);
+    storageService.setItem(STORAGE_KEY, baseline.interventions || []);
+    await resetCorrectiveActionsToSeed();
+  }, [resetCorrectiveActionsToSeed]);
 
   return {
     interventions,
     setInterventions,
+    actionsByPanne,
+    setActionsByPanne,
+    panneCategories,
+    setPanneCategories,
+    travauxAFaire,
+    setTravauxAFaire,
+    intervenants,
+    setIntervenants,
+    getActionsForPanne,
+    addActionForPanne,
+    resetCorrectiveActionsToSeed,
+    forceSyncAllSeedData,
     activeLiveId,
     setActiveLiveId,
     kpis,

@@ -47,7 +47,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,json}'],
         runtimeCaching: [
           {
@@ -124,6 +124,30 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          if (id.includes('src/data/corrective')) {
+            return 'data-corrective';
+          }
+          if (id.includes('src/data/preventive')) {
+            return 'data-preventive';
+          }
+          if (id.includes('src/data/machines')) {
+            return 'data-machines';
+          }
+          if (id.includes('src/data/stock')) {
+            return 'data-stock';
+          }
+          if (id.includes('src/data/warehouse')) {
+            return 'data-warehouse';
+          }
+          if (id.includes('src/data/zones')) {
+            return 'data-zones';
+          }
+          if (id.includes('src/data/users')) {
+            return 'data-users';
+          }
+          if (id.includes('src/data/movements')) {
+            return 'data-movements';
+          }
           if (id.includes('node_modules')) {
             if (id.includes('xlsx')) {
               return 'vendor-xlsx';

@@ -129,6 +129,30 @@ export function useAppExcelOperations({
   const buildWorkbook = useCallback(() => {
     const wb = XLSX.utils.book_new();
 
+    const autoFit = (ws, rows) => {
+      if (!rows || rows.length === 0) return;
+      const keys = Object.keys(rows[0] || {});
+      ws['!cols'] = keys.map((key) => {
+        let maxLen = String(key).length;
+        rows.slice(0, 100).forEach((r) => {
+          const val = r[key];
+          if (val != null) {
+            const len = String(val).length;
+            if (len > maxLen) maxLen = len;
+          }
+        });
+        return { wch: Math.min(Math.max(maxLen + 3, 12), 45) };
+      });
+    };
+
+    const appendSheetWithAutofit = (name, data) => {
+      if (Array.isArray(data) && data.length > 0) {
+        const ws = XLSX.utils.json_to_sheet(data);
+        autoFit(ws, data);
+        XLSX.utils.book_append_sheet(wb, ws, name);
+      }
+    };
+
     // 1. Stock_Actuel
     const stockData = stockItems.map((s) => ({
       Ref: s.ref,
@@ -143,7 +167,7 @@ export function useAppExcelOperations({
       Alerte: s.alerte,
       Emplacement: s.emplacement,
     }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockData), 'Stock_Actuel');
+    appendSheetWithAutofit('Stock_Actuel', stockData);
 
     // 2. Machines_Registered
     const mchData = machines.map((m) => ({
@@ -155,7 +179,7 @@ export function useAppExcelOperations({
       Technicien: m.technician,
       Statut: m.status,
     }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mchData), 'Machines_Registered');
+    appendSheetWithAutofit('Machines_Registered', mchData);
 
     // 3. Warehouse_Items (Entrepôt)
     const warehouseData = warehouseItems.map((w) => ({
@@ -172,63 +196,75 @@ export function useAppExcelOperations({
       Quantité: w.quantite || 1,
       Emplacement: w.emplacement || '',
     }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(warehouseData), 'Warehouse_Items');
+    appendSheetWithAutofit('Warehouse_Items', warehouseData);
 
     // 4. Mouvements
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mouvements), 'Mouvements');
+    appendSheetWithAutofit('Mouvements', mouvements);
 
-    // 5. Types
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(types), 'Types');
+    // 5. Sorties Externes (Bobinage)
+    if (state.sortiesExterne && state.sortiesExterne.length > 0) {
+      appendSheetWithAutofit('Sortie_Externe', state.sortiesExterne);
+    }
 
-    // 6. Diagnostics
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(diagnostics), 'Diagnostics');
+    // 6. Demandes d'Intervention
+    if (state.demandes && state.demandes.length > 0) {
+      appendSheetWithAutofit('Demandes_Intervention', state.demandes);
+    }
 
-    // 7. Families
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(families), 'Families');
+    // 7. Bons de Travail
+    if (state.bonsTravail && state.bonsTravail.length > 0) {
+      appendSheetWithAutofit('Bons_Travail', state.bonsTravail);
+    }
 
-    // 8. Templates
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(templates), 'Templates');
+    // 8. Preventive S1..S52
+    if (state.preventiveTasks && state.preventiveTasks.length > 0) {
+      appendSheetWithAutofit('Preventive_S1_S52', state.preventiveTasks);
+    }
 
-    // 9. Zones
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(zones), 'Zones');
+    // 9. Types
+    appendSheetWithAutofit('Types', types);
 
-    // 10. Technicians
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(technicians), 'Technicians');
+    // 10. Diagnostics
+    appendSheetWithAutofit('Diagnostics', diagnostics);
 
-    // 11. Operations
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(operations), 'Operations');
+    // 11. Families
+    appendSheetWithAutofit('Families', families);
 
-    // 12. Comp_Families
+    // 12. Templates
+    appendSheetWithAutofit('Templates', templates);
+
+    // 13. Zones
+    appendSheetWithAutofit('Zones', zones);
+
+    // 14. Technicians
+    appendSheetWithAutofit('Technicians', technicians);
+
+    // 15. Operations
+    appendSheetWithAutofit('Operations', operations);
+
+    // 16. Comp_Families
     if (compFamilies && compFamilies.length > 0) {
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(compFamilies), 'Comp_Families');
+      appendSheetWithAutofit('Comp_Families', compFamilies);
     }
 
-    // 13. Comp_Templates
+    // 17. Comp_Templates
     if (compTemplates && compTemplates.length > 0) {
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(compTemplates), 'Comp_Templates');
+      appendSheetWithAutofit('Comp_Templates', compTemplates);
     }
 
-    // 14. Part_Types
+    // 18. Part_Types
     if (partTypes && partTypes.length > 0) {
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(partTypes), 'Part_Types');
+      appendSheetWithAutofit('Part_Types', partTypes);
     }
 
-    // 15. Part_Designations
+    // 19. Part_Designations
     if (partDesignations && partDesignations.length > 0) {
-      XLSX.utils.book_append_sheet(
-        wb,
-        XLSX.utils.json_to_sheet(partDesignations),
-        'Part_Designations'
-      );
+      appendSheetWithAutofit('Part_Designations', partDesignations);
     }
 
-    // 16. Blueprints (Technical plans)
+    // 20. Blueprints (Technical plans)
     if (blueprints && blueprints.length > 0) {
-      XLSX.utils.book_append_sheet(
-        wb,
-        XLSX.utils.json_to_sheet(blueprints),
-        'Blueprints'
-      );
+      appendSheetWithAutofit('Blueprints', blueprints);
     }
 
     return wb;
@@ -249,6 +285,10 @@ export function useAppExcelOperations({
     partTypes,
     partDesignations,
     blueprints,
+    state.sortiesExterne,
+    state.demandes,
+    state.bonsTravail,
+    state.preventiveTasks,
   ]);
 
   // EXCEL EXPORT HANDLER

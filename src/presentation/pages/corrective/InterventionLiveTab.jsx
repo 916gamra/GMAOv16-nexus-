@@ -21,8 +21,6 @@ import {
 } from 'lucide-react';
 import { CorrectiveCalculationService } from '../../../domain/corrective/services/CorrectiveCalculationService';
 import { stockIndexStore } from '../../../application/StockIndexStore';
-import travailAFaireList from '../../../data/corrective/seedTravailAFaire.json';
-import actionsByPanne from '../../../data/corrective/seedActionsByPanne.json';
 
 export default function InterventionLiveTab({
   interventions = [],
@@ -33,6 +31,10 @@ export default function InterventionLiveTab({
   onNavigateToTab,
   stockItems = [],
   onAddMouvement,
+  actionsByPanne = {},
+  travauxAFaire = [],
+  getActionsForPanne: getActionsForPanneProp,
+  onAddActionForPanne: _onAddActionForPanne,
   showToast,
 }) {
   // Sync with reactive StockIndexStore for real-time stock balances
@@ -152,20 +154,41 @@ export default function InterventionLiveTab({
     }
   }, [activeIntervention]);
 
-  // Filtered standard phrases (143 items from seedTravailAFaire.json)
+  // Filtered standard phrases from travauxAFaire prop
   const filteredSuggestions = useMemo(() => {
-    if (!travailSearch) return (travailAFaireList || []).slice(0, 15);
+    if (!travailSearch) return (travauxAFaire || []).slice(0, 15);
     const term = travailSearch.toLowerCase();
-    return (travailAFaireList || [])
+    return (travauxAFaire || [])
       .filter((item) => String(item).toLowerCase().includes(term))
       .slice(0, 20);
-  }, [travailSearch]);
+  }, [travailSearch, travauxAFaire]);
 
-  // Suggested solutions specifically linked to this failure anomaly
+  // Suggested solutions specifically linked to this failure anomaly (normalized lookup from prop/seed registry)
   const smartAnomalyActions = useMemo(() => {
     if (!activeIntervention?.anomalie) return [];
-    return actionsByPanne[activeIntervention.anomalie] || [];
-  }, [activeIntervention]);
+    if (typeof getActionsForPanneProp === 'function') {
+      return getActionsForPanneProp(activeIntervention.anomalie);
+    }
+    const anom = String(activeIntervention.anomalie);
+    if (actionsByPanne[anom]) return actionsByPanne[anom];
+    const withUnder = anom.replace(/\s+/g, '_');
+    if (actionsByPanne[withUnder]) return actionsByPanne[withUnder];
+    const withSpace = anom.replace(/_/g, ' ');
+    if (actionsByPanne[withSpace]) return actionsByPanne[withSpace];
+    const lower = anom.toLowerCase().replace(/_/g, ' ').trim();
+    for (const [key, acts] of Object.entries(actionsByPanne)) {
+      if (key.toLowerCase().replace(/_/g, ' ').trim() === lower) {
+        return acts;
+      }
+    }
+    for (const [key, acts] of Object.entries(actionsByPanne)) {
+      const normKey = key.toLowerCase().replace(/_/g, ' ').trim();
+      if (normKey.includes(lower) || lower.includes(normKey)) {
+        return acts;
+      }
+    }
+    return [];
+  }, [activeIntervention, actionsByPanne, getActionsForPanneProp]);
 
   // Filtered Stock Items for PDR lookup
   const [pdrSearch, setPdrSearch] = useState('');

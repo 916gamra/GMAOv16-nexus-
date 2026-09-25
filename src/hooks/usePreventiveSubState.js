@@ -1,53 +1,58 @@
 import { useState, useCallback, useEffect } from 'react';
 import { storageService } from '../utils/storageService';
-import {
-  BASELINE_PREVENTIVE_ACTIONS,
-  BASELINE_PREVENTIVE_GUIDES,
-  loadBaselinePreventiveTasks,
-} from '../utils/baselinePreventive';
+import initialTasks from '../data/preventive/seedPreventiveTasks.json';
+import initialActions from '../data/preventive/seedPreventiveActions.json';
+import initialGuides from '../data/preventive/seedPreventiveGuides.json';
 import PreventiveService from '../application/services/PreventiveService';
 
-const STORAGE_KEY_TASKS = 'gmao_preventive_tasks_v8';
-const STORAGE_KEY_ACTIONS = 'gmao_preventive_actions_v2';
-const STORAGE_KEY_GUIDES = 'gmao_preventive_guides_v2';
-const STORAGE_KEY_PLANS = 'gmao_preventive_plans_v2';
-const STORAGE_KEY_PREV_INIT = 'gmao_preventive_initialized_v1';
+const STORAGE_KEY_TASKS = 'gmao_preventive_tasks_v9';
+const STORAGE_KEY_ACTIONS = 'gmao_preventive_actions_v3';
+const STORAGE_KEY_GUIDES = 'gmao_preventive_guides_v3';
+const STORAGE_KEY_PLANS = 'gmao_preventive_plans_v3';
 
 /**
  * Hook for managing Preventive Maintenance state (Primary Matrix + Secondary Plans/Guides/Actions).
- * Follows the same clean, persistent baseline-vs-user-data pattern as useStockSubState.
+ * Implements Dedicated Clean Seed Architecture (Standard Corrective Pattern)
  */
 export function usePreventiveSubState(groupedState = {}) {
   // 1. Actions State (C, N, G, V, R, S, L...)
   const [actions, setActions] = useState(() => {
-    const saved = groupedState.actions || storageService.getItem(STORAGE_KEY_ACTIONS);
+    if (groupedState.actions && Array.isArray(groupedState.actions) && groupedState.actions.length > 0) {
+      return groupedState.actions;
+    }
+    const saved = storageService.getItem(STORAGE_KEY_ACTIONS);
     if (Array.isArray(saved) && saved.length > 0) return saved;
-    return BASELINE_PREVENTIVE_ACTIONS;
+    return initialActions;
   });
 
   // 2. Guides State (Technical instruction sheets)
   const [guides, setGuides] = useState(() => {
-    const saved = groupedState.guides || storageService.getItem(STORAGE_KEY_GUIDES);
+    if (groupedState.guides && Array.isArray(groupedState.guides) && groupedState.guides.length > 0) {
+      return groupedState.guides;
+    }
+    const saved = storageService.getItem(STORAGE_KEY_GUIDES);
     if (Array.isArray(saved) && saved.length > 0) return saved;
-    return BASELINE_PREVENTIVE_GUIDES;
+    return initialGuides;
   });
 
   // 3. Plans State (Engineered maintenance plans)
   const [plans, setPlans] = useState(() => {
-    const saved = groupedState.plans || storageService.getItem(STORAGE_KEY_PLANS);
+    if (groupedState.plans && Array.isArray(groupedState.plans)) return groupedState.plans;
+    const saved = storageService.getItem(STORAGE_KEY_PLANS);
     if (Array.isArray(saved)) return saved;
     return [];
   });
 
-  // 4. Preventive Execution Tasks State (Primary S1-S52 matrix)
+  // 4. Preventive Execution Tasks State (Primary S1-S52 matrix: 1,175 baseline tasks)
   const [tasks, setTasks] = useState(() => {
-    // Priority: groupedState -> localStorage
-    const saved = groupedState.tasks || storageService.getItem(STORAGE_KEY_TASKS);
-    if (Array.isArray(saved) && saved.length > 0) {
+    if (groupedState.tasks && Array.isArray(groupedState.tasks) && groupedState.tasks.length > 0) {
+      return groupedState.tasks;
+    }
+    const saved = storageService.getItem(STORAGE_KEY_TASKS);
+    if (Array.isArray(saved) && saved.length >= 800) {
       return saved;
     }
-    // Return empty initially if not in storage, but trigger baseline loading asynchronously
-    return [];
+    return initialTasks;
   });
 
   // Synchronize with external events (Excel import, vault restore, service updates)
@@ -62,24 +67,6 @@ export function usePreventiveSubState(groupedState = {}) {
     };
 
     window.addEventListener('preventive_tasks_updated', handleTasksUpdated);
-
-    // Initial Bootstrap: Only load factory pack if NEVER initialized or if storage is completely empty
-    const isAlreadyInitialized = storageService.getItem(STORAGE_KEY_PREV_INIT);
-    const existingInStorage = storageService.getItem(STORAGE_KEY_TASKS);
-
-    if (!isAlreadyInitialized && (!existingInStorage || existingInStorage.length === 0)) {
-      loadBaselinePreventiveTasks().then((baselineTasks) => {
-        if (baselineTasks && baselineTasks.length > 0) {
-          setTasks((prev) => {
-            if (prev && prev.length > 0) return prev; // Don't overwrite if user added data
-            storageService.setItem(STORAGE_KEY_TASKS, baselineTasks);
-            storageService.setItem(STORAGE_KEY_PREV_INIT, 'true');
-            PreventiveService.saveTasks(baselineTasks);
-            return baselineTasks;
-          });
-        }
-      });
-    }
 
     return () => {
       window.removeEventListener('preventive_tasks_updated', handleTasksUpdated);
@@ -165,17 +152,16 @@ export function usePreventiveSubState(groupedState = {}) {
 
   // Clear / Reset to baseline explicitly (User-initiated only, no automatic overwrite!)
   const handleResetPreventiveToBaseline = useCallback(async () => {
-    const baselineTasks = await loadBaselinePreventiveTasks();
-    setTasks(baselineTasks);
-    setActions(BASELINE_PREVENTIVE_ACTIONS);
-    setGuides(BASELINE_PREVENTIVE_GUIDES);
+    setTasks(initialTasks);
+    setActions(initialActions);
+    setGuides(initialGuides);
     setPlans([]);
-    PreventiveService.saveTasks(baselineTasks);
-    PreventiveService.saveActions(BASELINE_PREVENTIVE_ACTIONS);
-    PreventiveService.saveGuides(BASELINE_PREVENTIVE_GUIDES);
+    PreventiveService.saveTasks(initialTasks);
+    PreventiveService.saveActions(initialActions);
+    PreventiveService.saveGuides(initialGuides);
     PreventiveService.savePlans([]);
-    storageService.setItem(STORAGE_KEY_PREV_INIT, 'true');
-    return baselineTasks;
+    storageService.setItem(STORAGE_KEY_TASKS, initialTasks);
+    return initialTasks;
   }, []);
 
   // Clear all preventive data to start empty for real factory deployment
@@ -184,7 +170,6 @@ export function usePreventiveSubState(groupedState = {}) {
     setPlans([]);
     PreventiveService.saveTasks([]);
     PreventiveService.savePlans([]);
-    storageService.setItem(STORAGE_KEY_PREV_INIT, 'true'); // marks initialized so baseline won't reload
     storageService.setItem(STORAGE_KEY_TASKS, []);
   }, []);
 
@@ -212,3 +197,4 @@ export function usePreventiveSubState(groupedState = {}) {
     handleClearPreventiveForRealFactory,
   };
 }
+

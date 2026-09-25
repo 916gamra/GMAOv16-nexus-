@@ -9,10 +9,30 @@
 - **الإدارة الدقيقة لقطع الغيار والمستهلكات الصناعية (Spare Parts & Consumables):** تتيح للمسؤولين والفنيين مراقبة الأرصدة المتوفرة في المستودعات في الوقت الفعلي.
 - **التحديث الحي بالمعادلات الرياضية (Dynamic Live Recalculation):** لا يتم تخزين الرصيد النهائي كقيمة ثابتة بل يُحسب تلقائياً من خلال دمج المخزون الافتتاحي مع جميع حركات الإدخال والإخراج.
 - **مكافحة نفاد المخزون (Stockout Prevention):** نظام تنبيه ثلاثي المستويات (`OK`, `ALERTE`, `RUPTURE`) يعتمد على الحد الأدنى (`Seuil d'alerte`).
+- **معمارية الحقن النظيف (Dedicated Clean Seed Standard):** اتباع المعيار المعتمد في الصيانة التصحيحية بتوفير قاعدة بيانات مرجعية مستقلة ونظيفة في `/src/data/stock/seedStockItems.json` و `/src/data/stock/seedStockTypes.json` مع إزالة الترقيع وقت التشغيل.
 
 ---
 
-## 📊 2. التطابق مع أعمدة إكسيل (Excel Twin Mapping)
+## 💾 2. معمارية البيانات وتدفق الحالة (Data Architecture & State Flow)
+
+```
+/src/data/stock/seedStockItems.json (873 مقال مرجعي نظيف)
+/src/data/stock/seedStockTypes.json (فئات المقالات)
+                      │
+           /src/hooks/useStockSubState.js
+   (إدارة الحالة والتخزين gmao_raw_stock_v7 + CRUD موحد)
+                      │
+           /src/hooks/useAppCalculations.js
+     (حساب Stock Actuel = Initial + Entrées - Sorties)
+                      │
+           /src/presentation/router/useAppRouterProps.js
+                      │
+           /src/presentation/pages/stock/StockView.jsx
+```
+
+---
+
+## 📊 3. التطابق مع أعمدة إكسيل (Excel Twin Mapping)
 
 | العمود في إكسيل | اسم الحقل البرمجي | النوع | المعادلة المرجعية في إكسيل / الوصف |
 | :---: | :--- | :---: | :--- |

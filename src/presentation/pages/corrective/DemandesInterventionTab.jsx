@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Flame,
   AlertTriangle,
@@ -18,14 +18,8 @@ import {
   Wrench,
   Check,
   Zap,
-  Activity,
-  User,
-  Factory,
+  BookOpen,
 } from 'lucide-react';
-import panneCategories from '../../../data/corrective/seedPanneByCategory.json';
-import defaultMachines from '../../../data/corrective/seedCorrectiveMachines.json';
-import defaultIntervenants from '../../../data/corrective/seedIntervenants.json';
-import travailSuggestions from '../../../data/corrective/seedTravailAFaire.json';
 import * as XLSX from 'xlsx';
 
 export default function DemandesInterventionTab({
@@ -34,13 +28,23 @@ export default function DemandesInterventionTab({
   onConvertToBt,
   machines = [],
   technicians = [],
+  actionsByPanne = {},
+  panneCategories = {},
+  travauxAFaire = [],
+  intervenants = [],
+  getActionsForPanne: getActionsForPanneProp,
+  onAddActionForPanne: _onAddActionForPanne,
   showToast,
   onNavigateToTab,
   autoOpenCreate = false,
   onResetAutoOpen,
+  presetData = null,
+  onClearPreset,
 }) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(null); // holds selected DI
+  const [showTravauxSelector, setShowTravauxSelector] = useState(false);
+  const [travauxSearchTerm, setTravauxSearchTerm] = useState('');
 
   useEffect(() => {
     if (autoOpenCreate) {
@@ -62,34 +66,95 @@ export default function DemandesInterventionTab({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // Combined machine list (actual registered machines + seed corrective machines)
-  const allMachineOptions = useMemo(() => {
-    const list = [...(machines || [])];
-    const registeredCodes = new Set(list.map((m) => m.id_machine_registered || m.code || m.id));
-    (defaultMachines || []).forEach((dm) => {
-      if (!registeredCodes.has(dm.code)) {
-        list.push({
-          id_machine_registered: dm.code,
-          code: dm.code,
-          zone: dm.zone,
-          totalInterventions: dm.totalInterventions,
-        });
+  // Robust search for suggested actions for a panne anomalie
+  const getActionsForPanne = useCallback((anomalie) => {
+    if (typeof getActionsForPanneProp === 'function') {
+      return getActionsForPanneProp(anomalie);
+    }
+    if (!anomalie || !actionsByPanne) return [];
+    const anom = String(anomalie).trim();
+    if (!anom) return [];
+    if (actionsByPanne[anom]) return actionsByPanne[anom];
+    const withUnder = anom.replace(/\s+/g, '_');
+    if (actionsByPanne[withUnder]) return actionsByPanne[withUnder];
+    const withSpace = anom.replace(/_/g, ' ');
+    if (actionsByPanne[withSpace]) return actionsByPanne[withSpace];
+    const lower = anom.toLowerCase().replace(/_/g, ' ').trim();
+    for (const [key, acts] of Object.entries(actionsByPanne)) {
+      if (key.toLowerCase().replace(/_/g, ' ').trim() === lower) {
+        return acts;
       }
-    });
-    return list;
+    }
+    for (const [key, acts] of Object.entries(actionsByPanne)) {
+      const normKey = key.toLowerCase().replace(/_/g, ' ').trim();
+      if (normKey.includes(lower) || lower.includes(normKey)) {
+        return acts;
+      }
+    }
+    return [];
+  }, [actionsByPanne, getActionsForPanneProp]);
+
+  // Combined machine list from registered state
+  const allMachineOptions = useMemo(() => {
+    if (Array.isArray(machines) && machines.length > 0) {
+      return machines.map((m) => ({
+        id_machine_registered: m.id_machine_registered || m.code || m.id,
+        code: m.code || m.id_machine_registered || m.id,
+        zone: m.zone || 'Atelier',
+        totalInterventions: m.totalInterventions || 0,
+      }));
+    }
+    return [
+      { id_machine_registered: 'RCP-02', code: 'RCP-02', zone: 'Atelier' },
+      { id_machine_registered: 'P-HYD-01', code: 'P-HYD-01', zone: 'Atelier' },
+    ];
   }, [machines]);
 
-  // Combined technician list
+  // Combined technician list from registered state or seeded intervenants
   const allTechnicianOptions = useMemo(() => {
-    const names = new Set((technicians || []).map((t) => t.nom || t.name || t));
-    const list = [...(technicians || [])];
-    (defaultIntervenants || []).forEach((di) => {
-      if (!names.has(di.nom)) {
-        list.push({ nom: di.nom, name: di.nom });
-      }
-    });
+    const list = [];
+    const seen = new Set();
+
+    // 1. Add real intervenants from corrective team (seedIntervenants)
+    if (Array.isArray(intervenants)) {
+      intervenants.forEach((i) => {
+        const nom = i.nom || i.name || String(i);
+        if (nom && !seen.has(nom.toLowerCase())) {
+          seen.add(nom.toLowerCase());
+          list.push({
+            nom,
+            name: nom,
+            role: i.total ? `${i.total} interventions` : 'Intervenant Usine',
+            isCorrective: true,
+          });
+        }
+      });
+    }
+
+    // 2. Add general technicians from userSub
+    if (Array.isArray(technicians)) {
+      technicians.forEach((t) => {
+        const nom = t.nom || t.name || String(t);
+        if (nom && !seen.has(nom.toLowerCase())) {
+          seen.add(nom.toLowerCase());
+          list.push({
+            nom,
+            name: nom,
+            role: t.role || 'Technicien GMAO',
+          });
+        }
+      });
+    }
+
+    if (list.length === 0) {
+      return [
+        { nom: 'm_hammed', name: 'M\'hammed', role: '1665 interventions' },
+        { nom: 'Rachid', name: 'Rachid', role: '1076 interventions' },
+        { nom: 'Ismaayl', name: 'Ismaayl', role: '418 interventions' },
+      ];
+    }
     return list;
-  }, [technicians]);
+  }, [technicians, intervenants]);
 
   // Form State for new DI
   const [newForm, setNewForm] = useState({
@@ -102,6 +167,19 @@ export default function DemandesInterventionTab({
     arret_machine: true,
   });
 
+  useEffect(() => {
+    if (presetData) {
+      setNewForm((prev) => ({
+        ...prev,
+        type_panne: presetData.type_panne || prev.type_panne,
+        anomalie: presetData.anomalie || prev.anomalie,
+        travail_a_faire: presetData.travail_a_faire || prev.travail_a_faire,
+      }));
+      setShowCreateModal(true);
+      onClearPreset?.();
+    }
+  }, [presetData, onClearPreset]);
+
   // Convert Modal State
   const [convertForm, setConvertForm] = useState({
     num_bt: '',
@@ -113,7 +191,15 @@ export default function DemandesInterventionTab({
   // Category Panne Options
   const availableCategories = useMemo(() => {
     return Object.keys(panneCategories || { E: [], H: [], P: [], M: [] });
-  }, []);
+  }, [panneCategories]);
+
+  // Filtered standard travaux options
+  const filteredStandardTravaux = useMemo(() => {
+    if (!Array.isArray(travauxAFaire)) return [];
+    if (!travauxSearchTerm.trim()) return travauxAFaire.slice(0, 30);
+    const q = travauxSearchTerm.toLowerCase();
+    return travauxAFaire.filter((t) => String(t).toLowerCase().includes(q)).slice(0, 30);
+  }, [travauxAFaire, travauxSearchTerm]);
 
   const anomaliesForSelectedCategory = useMemo(() => {
     return panneCategories[newForm.type_panne] || [];
@@ -1037,9 +1123,75 @@ export default function DemandesInterventionTab({
 
               {/* Travail à faire */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Description de la Panne / Travail Souhaité
-                </label>
+                <div className="flex items-center justify-between mb-1 flex-wrap gap-1">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                    Description de la Panne / Travail Souhaité
+                  </label>
+
+                  <div className="flex items-center gap-2">
+                    {getActionsForPanne(newForm.anomalie).length > 0 && (
+                      <span className="text-[10px] font-bold text-amber-700">
+                        {getActionsForPanne(newForm.anomalie).length} actions recommandées
+                      </span>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setShowTravauxSelector(!showTravauxSelector)}
+                      className="px-2 py-0.5 rounded-lg border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold text-[10.5px] transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                    >
+                      <BookOpen className="w-3 h-3 text-blue-600" />
+                      <span>{showTravauxSelector ? 'Fermer catalogue' : 'Choisir parmi les 114 travaux standard'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Searchable Standard Travaux Dropdown */}
+                {showTravauxSelector && (
+                  <div className="mb-2 p-2.5 rounded-xl bg-blue-50/70 border border-blue-200 space-y-2 animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10.5px] font-black uppercase tracking-wider text-blue-900">
+                        Catalogue des 114 Travaux Standard d'Atelier (Cliquer pour insérer) :
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowTravauxSelector(false)}
+                        className="text-slate-400 hover:text-slate-600 text-xs"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <input
+                      type="text"
+                      value={travauxSearchTerm}
+                      onChange={(e) => setTravauxSearchTerm(e.target.value)}
+                      placeholder="Filtrer parmi les 114 travaux (ex: démonter, huile, moteur, graissage...)"
+                      className="w-full py-1.5 px-2.5 text-xs rounded-lg border border-blue-200 bg-white focus:outline-hidden focus:border-blue-400"
+                    />
+
+                    <div className="max-h-36 overflow-y-auto space-y-1 pr-1 divide-y divide-blue-100">
+                      {filteredStandardTravaux.map((t, tIdx) => (
+                        <div
+                          key={tIdx}
+                          onClick={() => {
+                            setNewForm((prev) => ({
+                              ...prev,
+                              travail_a_faire: prev.travail_a_faire ? `${prev.travail_a_faire}\n${t}` : t,
+                            }));
+                            setShowTravauxSelector(false);
+                            showToast?.('Travail standard inséré !', 'success');
+                          }}
+                          className="pt-1.5 pb-1 px-1.5 text-[11px] text-slate-800 hover:bg-blue-100/70 rounded-md cursor-pointer transition flex items-start justify-between gap-2"
+                        >
+                          <span className="font-medium leading-relaxed">{t}</span>
+                          <span className="text-[9.5px] font-mono text-blue-600 font-bold shrink-0 mt-0.5">+ Insérer</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <textarea
                   rows={3}
                   value={newForm.travail_a_faire}
@@ -1047,6 +1199,32 @@ export default function DemandesInterventionTab({
                   placeholder="Ex: Vérifier le bobinage moteur, changer le fusible ou réaligner la courroie..."
                   className="w-full py-2 px-3 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-amber-400 focus:outline-hidden"
                 />
+
+                {/* Quick Action Badges for Selected Panne */}
+                {getActionsForPanne(newForm.anomalie).length > 0 && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/80 space-y-1.5">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-900 block">
+                      Actions standard pour « {newForm.anomalie} » (Cliquer pour insérer) :
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                      {getActionsForPanne(newForm.anomalie).map((act, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setNewForm((prev) => ({
+                              ...prev,
+                              travail_a_faire: prev.travail_a_faire ? `${prev.travail_a_faire}\n${act}` : act,
+                            }));
+                          }}
+                          className="px-2 py-1 rounded-lg bg-white hover:bg-amber-100 text-amber-950 border border-amber-300 font-medium text-[10.5px] cursor-pointer transition shadow-2xs text-left"
+                        >
+                          + {act}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Modal Footer */}
@@ -1139,9 +1317,16 @@ export default function DemandesInterventionTab({
 
               {/* Instructions de Travail */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Travail à Faire (Suggestions d'Atelier)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                    Travail à Faire (Suggestions d'Atelier)
+                  </label>
+                  {getActionsForPanne(showConvertModal.anomalie).length > 0 && (
+                    <span className="text-[10px] font-bold text-blue-700">
+                      {getActionsForPanne(showConvertModal.anomalie).length} actions recommandées
+                    </span>
+                  )}
+                </div>
                 <textarea
                   rows={3}
                   value={convertForm.travail_a_faire}
@@ -1149,6 +1334,32 @@ export default function DemandesInterventionTab({
                   placeholder="Ex: Démonter vis sans fin, vérifier circuit de commande, changer roulement..."
                   className="w-full py-2 px-3 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-400 focus:outline-hidden"
                 />
+
+                {/* Quick Action Badges for Selected Panne in Convert Modal */}
+                {getActionsForPanne(showConvertModal.anomalie).length > 0 && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-blue-50/70 border border-blue-200/80 space-y-1.5">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-900 block">
+                      Actions types pour « {showConvertModal.anomalie} » :
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                      {getActionsForPanne(showConvertModal.anomalie).map((act, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setConvertForm((prev) => ({
+                              ...prev,
+                              travail_a_faire: prev.travail_a_faire ? `${prev.travail_a_faire}\n${act}` : act,
+                            }));
+                          }}
+                          className="px-2 py-1 rounded-lg bg-white hover:bg-blue-100 text-blue-950 border border-blue-300 font-medium text-[10.5px] cursor-pointer transition shadow-2xs text-left"
+                        >
+                          + {act}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Modal Footer */}

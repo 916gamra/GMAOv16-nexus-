@@ -1,52 +1,33 @@
 import { useState } from 'react';
 import { storageService } from '../utils/storageService';
-import initialData from '../initialData.json';
-import { INITIAL_TECHNICIANS, INITIAL_OPERATIONS } from '../data/seedData';
+import initialTechnicians from '../data/users/seedTechnicians.json';
+import initialOperations from '../data/users/seedOperations.json';
 
 /**
  * Hook managing Technicians and Operations/Chefs data
+ * Implements Dedicated Clean Seed Architecture (Standard Corrective Pattern)
  */
 export function useUserSubState(groupedState = {}) {
   const [technicians, setTechnicians] = useState(() => {
-    const raw =
-      groupedState.technicians ||
-      storageService.getItem('gmao_technicians') ||
-      (initialData.Technicians?.length ? initialData.Technicians : INITIAL_TECHNICIANS);
-    if (Array.isArray(raw)) {
-      const hasOldDummyTechs = raw.some(
-        (t) =>
-          (t.id_technician === 'TECH-02' && t.nom === 'Karim') ||
-          (t.id_technician === 'TECH-03' && t.nom === 'Yassine') ||
-          (t.id_technician === 'TECH-04' && t.nom === 'Amine')
-      );
-      const hasRealTechs = raw.some(
-        (t) => t.nom === 'Rachid' || t.nom === 'Youssef' || t.nom === 'Mhammed' || t.nom === 'Ismail'
-      );
-      if (hasOldDummyTechs || !hasRealTechs) {
-        return INITIAL_TECHNICIANS;
-      }
+    if (groupedState.technicians && Array.isArray(groupedState.technicians) && groupedState.technicians.length > 0) {
+      return groupedState.technicians;
+    }
+    const raw = storageService.getItem('gmao_technicians_v2') || storageService.getItem('gmao_technicians');
+    if (Array.isArray(raw) && raw.length > 0) {
       return raw;
     }
-    return INITIAL_TECHNICIANS;
+    return initialTechnicians;
   });
 
   const [operations, setOperations] = useState(() => {
-    const raw =
-      groupedState.operations ||
-      storageService.getItem('gmao_operations') ||
-      (initialData.Operations?.length ? initialData.Operations : INITIAL_OPERATIONS);
-    if (Array.isArray(raw)) {
-      return raw.filter(
-        (o) =>
-          !(o.id_operation === 'RESP-03' && String(o.nom || '').toLowerCase().includes('karim')) &&
-          !(o.id_operation === 'RESP-04' && String(o.nom || '').toLowerCase().includes('ahmed')) &&
-          !(o.id_operation === 'OP-01' && String(o.nom || '').includes('Anas - ZONE-DET')) &&
-          !(o.id_operation === 'OP-02' && String(o.nom || '').includes('Maintenance Préventive')) &&
-          !(o.id_operation === 'OP-03' && String(o.nom || '').includes('Changement Outils')) &&
-          !(o.id_operation === 'OP-04' && String(o.nom || '').includes('Contrôle Niveaux'))
-      );
+    if (groupedState.operations && Array.isArray(groupedState.operations) && groupedState.operations.length > 0) {
+      return groupedState.operations;
     }
-    return INITIAL_OPERATIONS;
+    const raw = storageService.getItem('gmao_operations_v2') || storageService.getItem('gmao_operations');
+    if (Array.isArray(raw) && raw.length > 0) {
+      return raw;
+    }
+    return initialOperations;
   });
 
   return {
@@ -56,3 +37,4 @@ export function useUserSubState(groupedState = {}) {
     setOperations,
   };
 }
+

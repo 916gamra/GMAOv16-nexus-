@@ -9,24 +9,50 @@
 لتفادي تشتت الحالة (State Drift) أو تعارض التخزين والتعديلات غير المنسقة عبر وحدات GMAO، تلتزم كافة الشاشات والوحدات بنمط المنسق المركزي:
 
 ```
-1. Storage & Persistence Tier (IndexedDB Batch + LocalStorage fallback)
+1. Dedicated Domain Seed Database (/src/data/[domain]/seed[Domain]Items.json)
                        │
-2. Domain Sub-State Hooks (/src/hooks/use[Entity]SubState.js)
+2. Storage & Persistence Tier (IndexedDB Batch + LocalStorage fallback)
                        │
-3. Master State Orchestrator (/src/hooks/useGmaoState.js)
+3. Domain Sub-State Hooks (/src/hooks/use[Entity]SubState.js)
+                       │
+4. Master State Orchestrator (/src/hooks/useGmaoState.js)
          ├─ Unified Auto-Save & Debounce (/src/hooks/useAutoSave.js)
          └─ Multi-Tab Broadcast Sync (/src/hooks/useStateSync.js)
                        │
-4. App Root Component (/src/App.jsx)
+5. App Root Component (/src/App.jsx)
                        │
-5. Router Props Coordinator (/src/presentation/router/useAppRouterProps.js)
+6. Router Props Coordinator (/src/presentation/router/useAppRouterProps.js)
                        │
-6. Pure Presentation Views (/src/presentation/pages/.../[View].jsx)
+7. Pure Presentation Views (/src/presentation/pages/.../[View].jsx)
 ```
 
 ---
 
-## 2. القواعد الأربع الأساسية (The 4 Fundamental Rules)
+## 2. معمارية الحقن النظيف والبيانات المرجعية المخصصة (Dedicated Clean Seed Architecture)
+### *المعيار الموحد المقتبس من نظام الصيانة التصحيحية (Standard Corrective Pattern)*
+
+يعتبر نظام الصيانة التصحيحية (`src/data/corrective/`) هو النموذج المعماري الذهبي (Gold Standard) المعتمد في التطبيق، ويتم تعميمه تدريجياً على كافة الأقسام (المخزون، الآلات، الوقائية، المستودع).
+
+### أركان المعمارية النظيفة (The 4 Pillars):
+1. **قواعد بيانات مرجعية مستقلة ونظيفة (`src/data/<domain>/`):**
+   - عزل بيانات كل نطاق في ملفات JSON مخصصة ومستقلة تماماً بدلاً من حشوها في ملف ضخم غير متجانس (`initialData.json`).
+   - مثال:
+     - الصيانة التصحيحية: `src/data/corrective/seedCorrectiveInterventions.json` (+1745 سجلاً).
+     - المخزون الحالي: `src/data/stock/seedStockItems.json` (873 مقالاً نظيفاً) و `seedStockTypes.json`.
+2. **منع التخمين والترقيع وقت التشغيل (Zero Runtime Guesswork):**
+   - السجلات المرجعية مكتوبة بحقول صريحة، موحدة، وثابتة الأنواع (`id`, `ref`, `designation`, `type`, `stockInitial`, `seuil`, `emplacement`).
+   - لا يجوز للـ Hooks فحص مفاتيح ملتبسة وقت التشغيل (مثل فحص هل `item.Type` رقم أم فئة أم كمية).
+3. **طبقة حالة فرعية نقية (Pure Domain Sub-State Hook):**
+   - الـ Hook الفرعي (مثل `useStockSubState.js`) يستورد ملفات الـ Seed مباشرة ويفحص التخزين المحلي.
+   - إذا كان التخزين المحلي فارغاً أو قديماً، يتم الحقن الفوري للـ Seed، مع ضمان الحفاظ على أي تعديلات جديدة قام بها المستخدم.
+   - تصدير دوال CRUD موحدة وصريحة نحو المنسق المركزي (`useGmaoState.js`).
+4. **تطهير واجهات العرض من أي استدعاءات هجينة (No Legacy Bleed):**
+   - شاشات العرض (مثل `StockView.jsx`) شاشات نقية (Pure Presentation Views) تستقبل البيانات والدوال عبر الـ `props` من `useAppRouterProps.js`.
+   - يمنع منعاً باتاً استدعاء حاويات قديمة مثل `useSpareParts()` أو `localStorage` داخل الشاشات.
+
+---
+
+## 3. القواعد الأربع الأساسية (The 4 Fundamental Rules)
 
 ### القاعدة 1: شاشات عرض نقية (Pure Presentation Views: Props Down, Events Up)
 - لا تستدعي الشاشات إطلاقاً `localStorage.getItem` أو `localStorage.setItem` مباشرة للكيانات المشتركة للنظام.

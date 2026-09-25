@@ -3,7 +3,6 @@ import AnimatedPage from '../../components/common/AnimatedPage';
 import CustomSelect from '../../components/common/CustomSelect';
 import QuickMovementModal from '../warehouse/QuickMovementModal';
 import EditArticleModal from './EditArticleModal';
-import { useSpareParts } from '../../hooks/useSpareParts';
 import { StockItem } from '../../../core/domain';
 import StockKPIBar from './components/StockKPIBar';
 import { multiTokenSearch } from '../../../utils/searchUtils';
@@ -77,16 +76,12 @@ export default function StockView({
   onOpenAddArticle = () => {},
   onQuickSortie: _onQuickSortie = () => {},
   onAddMouvement = () => {},
-  onUpdateArticle: propOnUpdateArticle,
-  onDirectAdjustStock: propOnDirectAdjustStock,
+  onUpdateArticle = () => {},
+  onDirectAdjustStock = () => {},
   stockKPIs = { total: 0, alertes: 0, ruptures: 0, ok: 0, totalSorties: 0, totalEntrees: 0 },
   onNavigateToType: _onNavigateToType = () => {},
 }) {
-  const { stockItems: dbStockItems, updateArticle: dbUpdateArticle, directAdjustStock: dbDirectAdjustStock } = useSpareParts();
-
-  const stockItems = propStockItems && propStockItems.length > 0 ? propStockItems : dbStockItems;
-  const onUpdateArticle = propOnUpdateArticle || dbUpdateArticle;
-  const onDirectAdjustStock = propOnDirectAdjustStock || dbDirectAdjustStock;
+  const stockItems = propStockItems || [];
   
   const [stockEmplacementFilter, setStockEmplacementFilter] = useState('ALL');
 

@@ -8,12 +8,14 @@ import {
   Flame,
   RefreshCw,
   FileSpreadsheet,
+  Database,
 } from 'lucide-react';
 import DemandesInterventionTab from './DemandesInterventionTab';
 import BonsTravailTab from './BonsTravailTab';
 import InterventionLiveTab from './InterventionLiveTab';
 import ClotureRapportsTab from './ClotureRapportsTab';
 import AnalyseCorrectiveTab from './AnalyseCorrectiveTab';
+import ReferentielPannesTravauxTab from './ReferentielPannesTravauxTab';
 import CorrectiveFormulasModal from './CorrectiveFormulasModal';
 import Action3DButton from '../../components/common/Action3DButton';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
@@ -36,6 +38,14 @@ export default function CorrectiveView({
   onUpdateIntervention,
   onDeleteIntervention: _onDeleteIntervention,
   onResetToSeed,
+  actionsByPanne = {},
+  panneCategories = {},
+  travauxAFaire = [],
+  intervenants = [],
+  getActionsForPanne,
+  onAddActionForPanne,
+  onResetActionsToSeed,
+  onForceSyncSeed,
   machines = [],
   technicians = [],
   stockItems = [],
@@ -48,6 +58,7 @@ export default function CorrectiveView({
   const [activeTab, setActiveTab] = useState(subTab || 'corrective_di');
   const [showFormulasModal, setShowFormulasModal] = useState(false);
   const [triggerCreateDiModal, setTriggerCreateDiModal] = useState(false);
+  const [diPresetData, setDiPresetData] = useState(null);
 
   useEffect(() => {
     if (subTab) {
@@ -60,6 +71,12 @@ export default function CorrectiveView({
     if (typeof onSubTabChange === 'function') {
       onSubTabChange(tabId);
     }
+  };
+
+  const handleAddDemandeWithPreset = (preset) => {
+    setDiPresetData(preset);
+    handleTabChange('corrective_di');
+    setTriggerCreateDiModal(true);
   };
 
   // Quick export all corrective interventions to Excel (.xlsx)
@@ -166,6 +183,13 @@ export default function CorrectiveView({
       label: 'Analyse & Pareto 80/20',
       icon: BarChart3,
     },
+    {
+      id: 'corrective_referentiel',
+      label: 'Catalogue & Données GMAO',
+      icon: Database,
+      badge: `${Object.values(panneCategories || {}).reduce((acc, c) => acc + (c?.length || 0), 0) || 282} Pannes`,
+      badgeColor: 'bg-amber-100 text-amber-900 border border-amber-300',
+    },
   ];
 
   return (
@@ -242,11 +266,12 @@ export default function CorrectiveView({
               onClick={() => {
                 if (
                   window.confirm(
-                    'Réinitialiser toutes les interventions aux données industrielles d\'origine (Ismaayl, Rachid, m_hammed - 4571 enregistrements) ?'
+                    'Réinitialiser toutes les interventions et référentiels d\'actions aux données industrielles d\'origine (4571 enregistrements + 71 types d\'actions) ?'
                   )
                 ) {
                   onResetToSeed?.();
-                  showToast?.('Données correctives réinitialisées avec succès', 'success');
+                  onResetActionsToSeed?.();
+                  showToast?.('Données correctives et catalogue d\'actions réinitialisés avec succès', 'success');
                 }
               }}
               title="Réinitialiser aux 4,571 interventions d'origine"
@@ -321,10 +346,18 @@ export default function CorrectiveView({
               onConvertToBt={onConvertToBt}
               machines={machines}
               technicians={technicians}
+              actionsByPanne={actionsByPanne}
+              panneCategories={panneCategories}
+              travauxAFaire={travauxAFaire}
+              intervenants={intervenants}
+              getActionsForPanne={getActionsForPanne}
+              onAddActionForPanne={onAddActionForPanne}
               showToast={showToast}
               onNavigateToTab={handleTabChange}
               autoOpenCreate={triggerCreateDiModal}
               onResetAutoOpen={() => setTriggerCreateDiModal(false)}
+              presetData={diPresetData}
+              onClearPreset={() => setDiPresetData(null)}
             />
           )}
 
@@ -336,6 +369,10 @@ export default function CorrectiveView({
               onNavigateToTab={handleTabChange}
               stockItems={stockItems}
               technicians={technicians}
+              intervenants={intervenants}
+              panneCategories={panneCategories}
+              actionsByPanne={actionsByPanne}
+              travauxAFaire={travauxAFaire}
               showToast={showToast}
             />
           )}
@@ -350,6 +387,10 @@ export default function CorrectiveView({
               onNavigateToTab={handleTabChange}
               stockItems={stockItems}
               onAddMouvement={onAddMouvement}
+              actionsByPanne={actionsByPanne}
+              travauxAFaire={travauxAFaire}
+              getActionsForPanne={getActionsForPanne}
+              onAddActionForPanne={onAddActionForPanne}
               showToast={showToast}
             />
           )}
@@ -371,6 +412,19 @@ export default function CorrectiveView({
               preventiveRecommendations={preventiveRecommendations}
               onNavigateToTab={handleTabChange}
               onAddPreventiveTask={onAddPreventiveTask}
+              showToast={showToast}
+            />
+          )}
+
+          {activeTab === 'corrective_referentiel' && (
+            <ReferentielPannesTravauxTab
+              panneCategories={panneCategories}
+              travauxAFaire={travauxAFaire}
+              actionsByPanne={actionsByPanne}
+              intervenants={intervenants}
+              onAddDemandeWithPreset={handleAddDemandeWithPreset}
+              onForceSyncSeed={onForceSyncSeed}
+              onAddActionForPanne={onAddActionForPanne}
               showToast={showToast}
             />
           )}

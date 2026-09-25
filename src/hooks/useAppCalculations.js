@@ -54,7 +54,24 @@ export function useAppCalculations({
         .trim()
         .toLowerCase();
 
-      const totals = stockIndexStore.index.getTotals(itemRef);
+      let totals = stockIndexStore.index.getTotals(itemRef);
+      if (totals.entrees === 0 && totals.sorties === 0 && mouvements && mouvements.length > 0) {
+        let e = 0;
+        let s = 0;
+        const refLower = itemRef.toLowerCase();
+        mouvements.forEach((m) => {
+          const mRef = String(m.ref || m['Référence'] || m['Reference'] || '').trim().toLowerCase();
+          if (mRef === refLower) {
+            const qty = safeNum(m.quantite != null ? m.quantite : m['Quantité'], 0);
+            const typeStr = String(m.type || m['Type (Entrée/Sortie)'] || '').toLowerCase();
+            if (typeStr.includes('sort')) s += qty;
+            else if (typeStr.includes('entr')) e += qty;
+          }
+        });
+        if (e > 0 || s > 0) {
+          totals = { ...totals, entrees: e, sorties: s };
+        }
+      }
 
       let stockInitial = 0;
       if (

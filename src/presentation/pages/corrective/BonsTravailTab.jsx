@@ -30,6 +30,10 @@ export default function BonsTravailTab({
   onNavigateToTab,
   stockItems: _stockItems = [],
   technicians = [],
+  intervenants = [],
+  panneCategories: _panneCategories = {},
+  actionsByPanne: _actionsByPanne = {},
+  travauxAFaire: _travauxAFaire = [],
   showToast,
 }) {
   const [filterStatus, setFilterStatus] = useState('EN_COURS'); // 'ALL', 'EN_COURS', 'CLOTURE'
@@ -48,14 +52,22 @@ export default function BonsTravailTab({
     return interventions.filter((item) => Boolean(item.num_bt));
   }, [interventions]);
 
-  // All technicians present in BTs
+  // All technicians present in BTs + configured intervenants
   const availableTechs = useMemo(() => {
     const set = new Set();
     bts.forEach((b) => {
       if (b.intervenant) set.add(b.intervenant);
     });
+    (intervenants || []).forEach((i) => {
+      const nom = i.nom || i.name;
+      if (nom) set.add(nom);
+    });
+    (technicians || []).forEach((t) => {
+      const nom = t.nom || t.name;
+      if (nom) set.add(nom);
+    });
     return Array.from(set);
-  }, [bts]);
+  }, [bts, intervenants, technicians]);
 
   // All machines present in BTs
   const availableMachines = useMemo(() => {

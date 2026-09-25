@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { storageService } from '../utils/storageService';
-import initialData from '../initialData.json';
+import initialMouvements from '../data/movements/seedMouvements.json';
 import { safeNum } from '../utils/formulaEngine';
 
 /**
@@ -92,12 +92,18 @@ export function normalizeMovement(m, idx = 0) {
 
 /**
  * Hook managing Movements log and transactions
+ * Implements Dedicated Clean Seed Architecture (Standard Corrective Pattern)
  */
 export function useMovementSubState(groupedState = {}) {
   const [mouvements, setMouvements] = useState(() => {
-    const saved = groupedState.mouvements || storageService.getItem('gmao_mouvements');
-    const rawList = saved && Array.isArray(saved) && saved.length > 0 ? saved : (initialData.Mouvement || []);
-    return rawList.map((m, idx) => normalizeMovement(m, idx));
+    if (groupedState.mouvements && Array.isArray(groupedState.mouvements) && groupedState.mouvements.length > 0) {
+      return groupedState.mouvements.map((m, idx) => normalizeMovement(m, idx));
+    }
+    const saved = storageService.getItem('gmao_mouvements_v2') || storageService.getItem('gmao_mouvements');
+    if (saved && Array.isArray(saved) && saved.length >= 300) {
+      return saved.map((m, idx) => normalizeMovement(m, idx));
+    }
+    return initialMouvements.map((m, idx) => normalizeMovement(m, idx));
   });
 
   return {
@@ -105,3 +111,4 @@ export function useMovementSubState(groupedState = {}) {
     setMouvements,
   };
 }
+

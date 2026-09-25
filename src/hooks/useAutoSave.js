@@ -30,6 +30,11 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
     preventiveGuides,
     preventivePlans,
     sortiesExterne,
+    correctiveInterventions,
+    correctiveActionsByPanne,
+    correctivePanneCategories,
+    correctiveTravauxAFaire,
+    correctiveIntervenants,
   } = state;
 
   const saveTimer = useRef(null);
@@ -59,6 +64,11 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
       preventiveGuides,
       preventivePlans,
       sortiesExterne,
+      correctiveInterventions,
+      correctiveActionsByPanne,
+      correctivePanneCategories,
+      correctiveTravauxAFaire,
+      correctiveIntervenants,
     };
 
     // Avoid saving if state has not changed
@@ -82,6 +92,11 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
       if (preventiveGuides) storageService.setItem('gmao_preventive_guides_v2', preventiveGuides);
       if (preventivePlans) storageService.setItem('gmao_preventive_plans_v2', preventivePlans);
       if (sortiesExterne) storageService.setItem('gmao_sortie_externe_bobinage_v1', sortiesExterne);
+      if (correctiveInterventions) storageService.setItem('gmao_corrective_interventions', correctiveInterventions);
+      if (correctiveActionsByPanne) storageService.setItem('gmao_corrective_actions_by_panne_v2', correctiveActionsByPanne);
+      if (correctivePanneCategories) storageService.setItem('gmao_corrective_panne_categories_v1', correctivePanneCategories);
+      if (correctiveTravauxAFaire) storageService.setItem('gmao_corrective_travaux_v1', correctiveTravauxAFaire);
+      if (correctiveIntervenants) storageService.setItem('gmao_corrective_intervenants_v1', correctiveIntervenants);
 
       // High performance single-transaction batch save to IndexedDB
       indexedDBService.setItemsBatch({
@@ -92,6 +107,11 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
         gmao_raw_stock_v6: rawStock,
         gmao_preventive_tasks_v8: preventiveTasks || [],
         gmao_sortie_externe_bobinage_v1: sortiesExterne || [],
+        gmao_corrective_interventions: correctiveInterventions || [],
+        gmao_corrective_actions_by_panne_v2: correctiveActionsByPanne || {},
+        gmao_corrective_panne_categories_v1: correctivePanneCategories || {},
+        gmao_corrective_travaux_v1: correctiveTravauxAFaire || [],
+        gmao_corrective_intervenants_v1: correctiveIntervenants || [],
       });
 
       window.dispatchEvent(new CustomEvent('gmao:state_saved', { detail: { timestamp: Date.now() } }));
@@ -124,6 +144,10 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
     preventiveGuides,
     preventivePlans,
     sortiesExterne,
+    correctiveInterventions,
+    correctiveActionsByPanne,
+    correctivePanneCategories,
+    correctiveTravauxAFaire,
   ]);
 
   // Debounce saving

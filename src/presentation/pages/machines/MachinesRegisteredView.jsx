@@ -6,7 +6,6 @@ import { HubIcon } from '../../components/common/icons/HubIcon';
 import { CategoryIcon } from '../../components/common/icons/CategoryIcon';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
 import Action3DButton from '../../components/common/Action3DButton';
-import { useMachines } from '../../hooks/useMachines';
 import { useSmartTableLoader } from '../../hooks/useSmartTableLoader';
 import TableSkeletonRows from '../../components/common/TableSkeletonRows';
 import MachinesKPIBar from './components/MachinesKPIBar';
@@ -138,8 +137,8 @@ export default function MachinesRegisteredView({
   mchSearch = '',
   setMchSearch = () => {},
   onAddMachine: _propAddMachine,
-  onUpdateMachine: propUpdateMachine,
-  onDeleteMachine: propDeleteMachine,
+  onUpdateMachine = () => {},
+  onDeleteMachine = () => {},
   onOpenAddMachine = () => {},
   onNavigateToFamily: _onNavigateToFamily = () => {},
   onNavigateToTemplate: _onNavigateToTemplate = () => {},
@@ -148,17 +147,7 @@ export default function MachinesRegisteredView({
   onNavigateToQuickSortie = () => {},
   onNavigateToPreventive = () => {},
 }) {
-  const { machines: dbMachines, updateMachine: dbUpdateMachine, deleteMachine: dbDeleteMachine } = useMachines();
-
-  const machines = useMemo(() => {
-    if (Array.isArray(propMachines) && propMachines.length > 0) {
-      return propMachines;
-    }
-    if (Array.isArray(dbMachines) && dbMachines.length > 0) {
-      return dbMachines;
-    }
-    return [];
-  }, [propMachines, dbMachines]);
+  const machines = Array.isArray(propMachines) ? propMachines : [];
 
   const families = useMemo(() => {
     if (Array.isArray(passedFamilies) && passedFamilies.length > 0) return passedFamilies;
@@ -171,16 +160,6 @@ export default function MachinesRegisteredView({
     if (Array.isArray(effectiveTemplates) && effectiveTemplates.length > 0) return effectiveTemplates;
     return [];
   }, [passedTemplates, effectiveTemplates]);
-
-  const onUpdateMachine = (id, data) => {
-    if (propUpdateMachine) propUpdateMachine(id, data);
-    if (dbUpdateMachine) dbUpdateMachine(id, data).catch(() => {});
-  };
-
-  const onDeleteMachine = (id) => {
-    if (propDeleteMachine) propDeleteMachine(id);
-    if (dbDeleteMachine) dbDeleteMachine(id).catch(() => {});
-  };
 
   const [toEdit, setToEdit] = useState(null);
   const [toDelete, setToDelete] = useState(null);

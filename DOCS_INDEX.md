@@ -26,11 +26,15 @@
 | :--- | :--- | :--- |
 | **Dashboard & Pilotage** | [`docs/DASHBOARD_VIEW.md`](./docs/DASHBOARD_VIEW.md) | قمرة القيادة الشاملة، تتبع طلبات الشراء، تحليلات التدخلات، والمؤشرات الحية. |
 | **Sortie & Entrée Rapide** | [`docs/SORTIE_RAPIDE_VIEW.md`](./docs/SORTIE_RAPIDE_VIEW.md) | دليل كامل لإدارة حركات المخزون، التدفقات الـ 5، الفرق بين المنفذ والطالب، وتأهيل الحركات. |
+| **Preventive Maintenance** | [`docs/PREVENTIVE_VIEW.md`](./docs/PREVENTIVE_VIEW.md) | مصفوفة الأسابيع السنوية S1..S52 (1175 مهمة)، منشئ الخطط، دليل التعليمات، ورموز الإجراءات القياسية. |
+| **Mouvements & Sorties** | [`docs/MOUVEMENTS_VIEW.md`](./docs/MOUVEMENTS_VIEW.md) | دفتر أستاذ حركات المخزن (665 حركة)، تتبع أذونات الصرف، الإدخال، وأوامر الشغل. |
+| **Sortie Externe & Bobinage** | [`docs/SORTIE_EXTERNE_VIEW.md`](./docs/SORTIE_EXTERNE_VIEW.md) | تتبع الصرف الخارجي ولف المحركات، المقاولين الخارجيين، والتكاليف. |
+| **Components Hierarchy** | [`docs/COMPONENTS_VIEW.md`](./docs/COMPONENTS_VIEW.md) | شجرة المكونات وتصنيفات الأجزاء (Groups -> Families -> Templates -> Part Types -> Designations). |
 | **Entrepôt (Components & Parts)** | [`docs/ENTREPOT_VIEW.md`](./docs/ENTREPOT_VIEW.md) | دليل مستودع المكونات والقطع، التبويبات المنفصلة (ComponentsTable / PartsTable)، وتطابق أعمدة إكسيل A-H. |
 | **Stock Actuel (Articles)** | [`docs/STOCK_VIEW.md`](./docs/STOCK_VIEW.md) | إدارة المقالات، حسابات `SUMIFS`، الحدود الدنيا، التنبيهات والأرصدة. |
-| **Machines Registered** | [`docs/MACHINES_VIEW.md`](./docs/MACHINES_VIEW.md) | بطاقة الآلات الصناعية، التوزيع الجغرافي، ونماذج العائلات والقوالب. |
-| **Zones & Emplacements** | [`docs/ZONES_VIEW.md`](./docs/ZONES_VIEW.md) | شجرة المناطق الصناعية ومواقع التخزين في المستودعات. |
-| **Utilisateurs & Profils** | [`docs/UTILISATEURS_VIEW.md`](./docs/UTILISATEURS_VIEW.md) | الفنيين، المشغلين، رؤساء الفرق، وتوزيع الأدوار والصلاحيات. |
+| **Machines Registered** | [`docs/MACHINES_VIEW.md`](./docs/MACHINES_VIEW.md) | بطاقة الآلات الصناعية، التوزيع الجغرافي، ونماذج العائلات والقوالب والمخططات الـ 47. |
+| **Zones & Emplacements** | [`docs/ZONES_VIEW.md`](./docs/ZONES_VIEW.md) | شجرة المناطق والورش الصناعية الـ 14 ومواقع التخزين في المستودعات. |
+| **Utilisateurs & Profils** | [`docs/USERS_VIEW.md`](./docs/USERS_VIEW.md) | الفنيين، المشغلين، رؤساء الفرق، وتوزيع الأدوار وقوالب المسؤولية (RMG, RMT, RZN). |
 | **Paramètres & Excel Twin** | [`docs/SETTINGS_BACKUP.md`](./docs/SETTINGS_BACKUP.md) | الاستيراد والتصدير، النسخ الاحتياطي المضغوط، ونظام التدقيق. |
 | **الدليل المعماري وقابلية التوسع** | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | هيكل المشروع الكامل، إرشادات إضافة شاشات ونوافذ ومميزات جديدة. |
 
