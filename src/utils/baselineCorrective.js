@@ -1,50 +1,24 @@
 // src/utils/baselineCorrective.js
 import { Logger } from '../core/logger/LoggerService.js';
-
-let cachedCorrectiveData = null;
+import seedInterventions from '../data/corrective/seedCorrectiveInterventions.json';
+import seedActionsByPanne from '../data/corrective/seedActionsByPanne.json';
+import seedPanneByCategory from '../data/corrective/seedPanneByCategory.json';
+import seedTravailAFaire from '../data/corrective/seedTravailAFaire.json';
+import seedIntervenants from '../data/corrective/seedIntervenants.json';
 
 /**
- * Loads baseline corrective maintenance data asynchronously from /data/corrective/
- * This prevents bundling 1.7MB+ of JSON into the JS application bundle.
+ * Synchronously / directly provides baseline corrective maintenance data
+ * Guarantees 100% offline availability and eliminates flaky fetch calls.
  */
 export async function loadBaselineCorrectiveData() {
-  if (cachedCorrectiveData) {
-    return cachedCorrectiveData;
-  }
-
   try {
-    const [
-      interventionsRes,
-      actionsRes,
-      panneCategoriesRes,
-      travauxRes,
-      intervenantsRes,
-    ] = await Promise.all([
-      fetch('/data/corrective/seedCorrectiveInterventions.json').catch((e) => {
-        Logger.warn('Failed to fetch seedCorrectiveInterventions.json', e);
-        return null;
-      }),
-      fetch('/data/corrective/seedActionsByPanne.json').catch(() => null),
-      fetch('/data/corrective/seedPanneByCategory.json').catch(() => null),
-      fetch('/data/corrective/seedTravailAFaire.json').catch(() => null),
-      fetch('/data/corrective/seedIntervenants.json').catch(() => null),
-    ]);
-
-    const interventions = interventionsRes && interventionsRes.ok ? await interventionsRes.json() : [];
-    const actionsByPanne = actionsRes && actionsRes.ok ? await actionsRes.json() : {};
-    const panneCategories = panneCategoriesRes && panneCategoriesRes.ok ? await panneCategoriesRes.json() : {};
-    const travauxAFaire = travauxRes && travauxRes.ok ? await travauxRes.json() : [];
-    const intervenants = intervenantsRes && intervenantsRes.ok ? await intervenantsRes.json() : [];
-
-    cachedCorrectiveData = {
-      interventions: Array.isArray(interventions) ? interventions : [],
-      actionsByPanne: actionsByPanne && typeof actionsByPanne === 'object' ? actionsByPanne : {},
-      panneCategories: panneCategories && typeof panneCategories === 'object' ? panneCategories : {},
-      travauxAFaire: Array.isArray(travauxAFaire) ? travauxAFaire : [],
-      intervenants: Array.isArray(intervenants) ? intervenants : [],
+    return {
+      interventions: Array.isArray(seedInterventions) ? seedInterventions : [],
+      actionsByPanne: seedActionsByPanne && typeof seedActionsByPanne === 'object' ? seedActionsByPanne : {},
+      panneCategories: seedPanneByCategory && typeof seedPanneByCategory === 'object' ? seedPanneByCategory : {},
+      travauxAFaire: Array.isArray(seedTravailAFaire) ? seedTravailAFaire : [],
+      intervenants: Array.isArray(seedIntervenants) ? seedIntervenants : [],
     };
-
-    return cachedCorrectiveData;
   } catch (err) {
     Logger.warn('Error in loadBaselineCorrectiveData:', err);
     return {

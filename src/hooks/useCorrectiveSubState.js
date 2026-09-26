@@ -1,17 +1,22 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { storageService } from '../utils/storageService';
 import { loadBaselineCorrectiveData } from '../utils/baselineCorrective';
+import initialInterventions from '../data/corrective/seedCorrectiveInterventions.json';
+import initialActionsByPanne from '../data/corrective/seedActionsByPanne.json';
+import initialPanneCategories from '../data/corrective/seedPanneByCategory.json';
+import initialTravauxAFaire from '../data/corrective/seedTravailAFaire.json';
+import initialIntervenants from '../data/corrective/seedIntervenants.json';
 import { CorrectiveIntervention } from '../domain/corrective/entities/CorrectiveIntervention';
 import { CorrectiveCalculationService } from '../domain/corrective/services/CorrectiveCalculationService';
 import { movementRepository } from '../application/MovementRepository';
 
-const STORAGE_KEY = 'gmao_corrective_interventions';
+const STORAGE_KEY = 'gmao_corrective_interventions_v800';
 const ACTIVE_LIVE_KEY = 'gmao_corrective_active_live';
 const STORAGE_KEY_ACTIONS_BY_PANNE = 'gmao_corrective_actions_by_panne_v4';
 const STORAGE_KEY_PANNE_CATEGORIES = 'gmao_corrective_panne_categories_v4';
 const STORAGE_KEY_TRAVAUX = 'gmao_corrective_travaux_v4';
 const STORAGE_KEY_INTERVENANTS = 'gmao_corrective_intervenants_v4';
-const STORAGE_KEY_CORRECTIVE_INIT = 'gmao_corrective_initialized_v2';
+const STORAGE_KEY_CORRECTIVE_INIT = 'gmao_corrective_initialized_v800';
 
 // Helper to deep-merge dictionaries while guaranteeing baseline seed presence
 function mergeDictsWithBaseline(saved, baseline) {
@@ -55,17 +60,73 @@ function mergeArraysWithBaseline(saved, baseline, keyField = null) {
   return Array.from(map.values());
 }
 
+// Robust resolver that guarantees the 800 factory interventions are loaded and not superseded by legacy 23 items
+function resolveInitialInterventions(saved, baseline) {
+  if (!Array.isArray(saved) || saved.length === 0) {
+    return baseline;
+  }
+  // If saved already has the full 800+ dataset with genuine factory records
+  if (saved.length >= baseline.length && saved.some((item) => item?.id?.startsWith('CORR-0'))) {
+    return saved;
+  }
+
+  // If saved is the obsolete mock dataset of ~23 items (typically IDs like CORR-2026-xxx)
+  const isOldMockDataset =
+    saved.length < baseline.length &&
+    saved.every((item) => !item?.id || item.id.startsWith('CORR-2026-') || !item.id.startsWith('CORR-0'));
+  if (isOldMockDataset) {
+    return baseline;
+  }
+
+  // Otherwise, merge baseline with any non-mock custom user items
+  const baselineMap = new Map();
+  baseline.forEach((item) => {
+    if (item?.id) baselineMap.set(item.id, item);
+  });
+
+  saved.forEach((item) => {
+    if (item?.id && !item.id.startsWith('CORR-2026-')) {
+      if (baselineMap.has(item.id)) {
+        baselineMap.set(item.id, { ...baselineMap.get(item.id), ...item });
+      } else {
+        baselineMap.set(item.id, item);
+      }
+    }
+  });
+
+  return Array.from(baselineMap.values());
+}
+
 export function useCorrectiveSubState(groupedState = {}) {
-  // 1. Interventions State (persisted in storage, injected from baseline on first launch)
+  // 1. Interventions State (persisted in storage, guaranteed 800 records baseline)
   const [interventions, setInterventions] = useState(() => {
     try {
-      const saved = groupedState.correctiveInterventions || storageService.getItem(STORAGE_KEY);
-      if (Array.isArray(saved) && saved.length > 0) {
-        return saved;
+      const storedV800 = storageService.getItem(STORAGE_KEY);
+      if (
+        Array.isArray(storedV800) &&
+        storedV800.length >= initialInterventions.length &&
+        storedV800.some((i) => i?.id?.startsWith('CORR-0'))
+      ) {
+        return storedV800;
       }
-      return [];
+
+      const existingData =
+        storedV800 ||
+        (Array.isArray(groupedState.correctiveInterventions) && groupedState.correctiveInterventions.length > 0
+          ? groupedState.correctiveInterventions
+          : null) ||
+        storageService.getItem('gmao_corrective_interventions_v3') ||
+        storageService.getItem('gmao_corrective_interventions') ||
+        [];
+
+      const resolved = resolveInitialInterventions(existingData, initialInterventions);
+      storageService.setItem(STORAGE_KEY, resolved);
+      storageService.setItem('gmao_corrective_interventions', resolved);
+      storageService.setItem('gmao_corrective_interventions_v3', resolved);
+      storageService.setItem(STORAGE_KEY_CORRECTIVE_INIT, 'true');
+      return resolved;
     } catch {
-      return [];
+      return initialInterventions;
     }
   });
 
@@ -76,9 +137,11 @@ export function useCorrectiveSubState(groupedState = {}) {
         groupedState.correctiveActionsByPanne ||
         storageService.getItem(STORAGE_KEY_ACTIONS_BY_PANNE) ||
         storageService.getItem('gmao_corrective_actions_by_panne_v2');
-      return saved && typeof saved === 'object' ? saved : {};
+      return saved && typeof saved === 'object' && Object.keys(saved).length > 0
+        ? mergeDictsWithBaseline(saved, initialActionsByPanne)
+        : initialActionsByPanne;
     } catch {
-      return {};
+      return initialActionsByPanne;
     }
   });
 
@@ -89,9 +152,11 @@ export function useCorrectiveSubState(groupedState = {}) {
         groupedState.correctivePanneCategories ||
         storageService.getItem(STORAGE_KEY_PANNE_CATEGORIES) ||
         storageService.getItem('gmao_corrective_panne_categories_v1');
-      return saved && typeof saved === 'object' ? saved : {};
+      return saved && typeof saved === 'object' && Object.keys(saved).length > 0
+        ? mergeDictsWithBaseline(saved, initialPanneCategories)
+        : initialPanneCategories;
     } catch {
-      return {};
+      return initialPanneCategories;
     }
   });
 
@@ -102,9 +167,11 @@ export function useCorrectiveSubState(groupedState = {}) {
         groupedState.correctiveTravauxAFaire ||
         storageService.getItem(STORAGE_KEY_TRAVAUX) ||
         storageService.getItem('gmao_corrective_travaux_v1');
-      return Array.isArray(saved) ? saved : [];
+      return Array.isArray(saved) && saved.length > 0
+        ? mergeArraysWithBaseline(saved, initialTravauxAFaire)
+        : initialTravauxAFaire;
     } catch {
-      return [];
+      return initialTravauxAFaire;
     }
   });
 
@@ -115,9 +182,11 @@ export function useCorrectiveSubState(groupedState = {}) {
         groupedState.correctiveIntervenants ||
         storageService.getItem(STORAGE_KEY_INTERVENANTS) ||
         storageService.getItem('gmao_corrective_intervenants_v1');
-      return Array.isArray(saved) ? saved : [];
+      return Array.isArray(saved) && saved.length > 0
+        ? mergeArraysWithBaseline(saved, initialIntervenants, 'nom')
+        : initialIntervenants;
     } catch {
-      return [];
+      return initialIntervenants;
     }
   });
 
@@ -129,59 +198,63 @@ export function useCorrectiveSubState(groupedState = {}) {
     }
   });
 
-  // Initial Bootstrap: Load baseline corrective data from public data folder on first run
+  // Initial Bootstrap: Load baseline corrective data on first run or if stale
   useEffect(() => {
     const isAlreadyInitialized = storageService.getItem(STORAGE_KEY_CORRECTIVE_INIT);
     const existingInStorage = storageService.getItem(STORAGE_KEY);
 
-    if (!isAlreadyInitialized || !existingInStorage || existingInStorage.length === 0) {
-      loadBaselineCorrectiveData().then((baseline) => {
-        if (!baseline) return;
-
-        if (baseline.interventions && baseline.interventions.length > 0) {
-          setInterventions((prev) => {
-            const currentList = prev && prev.length > 0 ? prev : (storageService.getItem(STORAGE_KEY) || []);
-            const merged = mergeArraysWithBaseline(currentList, baseline.interventions, 'id');
-            storageService.setItem(STORAGE_KEY, merged);
-            return merged;
-          });
-        }
-
-        if (baseline.actionsByPanne && Object.keys(baseline.actionsByPanne).length > 0) {
-          setActionsByPanne((prev) => {
-            const merged = mergeDictsWithBaseline(prev, baseline.actionsByPanne);
-            storageService.setItem(STORAGE_KEY_ACTIONS_BY_PANNE, merged);
-            return merged;
-          });
-        }
-
-        if (baseline.panneCategories && Object.keys(baseline.panneCategories).length > 0) {
-          setPanneCategories((prev) => {
-            const merged = mergeDictsWithBaseline(prev, baseline.panneCategories);
-            storageService.setItem(STORAGE_KEY_PANNE_CATEGORIES, merged);
-            return merged;
-          });
-        }
-
-        if (baseline.travauxAFaire && baseline.travauxAFaire.length > 0) {
-          setTravauxAFaire((prev) => {
-            const merged = mergeArraysWithBaseline(prev, baseline.travauxAFaire);
-            storageService.setItem(STORAGE_KEY_TRAVAUX, merged);
-            return merged;
-          });
-        }
-
-        if (baseline.intervenants && baseline.intervenants.length > 0) {
-          setIntervenants((prev) => {
-            const merged = mergeArraysWithBaseline(prev, baseline.intervenants, 'nom');
-            storageService.setItem(STORAGE_KEY_INTERVENANTS, merged);
-            return merged;
-          });
-        }
-
+    if (
+      !isAlreadyInitialized ||
+      !existingInStorage ||
+      !Array.isArray(existingInStorage) ||
+      existingInStorage.length < initialInterventions.length ||
+      !existingInStorage.some((i) => i?.id?.startsWith('CORR-0'))
+    ) {
+      setInterventions((prev) => {
+        const resolved = resolveInitialInterventions(existingInStorage || prev, initialInterventions);
+        storageService.setItem(STORAGE_KEY, resolved);
+        storageService.setItem('gmao_corrective_interventions', resolved);
+        storageService.setItem('gmao_corrective_interventions_v3', resolved);
         storageService.setItem(STORAGE_KEY_CORRECTIVE_INIT, 'true');
+        return resolved;
       });
     }
+
+    loadBaselineCorrectiveData().then((baseline) => {
+      if (!baseline) return;
+
+      if (baseline.actionsByPanne && Object.keys(baseline.actionsByPanne).length > 0) {
+        setActionsByPanne((prev) => {
+          const merged = mergeDictsWithBaseline(prev, baseline.actionsByPanne);
+          storageService.setItem(STORAGE_KEY_ACTIONS_BY_PANNE, merged);
+          return merged;
+        });
+      }
+
+      if (baseline.panneCategories && Object.keys(baseline.panneCategories).length > 0) {
+        setPanneCategories((prev) => {
+          const merged = mergeDictsWithBaseline(prev, baseline.panneCategories);
+          storageService.setItem(STORAGE_KEY_PANNE_CATEGORIES, merged);
+          return merged;
+        });
+      }
+
+      if (baseline.travauxAFaire && baseline.travauxAFaire.length > 0) {
+        setTravauxAFaire((prev) => {
+          const merged = mergeArraysWithBaseline(prev, baseline.travauxAFaire);
+          storageService.setItem(STORAGE_KEY_TRAVAUX, merged);
+          return merged;
+        });
+      }
+
+      if (baseline.intervenants && baseline.intervenants.length > 0) {
+        setIntervenants((prev) => {
+          const merged = mergeArraysWithBaseline(prev, baseline.intervenants, 'nom');
+          storageService.setItem(STORAGE_KEY_INTERVENANTS, merged);
+          return merged;
+        });
+      }
+    });
   }, []);
 
   // Auto-persist dictionary state changes
@@ -302,6 +375,8 @@ export function useCorrectiveSubState(groupedState = {}) {
 
     setInterventions(baseline.interventions || []);
     storageService.setItem(STORAGE_KEY, baseline.interventions || []);
+    storageService.setItem('gmao_corrective_interventions', baseline.interventions || []);
+    storageService.setItem('gmao_corrective_interventions_v3', baseline.interventions || []);
     await resetCorrectiveActionsToSeed();
 
     return {
@@ -318,6 +393,8 @@ export function useCorrectiveSubState(groupedState = {}) {
   useEffect(() => {
     try {
       storageService.setItem(STORAGE_KEY, interventions);
+      storageService.setItem('gmao_corrective_interventions', interventions);
+      storageService.setItem('gmao_corrective_interventions_v3', interventions);
     } catch (e) {
       console.error('Failed to save corrective interventions:', e);
     }
@@ -518,10 +595,12 @@ export function useCorrectiveSubState(groupedState = {}) {
   // 8. Reset to baseline seed
   const resetToSeedData = useCallback(async () => {
     const baseline = await loadBaselineCorrectiveData();
-    if (!baseline) return;
-    setInterventions(baseline.interventions || []);
+    const finalItems = baseline?.interventions && baseline.interventions.length > 0 ? baseline.interventions : initialInterventions;
+    setInterventions(finalItems);
     setActiveLiveId(null);
-    storageService.setItem(STORAGE_KEY, baseline.interventions || []);
+    storageService.setItem(STORAGE_KEY, finalItems);
+    storageService.setItem('gmao_corrective_interventions', finalItems);
+    storageService.setItem('gmao_corrective_interventions_v3', finalItems);
     await resetCorrectiveActionsToSeed();
   }, [resetCorrectiveActionsToSeed]);
 

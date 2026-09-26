@@ -71,12 +71,8 @@ export const PARENT_MODULES = [
     colorDark: 'text-amber-400',
     bgLight: 'bg-amber-50',
     children: [
-      { id: 'corrective', label: 'Correctif Nexus' },
-      { id: 'corrective_di', label: '1. Demandes (DI)' },
-      { id: 'corrective_bt', label: '2. Bons de Travail (BT)' },
-      { id: 'corrective_live', label: '3. Intervention Live' },
-      { id: 'corrective_cloture', label: '4. Clôture & Rapports' },
-      { id: 'corrective_analyse', label: '5. Analyse & Pareto' }
+      { id: 'corrective', label: 'Correctif Hub' },
+      { id: 'corrective_referentiel', label: 'Catalogue & Données GMAO' }
     ]
   },
   {

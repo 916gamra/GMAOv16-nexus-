@@ -26,6 +26,7 @@ import GuideView from '../pages/system/GuideView';
 import PreventiveView from '../pages/preventive/PreventiveView';
 import PreventiveSecondaryView from '../pages/preventive/PreventiveSecondaryView';
 import CorrectiveView from '../pages/corrective/CorrectiveView';
+import CatalogueDonneesView from '../pages/corrective/CatalogueDonneesView';
 
 import {
   PreventiveContext,
@@ -199,7 +200,17 @@ export default function AppRouter({
                         </ErrorBoundary>
                       )}
 
-                      {(currentTab === 'corrective' || currentTab.startsWith('corrective_')) && (
+                      {currentTab === 'corrective_referentiel' && (
+                        <ErrorBoundary sectionName="Catalogue & Données GMAO (الكواليس)">
+                          <CatalogueDonneesView
+                            {...props.corrective}
+                            onNavigateToTab={_setCurrentTab}
+                            onNavigateBack={() => _setCurrentTab('corrective')}
+                          />
+                        </ErrorBoundary>
+                      )}
+
+                      {(currentTab === 'corrective' || (currentTab.startsWith('corrective_') && currentTab !== 'corrective_referentiel')) && (
                         <ErrorBoundary sectionName="Maintenance Corrective Nexus">
                           <CorrectiveView
                             {...props.corrective}

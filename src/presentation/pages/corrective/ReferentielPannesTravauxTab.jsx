@@ -4,19 +4,20 @@ import {
   Search,
   BookOpen,
   Wrench,
-  Copy,
-  Check,
-  Plus,
   RefreshCw,
-  ChevronDown,
-  ChevronRight,
   FileSpreadsheet,
   Users,
   ShieldAlert,
   SlidersHorizontal,
   X,
+  Filter,
+  RotateCcw,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import PannesCatalogTab from './referentiel/PannesCatalogTab';
+import TravauxStandardTab from './referentiel/TravauxStandardTab';
+import MatricesActionsTab from './referentiel/MatricesActionsTab';
+import EquipeIntervenantsTab from './referentiel/EquipeIntervenantsTab';
 
 const CATEGORY_META = {
   E: { label: 'Électrique', color: 'bg-amber-100 text-amber-900 border-amber-300', dot: 'bg-amber-500' },
@@ -39,6 +40,9 @@ function formatPanneName(str) {
 }
 
 export default function ReferentielPannesTravauxTab({
+  activeSubTab,
+  onSubTabChange,
+  hideHeaderCard = false,
   panneCategories = {},
   travauxAFaire = [],
   actionsByPanne = {},
@@ -48,7 +52,14 @@ export default function ReferentielPannesTravauxTab({
   onAddActionForPanne: _onAddActionForPanne,
   showToast,
 }) {
-  const [subTab, setSubTab] = useState('pannes'); // 'pannes', 'travaux', 'actions', 'intervenants'
+  const [internalSubTab, setInternalSubTab] = useState('pannes'); // 'pannes', 'travaux', 'actions', 'intervenants'
+  const subTab = activeSubTab || internalSubTab;
+  const setSubTab = (val) => {
+    setInternalSubTab(val);
+    if (typeof onSubTabChange === 'function') {
+      onSubTabChange(val);
+    }
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [expandedPanne, setExpandedPanne] = useState(null);
@@ -217,231 +228,259 @@ export default function ReferentielPannesTravauxTab({
   return (
     <div className="space-y-6">
       {/* 1. Header & KPI Metrics Card */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 md:p-6 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16)] transition-all relative overflow-hidden">
-        <div className="absolute -top-12 -right-12 w-48 h-48 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
+      {!hideHeaderCard && (
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 md:p-6 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16)] transition-all relative overflow-hidden">
+          <div className="absolute -top-12 -right-12 w-48 h-48 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 pb-5 border-b border-slate-100">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-300/80 flex items-center justify-center text-amber-700 shadow-2xs shrink-0">
-              <Database className="w-6 h-6 text-amber-700" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-lg font-black text-slate-900 tracking-tight">
-                  Catalogue & Référentiel Pannes, Travaux & Équipe
-                </h3>
-                <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-300 font-mono">
-                  Base de Connaissances Usine
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 font-mono">
-                  Données Réelles Intégrées
-                </span>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 pb-5 border-b border-slate-100">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-300/80 flex items-center justify-center text-amber-700 shadow-2xs shrink-0">
+                <Database className="w-6 h-6 text-amber-700" />
               </div>
-              <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
-                Consultation et exploitation directe des <b>{totalPannesCount} pannes classées</b>, des <b>{totalTravauxCount} travaux types</b>, des <b>{totalActionsKeysCount} matrices d'actions correctives</b> et des <b>{totalIntervenantsCount} intervenants</b> d'usine.
-              </p>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                    Catalogue & Référentiel Données GMAO (الكواليس)
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 font-mono">
+                    الصفحة الثانوية (الكواليس)
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-800 border border-slate-300 font-mono">
+                    Accès Responsables & Administrateurs
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+                  Espace réservé à la configuration et sauvegarde des référentiels maîtres : <b>{totalPannesCount} pannes cataloguées</b>, <b>{totalTravauxCount} tâches standards</b>, <b>{totalActionsKeysCount} matrices d'actions correctives</b> et <b>{totalIntervenantsCount} techniciens habilités</b>.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              <button
+                onClick={handleForceSync}
+                disabled={isSyncing}
+                className={`h-9 px-3.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition flex items-center gap-2 cursor-pointer shadow-2xs active:scale-95 ${
+                  isSyncing ? 'opacity-70 animate-pulse' : ''
+                }`}
+                title="Forcer la synchronisation et recharger les données d'usine complètes"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-amber-700 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>{isSyncing ? 'Synchronisation...' : 'Actualiser Données Usine'}</span>
+              </button>
+
+              <button
+                onClick={handleExportExcel}
+                className="h-9 px-3.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold text-xs transition flex items-center gap-2 cursor-pointer shadow-2xs active:scale-95"
+                title="Exporter l'ensemble du référentiel vers Excel"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Export Référentiel (.xlsx)</span>
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
-            <button
-              onClick={handleForceSync}
-              disabled={isSyncing}
-              className={`h-9 px-3.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition flex items-center gap-2 cursor-pointer shadow-2xs active:scale-95 ${
-                isSyncing ? 'opacity-70 animate-pulse' : ''
-              }`}
-              title="Forcer la synchronisation et recharger les données d'usine complètes"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 text-amber-700 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>{isSyncing ? 'Synchronisation...' : 'Actualiser Données Usine'}</span>
-            </button>
-
-            <button
-              onClick={handleExportExcel}
-              className="h-9 px-3.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold text-xs transition flex items-center gap-2 cursor-pointer shadow-2xs active:scale-95"
-              title="Exporter l'ensemble du référentiel vers Excel"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Export Référentiel (.xlsx)</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 4 Interactive Statistics Counters (Click to jump to sub-tab) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-5">
-          <div
-            onClick={() => {
-              setSubTab('pannes');
-              setSearchQuery('');
-            }}
-            className={`p-3.5 rounded-xl border transition cursor-pointer select-none ${
-              subTab === 'pannes'
-                ? 'bg-amber-500/10 border-amber-300 shadow-2xs ring-1 ring-amber-300'
-                : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200'
-            }`}
-          >
-            <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">
-              <span>Pannes Répertoriées</span>
-              <ShieldAlert className="w-4 h-4 text-amber-600" />
-            </div>
-            <div className="text-2xl font-black text-slate-900 font-mono">{totalPannesCount}</div>
-            <div className="text-[10px] text-slate-400 mt-0.5">10 catégories industrielles</div>
-          </div>
-
-          <div
-            onClick={() => {
-              setSubTab('travaux');
-              setSearchQuery('');
-            }}
-            className={`p-3.5 rounded-xl border transition cursor-pointer select-none ${
-              subTab === 'travaux'
-                ? 'bg-blue-500/10 border-blue-300 shadow-2xs ring-1 ring-blue-300'
-                : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200'
-            }`}
-          >
-            <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">
-              <span>Travaux Standard</span>
-              <BookOpen className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="text-2xl font-black text-slate-900 font-mono">{totalTravauxCount}</div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Ordres & tâches d'atelier</div>
-          </div>
-
-          <div
-            onClick={() => {
-              setSubTab('actions');
-              setSearchQuery('');
-            }}
-            className={`p-3.5 rounded-xl border transition cursor-pointer select-none ${
-              subTab === 'actions'
-                ? 'bg-emerald-500/10 border-emerald-300 shadow-2xs ring-1 ring-emerald-300'
-                : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200'
-            }`}
-          >
-            <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">
-              <span>Matrices Actions</span>
-              <Wrench className="w-4 h-4 text-emerald-600" />
-            </div>
-            <div className="text-2xl font-black text-slate-900 font-mono">{totalActionsKeysCount}</div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Pannes avec solutions types</div>
-          </div>
-
-          <div
-            onClick={() => {
-              setSubTab('intervenants');
-              setSearchQuery('');
-            }}
-            className={`p-3.5 rounded-xl border transition cursor-pointer select-none ${
-              subTab === 'intervenants'
-                ? 'bg-purple-500/10 border-purple-300 shadow-2xs ring-1 ring-purple-300'
-                : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200'
-            }`}
-          >
-            <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">
-              <span>Équipe Intervenants</span>
-              <Users className="w-4 h-4 text-purple-600" />
-            </div>
-            <div className="text-2xl font-black text-slate-900 font-mono">{totalIntervenantsCount}</div>
-            <div className="text-[10px] text-slate-400 mt-0.5">Fiches techniciens usine</div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Secondary Sub-Navigation & Global Search Bar */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Sub-Tabs Selector */}
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200/70 overflow-x-auto max-w-full">
-            <button
+          {/* 4 Interactive Statistics Counters (Click to jump to sub-tab) */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-5">
+            <div
               onClick={() => {
                 setSubTab('pannes');
-                setSelectedCategory('ALL');
+                setSearchQuery('');
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 cursor-pointer shrink-0 ${
+              className={`p-3.5 rounded-xl border transition cursor-pointer select-none ${
                 subTab === 'pannes'
-                  ? 'bg-white text-amber-900 shadow-xs border border-amber-300/80'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-amber-500/10 border-amber-300 shadow-2xs ring-1 ring-amber-300'
+                  : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200'
               }`}
             >
-              <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-              <span>1. Pannes par Catégorie ({totalPannesCount})</span>
-            </button>
+              <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">
+                <span>Pannes Répertoriées</span>
+                <ShieldAlert className="w-4 h-4 text-amber-600" />
+              </div>
+              <div className="text-2xl font-black text-slate-900 font-mono">{totalPannesCount}</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">10 catégories industrielles</div>
+            </div>
 
-            <button
-              onClick={() => setSubTab('travaux')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 cursor-pointer shrink-0 ${
+            <div
+              onClick={() => {
+                setSubTab('travaux');
+                setSearchQuery('');
+              }}
+              className={`p-3.5 rounded-xl border transition cursor-pointer select-none ${
                 subTab === 'travaux'
-                  ? 'bg-white text-blue-900 shadow-xs border border-blue-300/80'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-blue-500/10 border-blue-300 shadow-2xs ring-1 ring-blue-300'
+                  : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200'
               }`}
             >
-              <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-              <span>2. Travaux Standard ({totalTravauxCount})</span>
-            </button>
+              <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">
+                <span>Travaux Standard</span>
+                <BookOpen className="w-4 h-4 text-blue-600" />
+              </div>
+              <div className="text-2xl font-black text-slate-900 font-mono">{totalTravauxCount}</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Ordres & tâches d'atelier</div>
+            </div>
 
-            <button
-              onClick={() => setSubTab('actions')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 cursor-pointer shrink-0 ${
+            <div
+              onClick={() => {
+                setSubTab('actions');
+                setSearchQuery('');
+              }}
+              className={`p-3.5 rounded-xl border transition cursor-pointer select-none ${
                 subTab === 'actions'
-                  ? 'bg-white text-emerald-900 shadow-xs border border-emerald-300/80'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-emerald-500/10 border-emerald-300 shadow-2xs ring-1 ring-emerald-300'
+                  : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200'
               }`}
             >
-              <Wrench className="w-3.5 h-3.5 text-emerald-600" />
-              <span>3. Matrice Actions ({totalActionsKeysCount})</span>
-            </button>
+              <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">
+                <span>Matrices Actions</span>
+                <Wrench className="w-4 h-4 text-emerald-600" />
+              </div>
+              <div className="text-2xl font-black text-slate-900 font-mono">{totalActionsKeysCount}</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Pannes avec solutions types</div>
+            </div>
 
-            <button
-              onClick={() => setSubTab('intervenants')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 cursor-pointer shrink-0 ${
+            <div
+              onClick={() => {
+                setSubTab('intervenants');
+                setSearchQuery('');
+              }}
+              className={`p-3.5 rounded-xl border transition cursor-pointer select-none ${
                 subTab === 'intervenants'
-                  ? 'bg-white text-purple-900 shadow-xs border border-purple-300/80'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-purple-500/10 border-purple-300 shadow-2xs ring-1 ring-purple-300'
+                  : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200'
               }`}
             >
-              <Users className="w-3.5 h-3.5 text-purple-600" />
-              <span>4. Équipe ({totalIntervenantsCount})</span>
-            </button>
-          </div>
-
-          {/* Quick Search Input */}
-          <div className="relative w-full md:w-80">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={`Rechercher dans ${
-                subTab === 'pannes'
-                  ? 'les 282 pannes...'
-                  : subTab === 'travaux'
-                  ? 'les 114 travaux...'
-                  : subTab === 'actions'
-                  ? 'les actions types...'
-                  : 'les intervenants...'
-              }`}
-              className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50/70 focus:bg-white focus:border-amber-400 focus:outline-hidden transition"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
+              <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">
+                <span>Équipe Intervenants</span>
+                <Users className="w-4 h-4 text-purple-600" />
+              </div>
+              <div className="text-2xl font-black text-slate-900 font-mono">{totalIntervenantsCount}</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Fiches techniciens usine</div>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Category Pills (Visible when in 'pannes' tab) */}
+      {/* 2. Multi-Criteria Filter & Search Card Archetype (Identical to StockView original archetype) */}
+      <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/90 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05),0_4px_10px_-2px_rgba(0,0,0,0.02)] space-y-3.5">
+        {/* Header Row: Title with Icon, Result Count & Reset Button */}
+        <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100/90">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-300/80 flex items-center justify-center text-amber-700 shadow-2xs">
+              <Filter className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <h3 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+                <span>Filtres & Recherche Avancée</span>
+                <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200/80">
+                  {subTab === 'pannes'
+                    ? `${filteredPannes.length} Pannes`
+                    : subTab === 'travaux'
+                    ? `${filteredTravaux.length} Travaux`
+                    : subTab === 'actions'
+                    ? `${filteredActionsMatrix.length} Pannes`
+                    : `${filteredIntervenants.length} Intervenants`}
+                </span>
+              </h3>
+            </div>
+          </div>
+
+          {/* Reset Filters button */}
+          {(searchQuery || selectedCategory !== 'ALL') && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('ALL');
+              }}
+              className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in"
+              title="Réinitialiser tous les filtres"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* 2. Grid Row: Omni-Text Search Input & Category Dropdown */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 items-end">
+          {/* Omni Search Input */}
+          <div className="w-full sm:col-span-2 lg:col-span-2">
+            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
+              <span>Recherche Multi-Critères</span>
+              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200/80">
+                Mots-Clés / Codes
+              </span>
+            </div>
+            <div className="relative">
+              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shadow-2xs pointer-events-none">
+                <Search className="w-3 h-3" />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={`Rechercher dans ${
+                  subTab === 'pannes'
+                    ? 'les 282 pannes...'
+                    : subTab === 'travaux'
+                    ? 'les 114 travaux...'
+                    : subTab === 'actions'
+                    ? 'les matrices d\'actions...'
+                    : 'les intervenants...'
+                }`}
+                className="w-full h-9 pl-9 pr-7 rounded-xl border border-slate-200 bg-slate-50/70 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 cursor-pointer"
+                  title="Effacer la recherche"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Category Dropdown (When in pannes tab) */}
+          {subTab === 'pannes' && (
+            <div>
+              <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
+                <span>Catégorie D'Anomalie</span>
+                <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
+                  10 Types
+                </span>
+              </div>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer transition-colors"
+              >
+                <option value="ALL">Toutes les Catégories ({totalPannesCount})</option>
+                {allCategories.map((cat) => {
+                  const meta = CATEGORY_META[cat] || { label: cat };
+                  const count = (panneCategories[cat] || []).length;
+                  return (
+                    <option key={cat} value={cat}>
+                      {meta.label} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+        </div>
+
+        {/* 3. Category Tags Row (When in pannes tab) */}
         {subTab === 'pannes' && (
-          <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 flex items-center gap-1">
+          <div className="pt-2.5 border-t border-slate-100/90 flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 flex items-center gap-1 font-mono">
               <SlidersHorizontal className="w-3 h-3 text-slate-400" />
-              Catégorie :
+              Filtre Rapide :
             </span>
 
             <button
+              type="button"
               onClick={() => setSelectedCategory('ALL')}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                 selectedCategory === 'ALL'
@@ -459,6 +498,7 @@ export default function ReferentielPannesTravauxTab({
               return (
                 <button
                   key={cat}
+                  type="button"
                   onClick={() => setSelectedCategory(cat)}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                     isSelected
@@ -466,9 +506,11 @@ export default function ReferentielPannesTravauxTab({
                       : 'bg-slate-100/90 text-slate-600 hover:bg-slate-200/80 border border-slate-200/60'
                   }`}
                 >
-                  <span className={`w-2 h-2 rounded-full ${meta.dot || 'bg-slate-400'}`} />
-                  <span>{cat}</span>
-                  <span className="text-[10px] opacity-75 font-mono">({count})</span>
+                  <span className={`w-1.5 h-1.5 rounded-full ${meta.dot || 'bg-slate-400'}`} />
+                  <span>{meta.label}</span>
+                  <span className="px-1 py-0.1 text-[9.5px] font-mono rounded bg-white/60">
+                    {count}
+                  </span>
                 </button>
               );
             })}
@@ -476,375 +518,47 @@ export default function ReferentielPannesTravauxTab({
         )}
       </div>
 
-      {/* 3. SUB-TAB 1: PANNES PAR CATÉGORIE (282 items) */}
+      {/* 3. SUB-TABS CONTENT MODULES */}
       {subTab === 'pannes' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs text-slate-500 px-1">
-            <span>
-              Affichage de <b>{filteredPannes.length}</b> anomalies sur {totalPannesCount}
-              {selectedCategory !== 'ALL' && (
-                <span className="ml-1 text-amber-800 font-bold">
-                  (Catégorie {selectedCategory} - {CATEGORY_META[selectedCategory]?.label})
-                </span>
-              )}
-            </span>
-            <span className="text-[11px] text-slate-400">
-              Cliquez sur une panne pour déplier ses actions recommandées
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredPannes.map((panne) => {
-              const meta = CATEGORY_META[panne.category] || { label: panne.category, color: 'bg-slate-100 text-slate-800 border-slate-300' };
-              const isExpanded = expandedPanne === panne.id;
-              const hasActions = panne.actions && panne.actions.length > 0;
-
-              return (
-                <div
-                  key={panne.id}
-                  className={`bg-white border rounded-2xl p-4 transition-all duration-200 shadow-2xs hover:shadow-md flex flex-col justify-between ${
-                    isExpanded ? 'border-amber-400 ring-1 ring-amber-400/30' : 'border-slate-200/90'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className={`px-2 py-0.5 rounded-md text-[10.5px] font-bold border ${meta.color}`}>
-                        {panne.category} • {meta.label}
-                      </span>
-
-                      {hasActions && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 font-mono">
-                          {panne.actions.length} action{panne.actions.length > 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </div>
-
-                    <h4 className="text-sm font-bold text-slate-900 tracking-tight leading-snug">
-                      {panne.name}
-                    </h4>
-
-                    <div className="text-[10px] font-mono text-slate-400 mt-1">
-                      code: <span className="text-slate-600">{panne.code}</span>
-                    </div>
-
-                    {/* Expandable Recommended Actions */}
-                    {hasActions && isExpanded && (
-                      <div className="mt-3 pt-3 border-t border-slate-100 space-y-1.5 animate-in fade-in duration-200">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
-                          Actions d'Atelier Recommandées :
-                        </span>
-                        <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
-                          {panne.actions.map((act, idx) => (
-                            <div
-                              key={idx}
-                              className="text-[11px] text-slate-700 bg-amber-50/70 p-2 rounded-lg border border-amber-200/60 flex items-start gap-1.5"
-                            >
-                              <span className="text-amber-700 font-bold">•</span>
-                              <span className="leading-tight">{act}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    {hasActions ? (
-                      <button
-                        onClick={() => setExpandedPanne(isExpanded ? null : panne.id)}
-                        className="text-xs font-bold text-slate-600 hover:text-amber-800 flex items-center gap-1 cursor-pointer"
-                      >
-                        {isExpanded ? (
-                          <>
-                            <ChevronDown className="w-3.5 h-3.5" />
-                            <span>Masquer ({panne.actions.length})</span>
-                          </>
-                        ) : (
-                          <>
-                            <ChevronRight className="w-3.5 h-3.5" />
-                            <span>Voir actions ({panne.actions.length})</span>
-                          </>
-                        )}
-                      </button>
-                    ) : (
-                      <span className="text-[10.5px] text-slate-400 italic">Aucune action liée</span>
-                    )}
-
-                    <button
-                      onClick={() => {
-                        if (typeof onAddDemandeWithPreset === 'function') {
-                          onAddDemandeWithPreset({
-                            type_panne: panne.category,
-                            anomalie: panne.code,
-                          });
-                        }
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs active:scale-95 ml-auto"
-                      title="Créer une Demande d'Intervention avec cette anomalie préremplie"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span>Créer DI</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {filteredPannes.length === 0 && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-500">
-              <ShieldAlert className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-              <p className="text-sm font-bold">Aucune anomalie trouvée pour cette recherche.</p>
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('ALL');
-                }}
-                className="mt-3 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
-              >
-                Réinitialiser les filtres
-              </button>
-            </div>
-          )}
-        </div>
+        <PannesCatalogTab
+          filteredPannes={filteredPannes}
+          totalPannesCount={totalPannesCount}
+          selectedCategory={selectedCategory}
+          CATEGORY_META={CATEGORY_META}
+          expandedPanne={expandedPanne}
+          setExpandedPanne={setExpandedPanne}
+          onAddDemandeWithPreset={onAddDemandeWithPreset}
+          setSearchQuery={setSearchQuery}
+          setSelectedCategory={setSelectedCategory}
+        />
       )}
 
-      {/* 4. SUB-TAB 2: TRAVAUX STANDARD À FAIRE (114 items) */}
       {subTab === 'travaux' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs text-slate-500 px-1">
-            <span>
-              Affichage de <b>{filteredTravaux.length}</b> tâches d'usine sur {totalTravauxCount}
-            </span>
-            <span className="text-[11px] text-slate-400">
-              Chaque travail peut être copié ou injecté en 1 clic dans une DI / BT
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {filteredTravaux.map((travail, idx) => {
-              const lines = String(travail).split('\n');
-              const isCopied = copiedIndex === idx;
-
-              return (
-                <div
-                  key={idx}
-                  className="bg-white border border-slate-200/90 rounded-2xl p-4 transition hover:shadow-md hover:border-blue-300 flex flex-col justify-between group"
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                        Travail #{String(idx + 1).padStart(3, '0')}
-                      </span>
-
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => handleCopyText(travail, idx)}
-                          className="px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
-                          title="Copier le texte du travail"
-                        >
-                          {isCopied ? (
-                            <>
-                              <Check className="w-3 h-3 text-emerald-600" />
-                              <span className="text-emerald-700">Copié !</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3 h-3 text-slate-400 group-hover:text-slate-700" />
-                              <span>Copier</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1 mt-2 text-xs font-medium text-slate-800 leading-relaxed">
-                      {lines.map((l, lIdx) => (
-                        <p key={lIdx} className={lIdx > 0 ? 'text-slate-600 pl-2 border-l border-blue-200 mt-1' : 'font-bold'}>
-                          {l}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-slate-400">Standard GMAO Usine</span>
-
-                    <button
-                      onClick={() => {
-                        if (typeof onAddDemandeWithPreset === 'function') {
-                          onAddDemandeWithPreset({
-                            travail_a_faire: travail,
-                          });
-                        }
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs active:scale-95"
-                      title="Créer une DI avec ce travail prérempli"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span>Utiliser dans DI</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {filteredTravaux.length === 0 && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-500">
-              <BookOpen className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-              <p className="text-sm font-bold">Aucun travail standard ne correspond à votre recherche.</p>
-              <button
-                onClick={() => setSearchQuery('')}
-                className="mt-3 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer"
-              >
-                Effacer la recherche
-              </button>
-            </div>
-          )}
-        </div>
+        <TravauxStandardTab
+          filteredTravaux={filteredTravaux}
+          totalTravauxCount={totalTravauxCount}
+          copiedIndex={copiedIndex}
+          handleCopyText={handleCopyText}
+          onAddDemandeWithPreset={onAddDemandeWithPreset}
+          setSearchQuery={setSearchQuery}
+        />
       )}
 
-      {/* 5. SUB-TAB 3: MATRICE ACTIONS CORRECTIVES PAR PANNE (71 items) */}
       {subTab === 'actions' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs text-slate-500 px-1">
-            <span>
-              Affichage de <b>{filteredActionsMatrix.length}</b> matrices pannes → actions types sur {totalActionsKeysCount}
-            </span>
-            <span className="text-[11px] text-slate-400">
-              Solutions recommandées pour guider techniciens et chefs d'équipe
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredActionsMatrix.map(([panneKey, actionsList], idx) => {
-              const formattedKey = formatPanneName(panneKey);
-
-              return (
-                <div
-                  key={idx}
-                  className="bg-white border border-slate-200/90 rounded-2xl p-4 transition hover:shadow-md hover:border-emerald-300 flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-100">
-                      <div>
-                        <h4 className="text-sm font-black text-slate-900 tracking-tight">
-                          {formattedKey}
-                        </h4>
-                        <span className="text-[10px] font-mono text-slate-400">clef: {panneKey}</span>
-                      </div>
-
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
-                        {actionsList?.length || 0} action{actionsList?.length > 1 ? 's' : ''}
-                      </span>
-                    </div>
-
-                    <div className="space-y-1.5 mt-3 max-h-48 overflow-y-auto pr-1">
-                      {Array.isArray(actionsList) && actionsList.length > 0 ? (
-                        actionsList.map((action, aIdx) => (
-                          <div
-                            key={aIdx}
-                            className="p-2 rounded-xl bg-slate-50 hover:bg-emerald-50/50 border border-slate-200/80 text-xs font-medium text-slate-800 flex items-start justify-between gap-2 group/act"
-                          >
-                            <div className="flex items-start gap-1.5 flex-1 min-w-0">
-                              <span className="text-emerald-600 font-bold mt-0.5">•</span>
-                              <span className="leading-tight">{action}</span>
-                            </div>
-
-                            <button
-                              onClick={() => handleCopyText(action, `act_${idx}_${aIdx}`)}
-                              className="text-[10px] text-slate-400 hover:text-emerald-700 font-bold shrink-0 opacity-0 group-hover/act:opacity-100 transition cursor-pointer"
-                              title="Copier cette action"
-                            >
-                              {copiedIndex === `act_${idx}_${aIdx}` ? 'Copié !' : 'Copier'}
-                            </button>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-slate-400 italic">Aucune action configurée pour cette panne.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <span className="text-[10.5px] text-slate-400">Actions d'Atelier Recommandées</span>
-
-                    <button
-                      onClick={() => {
-                        if (typeof onAddDemandeWithPreset === 'function') {
-                          onAddDemandeWithPreset({
-                            anomalie: panneKey,
-                            travail_a_faire: actionsList?.[0] || '',
-                          });
-                        }
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs active:scale-95"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span>Créer DI liée</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <MatricesActionsTab
+          filteredActionsMatrix={filteredActionsMatrix}
+          totalActionsKeysCount={totalActionsKeysCount}
+          copiedIndex={copiedIndex}
+          handleCopyText={handleCopyText}
+          formatPanneName={formatPanneName}
+          onAddDemandeWithPreset={onAddDemandeWithPreset}
+        />
       )}
 
-      {/* 6. SUB-TAB 4: ÉQUIPE DES INTERVENANTS */}
       {subTab === 'intervenants' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs text-slate-500 px-1">
-            <span>
-              Affichage de <b>{filteredIntervenants.length}</b> intervenants enregistrés
-            </span>
-            <span className="text-[11px] text-slate-400">
-              Historique des interventions et techniciens affectés aux Bons de Travail
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {filteredIntervenants.map((tech, idx) => {
-              const name = tech.nom || tech.name || 'Technicien';
-              const total = tech.total || 0;
-
-              return (
-                <div
-                  key={idx}
-                  className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-2xs hover:shadow-md hover:border-purple-300 transition flex flex-col justify-between"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-200 flex items-center justify-center text-purple-700 font-black text-sm shrink-0">
-                      {name.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <h4 className="text-base font-black text-slate-900 tracking-tight leading-snug">
-                        {name}
-                      </h4>
-                      <span className="text-xs text-slate-500 block mt-0.5">Technicien Correctif</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                        Interventions
-                      </span>
-                      <span className="text-lg font-black text-purple-700 font-mono">
-                        {total > 0 ? total.toLocaleString() : 'Actif'}
-                      </span>
-                    </div>
-
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                      Disponible
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <EquipeIntervenantsTab
+          filteredIntervenants={filteredIntervenants}
+        />
       )}
     </div>
   );

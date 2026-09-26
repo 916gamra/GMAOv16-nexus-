@@ -8,14 +8,12 @@ import {
   Flame,
   RefreshCw,
   FileSpreadsheet,
-  Database,
 } from 'lucide-react';
 import DemandesInterventionTab from './DemandesInterventionTab';
 import BonsTravailTab from './BonsTravailTab';
 import InterventionLiveTab from './InterventionLiveTab';
 import ClotureRapportsTab from './ClotureRapportsTab';
 import AnalyseCorrectiveTab from './AnalyseCorrectiveTab';
-import ReferentielPannesTravauxTab from './ReferentielPannesTravauxTab';
 import CorrectiveFormulasModal from './CorrectiveFormulasModal';
 import Action3DButton from '../../components/common/Action3DButton';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
@@ -45,7 +43,7 @@ export default function CorrectiveView({
   getActionsForPanne,
   onAddActionForPanne,
   onResetActionsToSeed,
-  onForceSyncSeed,
+  onForceSyncSeed: _onForceSyncSeed,
   machines = [],
   technicians = [],
   stockItems = [],
@@ -183,13 +181,6 @@ export default function CorrectiveView({
       label: 'Analyse & Pareto 80/20',
       icon: BarChart3,
     },
-    {
-      id: 'corrective_referentiel',
-      label: 'Catalogue & Données GMAO',
-      icon: Database,
-      badge: `${Object.values(panneCategories || {}).reduce((acc, c) => acc + (c?.length || 0), 0) || 282} Pannes`,
-      badgeColor: 'bg-amber-100 text-amber-900 border border-amber-300',
-    },
   ];
 
   return (
@@ -266,20 +257,20 @@ export default function CorrectiveView({
               onClick={() => {
                 if (
                   window.confirm(
-                    'Réinitialiser toutes les interventions et référentiels d\'actions aux données industrielles d\'origine (4571 enregistrements + 71 types d\'actions) ?'
+                    'Réinitialiser toutes les interventions et référentiels d\'actions aux données industrielles d\'origine (800 interventions d\'usine) ?'
                   )
                 ) {
                   onResetToSeed?.();
                   onResetActionsToSeed?.();
-                  showToast?.('Données correctives et catalogue d\'actions réinitialisés avec succès', 'success');
+                  showToast?.('Données correctives réinitialisées avec succès (800 interventions)', 'success');
                 }
               }}
-              title="Réinitialiser aux 4,571 interventions d'origine"
+              title="Réinitialiser aux 800 interventions d'origine"
               ariaLabel="Réinitialiser données"
             />
           </div>
 
-          {/* Bottom Row: Navigation SubTabs Container (Identical to Movements Rapide Archetype) */}
+          {/* Bottom Row: Navigation SubTabs Container (5 Main Daily Operational Pages) */}
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 overflow-x-auto max-w-full">
             <div className="inline-flex items-center p-1 bg-slate-100/90 rounded-2xl border border-slate-200/90 shadow-2xs select-none max-w-full overflow-x-auto">
               {tabs.map((tab) => {
@@ -412,19 +403,6 @@ export default function CorrectiveView({
               preventiveRecommendations={preventiveRecommendations}
               onNavigateToTab={handleTabChange}
               onAddPreventiveTask={onAddPreventiveTask}
-              showToast={showToast}
-            />
-          )}
-
-          {activeTab === 'corrective_referentiel' && (
-            <ReferentielPannesTravauxTab
-              panneCategories={panneCategories}
-              travauxAFaire={travauxAFaire}
-              actionsByPanne={actionsByPanne}
-              intervenants={intervenants}
-              onAddDemandeWithPreset={handleAddDemandeWithPreset}
-              onForceSyncSeed={onForceSyncSeed}
-              onAddActionForPanne={onAddActionForPanne}
               showToast={showToast}
             />
           )}

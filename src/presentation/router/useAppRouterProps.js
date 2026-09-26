@@ -558,6 +558,8 @@ export function useAppRouterProps({
       sortiesExterne,
       preventiveTasks,
       correctiveInterventions,
+      onResetCorrective: handleResetCorrectiveToSeed,
+      onBulkImportCorrective: handleBulkImportCorrective,
       onExportExcel: handleExportExcel,
       onNavigateToWarehouse: () => navigateTo('entrepot'),
     },
