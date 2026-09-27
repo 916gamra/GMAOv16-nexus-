@@ -355,6 +355,7 @@ export default function CorrectiveView({
           {activeTab === 'corrective_bt' && (
             <BonsTravailTab
               interventions={interventions}
+              machines={machines}
               onStartLive={onStartLive}
               onUpdateIntervention={onUpdateIntervention}
               onNavigateToTab={handleTabChange}
@@ -371,6 +372,8 @@ export default function CorrectiveView({
           {activeTab === 'corrective_live' && (
             <InterventionLiveTab
               interventions={interventions}
+              machines={machines}
+              technicians={technicians}
               activeLiveId={activeLiveId}
               setActiveLiveId={setActiveLiveId}
               onClotureIntervention={onClotureIntervention}
@@ -389,6 +392,8 @@ export default function CorrectiveView({
           {activeTab === 'corrective_cloture' && (
             <ClotureRapportsTab
               interventions={interventions}
+              machines={machines}
+              stockItems={stockItems}
               onUpdateIntervention={onUpdateIntervention}
               showToast={showToast}
             />
@@ -397,6 +402,8 @@ export default function CorrectiveView({
           {activeTab === 'corrective_analyse' && (
             <AnalyseCorrectiveTab
               interventions={interventions}
+              machines={machines}
+              stockItems={stockItems}
               kpis={kpis}
               paretoAnomalies={paretoAnomalies}
               paretoMachines={paretoMachines}

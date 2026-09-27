@@ -25,6 +25,7 @@ import * as XLSX from 'xlsx';
 
 export default function BonsTravailTab({
   interventions = [],
+  machines = [],
   onStartLive,
   onUpdateIntervention: _onUpdateIntervention,
   onNavigateToTab,
@@ -69,14 +70,20 @@ export default function BonsTravailTab({
     return Array.from(set);
   }, [bts, intervenants, technicians]);
 
-  // All machines present in BTs
+  // All machines present in BTs + registered machines from SSOT
   const availableMachines = useMemo(() => {
     const set = new Set();
+    if (Array.isArray(machines)) {
+      machines.forEach((m) => {
+        const id = m.id_machine_registered || m.id || m.code;
+        if (id) set.add(id);
+      });
+    }
     bts.forEach((b) => {
       if (b.code_machine) set.add(b.code_machine);
     });
-    return Array.from(set).sort();
-  }, [bts]);
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [bts, machines]);
 
   // KPI Metrics
   const kpiStats = useMemo(() => {

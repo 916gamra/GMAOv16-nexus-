@@ -24,6 +24,8 @@ import { stockIndexStore } from '../../../application/StockIndexStore';
 
 export default function InterventionLiveTab({
   interventions = [],
+  machines = [],
+  technicians: _technicians = [],
   activeLiveId,
   setActiveLiveId,
   onClotureIntervention,
@@ -48,6 +50,16 @@ export default function InterventionLiveTab({
     }
     return interventions.find((i) => i.id === activeLiveId) || null;
   }, [interventions, activeLiveId]);
+
+  // Fast Machine Lookup Map
+  const machineMap = useMemo(() => {
+    const map = new Map();
+    (machines || []).forEach((m) => {
+      const id = m.id_machine_registered || m.id;
+      if (id) map.set(id, m);
+    });
+    return map;
+  }, [machines]);
 
   // Real-time ticking chronometer
   const [currentTimestamp, setCurrentTimestamp] = useState(() => Date.now());
@@ -195,27 +207,32 @@ export default function InterventionLiveTab({
   const [showPdrList, setShowPdrList] = useState(false);
 
   const matchedStockItems = useMemo(() => {
-    if (!pdrSearch) return stockItems.slice(0, 8);
-    const term = pdrSearch.toLowerCase();
+    if (!pdrSearch.trim()) return stockItems.slice(0, 10);
+    const term = pdrSearch.toLowerCase().trim();
     return stockItems
       .filter(
         (s) =>
-          String(s.ref || '').toLowerCase().includes(term) ||
-          String(s.designation || '').toLowerCase().includes(term) ||
-          String(s.type || '').toLowerCase().includes(term)
+          String(s.ref || s.code_article || '').toLowerCase().includes(term) ||
+          String(s.designation || s.nom || '').toLowerCase().includes(term) ||
+          String(s.type || s.famille || '').toLowerCase().includes(term) ||
+          String(s.marque || '').toLowerCase().includes(term)
       )
-      .slice(0, 10);
+      .slice(0, 15);
   }, [stockItems, pdrSearch]);
 
   // Handle Select PDR
   const handleSelectPdr = (item) => {
+    const stockQty = item.stockActuel ?? item.stock_actuel ?? item.quantite ?? 0;
     setFormState((prev) => ({
       ...prev,
-      pdr_ref: item.ref,
-      pdr_designation: item.designation,
-      marque: item.marque || prev.marque,
+      pdr_ref: item.ref || item.code_article,
+      pdr_designation: item.designation || item.nom,
+      pdr_prix: item.prix || item.prix_unitaire || 0,
+      pdr_unite: item.unite || 'Pièce',
+      pdr_stock_actuel: stockQty,
+      marque: item.marque || prev.marque || 'Origine',
     }));
-    setPdrSearch(`${item.ref} - ${item.designation}`);
+    setPdrSearch(`${item.ref || item.code_article} - ${item.designation || item.nom}`);
     setShowPdrList(false);
   };
 
@@ -244,16 +261,24 @@ export default function InterventionLiveTab({
 
     // 2. Si une PDR a été renseignée, créer un mouvement de sortie automatique
     if (formState.pdr_ref && onAddMouvement) {
+      const targetMachine = machineMap.get(activeIntervention.code_machine);
+      const machineZone = targetMachine?.id_zone_default || targetMachine?.id_zone || activeIntervention.zone || 'Atelier';
+      const machineDesignation = targetMachine?.designation || activeIntervention.code_machine;
+
       onAddMouvement({
         type: 'SORTIE',
         ref: formState.pdr_ref,
+        code_article: formState.pdr_ref,
         designation: formState.pdr_designation || formState.pdr_ref,
         quantite: Number(formState.pdr_quantite) || 1,
         date: dateFin,
         demandeur: activeIntervention.intervenant || 'Technicien GMAO',
         machine: activeIntervention.code_machine,
-        zone: activeIntervention.zone || 'Atelier',
-        observation: `Consommation BT ${activeIntervention.num_bt || activeIntervention.id} (${activeIntervention.anomalie || ''})`,
+        zone: machineZone,
+        machine_designation: machineDesignation,
+        prix_unitaire: Number(formState.pdr_prix) || 0,
+        unite: formState.pdr_unite || 'Pièce',
+        observation: `Consommation BT ${activeIntervention.num_bt || activeIntervention.id} · Machine: ${activeIntervention.code_machine} (${activeIntervention.anomalie || 'Correctif'})`,
       });
     }
 
@@ -496,21 +521,64 @@ export default function InterventionLiveTab({
 
               {showPdrList && matchedStockItems.length > 0 && (
                 <div className="absolute left-0 right-0 top-full mt-1 z-40 bg-white rounded-2xl border border-cyan-200 shadow-xl max-h-48 overflow-y-auto p-2 space-y-1">
-                  {matchedStockItems.map((item) => (
-                    <div
-                      key={item.ref}
-                      onClick={() => handleSelectPdr(item)}
-                      className="p-2 text-xs rounded-lg hover:bg-cyan-50 text-slate-800 cursor-pointer font-medium transition flex items-center justify-between"
-                    >
-                      <div>
-                        <span className="font-mono font-bold text-cyan-900">{item.ref}</span>
-                        <span className="text-slate-500 ml-2">{item.designation}</span>
+                  {matchedStockItems.map((item) => {
+                    const dispo = item.stockActuel ?? item.stock_actuel ?? item.quantite ?? 0;
+                    return (
+                      <div
+                        key={item.ref || item.code_article}
+                        onClick={() => handleSelectPdr(item)}
+                        className="p-2 text-xs rounded-lg hover:bg-cyan-50 text-slate-800 cursor-pointer font-medium transition flex items-center justify-between"
+                      >
+                        <div className="min-w-0 pr-2">
+                          <span className="font-mono font-bold text-cyan-900">{item.ref || item.code_article}</span>
+                          <span className="text-slate-600 ml-2 truncate">{item.designation || item.nom}</span>
+                        </div>
+                        <span className={`font-mono text-[11px] font-bold px-2 py-0.5 rounded border shrink-0 ${
+                          dispo > 0 ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-200'
+                        }`}>
+                          Dispo: {dispo}
+                        </span>
                       </div>
-                      <span className="font-mono text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        Dispo: {item.stockActuel ?? item.stock_actuel ?? 10}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Real-time Selected PDR Confirmation & Stock Badge */}
+              {formState.pdr_ref && (
+                <div className="mt-2 p-2.5 rounded-xl bg-cyan-50/70 border border-cyan-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-cyan-950 bg-white px-2 py-0.5 rounded border border-cyan-300">
+                      {formState.pdr_ref}
+                    </span>
+                    <span className="font-semibold text-slate-800 truncate">
+                      {formState.pdr_designation}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`font-mono font-bold text-[11px] px-2 py-0.5 rounded border ${
+                      Number(formState.pdr_quantite) > Number(formState.pdr_stock_actuel)
+                        ? 'bg-amber-100 text-amber-900 border-amber-300'
+                        : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                    }`}>
+                      Stock: {formState.pdr_stock_actuel ?? 0}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormState((prev) => ({
+                          ...prev,
+                          pdr_ref: '',
+                          pdr_designation: '',
+                          pdr_stock_actuel: undefined,
+                        }));
+                        setPdrSearch('');
+                      }}
+                      className="text-[11px] text-slate-400 hover:text-rose-600 font-bold underline cursor-pointer"
+                    >
+                      Effacer
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

@@ -110,5 +110,45 @@
     "libelle": "Soudeur",
     "type": "PRODUCTION",
     "description": "SOUD - Soudeur - Soudure par points et perçage assemblage - Fusion métal"
+  },
+  {
+    "code_zone": "PCE",
+    "id_zone": "Préparation Corniche et Emballage",
+    "code": "Préparation Corniche et Emballage",
+    "libelle": "Préparation Corniche et Emballage",
+    "type": "PRODUCTION",
+    "description": "PCE - Préparation Corniche et Emballage - Conditionnement et mise sous carton"
+  },
+  {
+    "code_zone": "FRL",
+    "id_zone": "Fraisage et Lignes",
+    "code": "Fraisage et Lignes",
+    "libelle": "Fraisage et Lignes",
+    "type": "PRODUCTION",
+    "description": "FRL - Fraisage et Lignes - Lignes d'usinage et fraisage grande série"
+  },
+  {
+    "code_zone": "PP",
+    "id_zone": "Presse Polyester",
+    "code": "Presse Polyester",
+    "libelle": "Presse Polyester",
+    "type": "PRODUCTION",
+    "description": "PP - Presse Polyester - Moulage thermodurcissable haute pression"
+  },
+  {
+    "code_zone": "PM",
+    "id_zone": "Presse Matrice",
+    "code": "Presse Matrice",
+    "libelle": "Presse Matrice",
+    "type": "PRODUCTION",
+    "description": "PM - Presse Matrice - Formage de précision et découpe matrice"
+  },
+  {
+    "code_zone": "PHENIC",
+    "id_zone": "Presse Hénické",
+    "code": "Presse Hénické",
+    "libelle": "Presse Hénické",
+    "type": "PRODUCTION",
+    "description": "PHENIC - Presse Hénické - Presse d'emboutissage spécialisé"
   }
 ]

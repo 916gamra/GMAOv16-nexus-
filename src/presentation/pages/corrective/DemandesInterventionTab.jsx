@@ -94,28 +94,44 @@ export default function DemandesInterventionTab({
     return [];
   }, [actionsByPanne, getActionsForPanneProp]);
 
-  // Combined machine list from registered state
+  // Combined machine list from registered state (SSOT)
   const allMachineOptions = useMemo(() => {
     if (Array.isArray(machines) && machines.length > 0) {
       return machines.map((m) => ({
         id_machine_registered: m.id_machine_registered || m.code || m.id,
         code: m.code || m.id_machine_registered || m.id,
-        zone: m.zone || 'Atelier',
+        zone: m.id_zone_default || m.id_zone || m.zone || 'Atelier',
+        designation: m.designation || m.nom || m.id_machine_registered || m.id,
         totalInterventions: m.totalInterventions || 0,
       }));
     }
     return [
-      { id_machine_registered: 'RCP-02', code: 'RCP-02', zone: 'Atelier' },
-      { id_machine_registered: 'P-HYD-01', code: 'P-HYD-01', zone: 'Atelier' },
+      { id_machine_registered: 'RCP-02', code: 'RCP-02', zone: 'FM' },
+      { id_machine_registered: 'P-HYD-01', code: 'P-HYD-01', zone: 'Presse Hydraulique' },
     ];
   }, [machines]);
 
-  // Combined technician list from registered state or seeded intervenants
+  // Combined technician list from registered state or seeded intervenants (SSOT)
   const allTechnicianOptions = useMemo(() => {
     const list = [];
     const seen = new Set();
 
-    // 1. Add real intervenants from corrective team (seedIntervenants)
+    // 1. Add real registered technicians from userSub (SSOT)
+    if (Array.isArray(technicians) && technicians.length > 0) {
+      technicians.forEach((t) => {
+        const nom = t.nom || t.name || String(t);
+        if (nom && !seen.has(nom.toLowerCase())) {
+          seen.add(nom.toLowerCase());
+          list.push({
+            nom,
+            name: nom,
+            role: t.specialite || t.role || 'Technicien Maintenance',
+          });
+        }
+      });
+    }
+
+    // 2. Add fallback intervenants if present
     if (Array.isArray(intervenants)) {
       intervenants.forEach((i) => {
         const nom = i.nom || i.name || String(i);
@@ -131,26 +147,13 @@ export default function DemandesInterventionTab({
       });
     }
 
-    // 2. Add general technicians from userSub
-    if (Array.isArray(technicians)) {
-      technicians.forEach((t) => {
-        const nom = t.nom || t.name || String(t);
-        if (nom && !seen.has(nom.toLowerCase())) {
-          seen.add(nom.toLowerCase());
-          list.push({
-            nom,
-            name: nom,
-            role: t.role || 'Technicien GMAO',
-          });
-        }
-      });
-    }
-
     if (list.length === 0) {
       return [
-        { nom: 'm_hammed', name: 'M\'hammed', role: '1665 interventions' },
-        { nom: 'Rachid', name: 'Rachid', role: '1076 interventions' },
-        { nom: 'Ismaayl', name: 'Ismaayl', role: '418 interventions' },
+        { nom: 'Rachid', name: 'Rachid', role: 'Technicien FM' },
+        { nom: 'Youssef', name: 'Youssef', role: 'Technicien Polissage' },
+        { nom: 'Mhammed', name: 'Mhammed', role: 'Technicien Presse Injection' },
+        { nom: 'Ismail', name: 'Ismail', role: 'Technicien Presse Hydraulique' },
+        { nom: 'Boujamaa', name: 'Boujamaa', role: 'Technicien FEMB2' },
       ];
     }
     return list;

@@ -4,23 +4,18 @@ import { indexedDBService } from '../../utils/indexedDBService.js';
 export const BACKUP_STORAGE_KEY = 'gmao_snapshots_history';
 export const MAX_SNAPSHOTS = 12;
 
-const CRITICAL_KEYS = [
-  'gmao_full_state_v1',
-  'gmao_raw_stock_v6',
-  'gmao_spare_parts',
-  'gmao_mouvements',
-  'gmao_movements',
+export const MASTER_REFERENTIAL_KEYS = [
   'gmao_machines',
+  'gmao_machines_registered_v6',
+  'gmao_zones',
   'gmao_families',
   'gmao_templates',
   'gmao_blueprints_v1',
   'gmao_types',
   'gmao_diagnostics',
-  'gmao_zones',
   'gmao_technicians',
+  'gmao_users',
   'gmao_operations',
-  'gmao_warehouse_items',
-  'gmao_warehouse_items_v1',
   'gmao_comp_groups_v1',
   'gmao_comp_families_v1',
   'gmao_comp_templates_v1',
@@ -28,14 +23,30 @@ const CRITICAL_KEYS = [
   'gmao_part_types_v1',
   'gmao_part_designations',
   'gmao_part_designations_v1',
-  'gmao_preventive_tasks_v8',
   'gmao_preventive_actions_v2',
   'gmao_preventive_guides_v2',
   'gmao_preventive_plans_v2',
+  'gmao_spare_parts',
+  'gmao_raw_stock_v6',
+  'gmao_warehouse_items',
+  'gmao_warehouse_items_v1',
+];
+
+export const OPERATIONS_HISTORY_KEYS = [
+  'gmao_interventions_history',
+  'gmao_mouvements',
+  'gmao_movements',
+  'gmao_preventive_tasks_v8',
+  'gmao_preventive_tasks_v7',
   'gmao_sortie_externe_bobinage_v1',
-  'gmao_users',
   'gmao_access_logs',
 ];
+
+const CRITICAL_KEYS = Array.from(new Set([
+  'gmao_full_state_v1',
+  ...MASTER_REFERENTIAL_KEYS,
+  ...OPERATIONS_HISTORY_KEYS,
+]));
 
 // In-memory cache for fast, synchronous retrieval of recent snapshot payloads
 const snapshotDataCache = new Map();
@@ -372,8 +383,27 @@ export class AutoBackupService {
    * Export all current data as a standalone JSON backup file
    */
   static exportFullBackupJSON() {
+    this.exportPartitionJSON('full');
+  }
+
+  /**
+   * Export specific partition (master referential, operations history, or full)
+   * @param {'master'|'operations'|'full'} partitionType
+   */
+  static exportPartitionJSON(partitionType = 'full') {
+    let targetKeys = CRITICAL_KEYS;
+    let label = 'Full';
+
+    if (partitionType === 'master') {
+      targetKeys = MASTER_REFERENTIAL_KEYS;
+      label = 'Referentiel_Master';
+    } else if (partitionType === 'operations') {
+      targetKeys = OPERATIONS_HISTORY_KEYS;
+      label = 'Historique_Operations';
+    }
+
     const data = {};
-    for (const key of CRITICAL_KEYS) {
+    for (const key of targetKeys) {
       try {
         const raw = localStorage.getItem(key);
         if (raw) data[key] = JSON.parse(raw);
@@ -384,6 +414,7 @@ export class AutoBackupService {
 
     const payload = {
       app: 'CIOB GMAO Enterprise',
+      partition: partitionType,
       exportDate: new Date().toISOString(),
       version: '3.0.0',
       data,
@@ -394,7 +425,7 @@ export class AutoBackupService {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `CIOB_GMAO_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `CIOB_GMAO_${label}_${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -402,7 +433,7 @@ export class AutoBackupService {
   }
 
   /**
-   * Import data from a JSON backup file
+   * Import data from a JSON backup file (Full or Partition)
    * @param {string} jsonText 
    * @returns {boolean}
    */
@@ -410,9 +441,10 @@ export class AutoBackupService {
     try {
       const parsed = JSON.parse(jsonText);
       const data = parsed.data || parsed;
+      const partition = parsed.partition || 'full';
 
-      // Safety snapshot
-      this.createSnapshot('Sauvegarde avant import fichier JSON', false);
+      // Safety snapshot before import
+      this.createSnapshot(`Sauvegarde avant import ${partition}`, false);
 
       for (const [key, value] of Object.entries(data)) {
         if (CRITICAL_KEYS.includes(key)) {
@@ -427,10 +459,39 @@ export class AutoBackupService {
         window.dispatchEvent(new CustomEvent('gmao:state_synced', { detail: data }));
       }
 
-      Logger.info('[AutoBackupService] Full backup imported successfully');
+      Logger.info(`[AutoBackupService] Backup imported successfully (${partition})`);
       return true;
     } catch (err) {
       Logger.error('[AutoBackupService] Failed to import JSON backup', err);
+      return false;
+    }
+  }
+
+  /**
+   * Safely purge operations history partition (DIs, BTs, logs) while preserving 100% of Master Referential
+   * @returns {boolean}
+   */
+  static resetOperationsHistory() {
+    try {
+      // Safety snapshot before clearing operations
+      this.createSnapshot('Sauvegarde avant réinitialisation des opérations', false);
+
+      for (const key of OPERATIONS_HISTORY_KEYS) {
+        try {
+          localStorage.removeItem(key);
+        } catch {
+          // pass
+        }
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('gmao:state_synced', { detail: { action: 'reset_operations' } }));
+      }
+
+      Logger.info('[AutoBackupService] Operations history partition reset successfully');
+      return true;
+    } catch (err) {
+      Logger.error('[AutoBackupService] Failed to reset operations partition', err);
       return false;
     }
   }

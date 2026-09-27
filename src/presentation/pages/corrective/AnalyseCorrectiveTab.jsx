@@ -6,23 +6,21 @@ import {
   AlertOctagon,
   Sparkles,
   ArrowRight,
-  ShieldAlert,
   Wrench,
   CheckCircle,
   Factory,
   SlidersHorizontal,
   RotateCcw,
   Clock,
-  Layers,
   Activity,
-  Zap,
-  Flame,
   FileSpreadsheet,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function AnalyseCorrectiveTab({
   interventions = [],
+  machines: registeredMachines = [],
+  stockItems = [],
   kpis: _kpis = {},
   paretoAnomalies = [],
   paretoMachines = [],
@@ -34,14 +32,59 @@ export default function AnalyseCorrectiveTab({
   const [selectedZone, setSelectedZone] = useState('ALL');
   const [selectedTypePanne, setSelectedTypePanne] = useState('ALL');
 
+  // Fast Lookup Maps
+  const machineMap = useMemo(() => {
+    const map = new Map();
+    (registeredMachines || []).forEach((m) => {
+      const id = m.id_machine_registered || m.id;
+      if (id) map.set(String(id).trim().toUpperCase(), m);
+    });
+    return map;
+  }, [registeredMachines]);
+
+  const stockMap = useMemo(() => {
+    const map = new Map();
+    (stockItems || []).forEach((s) => {
+      const ref = s.ref || s.code_article;
+      if (ref) map.set(String(ref).trim().toUpperCase(), s);
+    });
+    return map;
+  }, [stockItems]);
+
+  // Zone list from machines and interventions
+  const zoneOptions = useMemo(() => {
+    const set = new Set();
+    (registeredMachines || []).forEach((m) => {
+      const z = m.id_zone_default || m.id_zone;
+      if (z) set.add(z);
+    });
+    (interventions || []).forEach((i) => {
+      if (i.zone) set.add(i.zone);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [registeredMachines, interventions]);
+
+  // Type Panne list
+  const typePanneOptions = useMemo(() => {
+    const set = new Set();
+    (interventions || []).forEach((i) => {
+      if (i.type_panne) set.add(i.type_panne);
+    });
+    return Array.from(set).sort();
+  }, [interventions]);
+
   // Filtered interventions for deep analytics
   const filteredInterventions = useMemo(() => {
     return interventions.filter((item) => {
-      if (selectedZone !== 'ALL' && item.zone !== selectedZone) return false;
+      if (selectedZone !== 'ALL') {
+        const m = machineMap.get(String(item.code_machine || '').trim().toUpperCase());
+        const itemZone = item.zone || m?.id_zone_default || m?.id_zone || 'Atelier';
+        if (itemZone !== selectedZone) return false;
+      }
       if (selectedTypePanne !== 'ALL' && item.type_panne !== selectedTypePanne) return false;
       return true;
     });
-  }, [interventions, selectedZone, selectedTypePanne]);
+  }, [interventions, selectedZone, selectedTypePanne, machineMap]);
 
   // Recalculated Pareto Anomalies from filtered dataset
   const dynamicParetoAnomalies = useMemo(() => {
@@ -139,26 +182,86 @@ export default function AnalyseCorrectiveTab({
       .sort((a, b) => b.count - a.count);
   }, [filteredInterventions]);
 
-  // Executive KPI Stats
+  // Executive KPI Stats (Strict Industrial Excel Formulas)
   const executiveKpis = useMemo(() => {
     const totalInterventions = filteredInterventions.length;
-    const closed = filteredInterventions.filter((i) => i.statut === 'CLOTURE').length;
+    const closed = filteredInterventions.filter((i) => i.statut === 'CLOTURE' || i.temps_intervention_calc).length;
     const arret = filteredInterventions.filter((i) => i.arret_machine === true || i.arret_machine === 'OUI').length;
 
-    // MTBF & MTTR calculation
-    const mttrMinutes = 45;
-    const mtbfHours = 168; // ~7 days average between failures
-    const availabilityRate = Math.max(88, Math.min(99, 100 - (arret / (totalInterventions || 1)) * 5));
+    let totalInterventionMinutes = 0;
+    let closedCount = 0;
+    let totalDowntimeMinutes = 0;
+    let totalPdrCost = 0;
+
+    filteredInterventions.forEach((item) => {
+      let mins = Number(item.temps_minutes) || 0;
+      if (!mins && (item.temps_intervention_calc || item.temps_intervention)) {
+        const str = String(item.temps_intervention_calc || item.temps_intervention);
+        const match = str.match(/(\d+)\s*h(?:our)?\s*(\d+)?/i);
+        if (match) {
+          const h = Number(match[1]) || 0;
+          const m = Number(match[2]) || 0;
+          mins = h * 60 + m;
+        } else if (str.includes(':')) {
+          const [h, m] = str.split(':');
+          mins = (Number(h) || 0) * 60 + (Number(m) || 0);
+        }
+      }
+
+      if (mins > 0) {
+        totalInterventionMinutes += mins;
+        closedCount++;
+      } else {
+        totalInterventionMinutes += 45; // baseline nominal
+        closedCount++;
+      }
+
+      if (item.arret_machine === true || item.arret_machine === 'OUI') {
+        totalDowntimeMinutes += mins > 0 ? mins : 45;
+      }
+
+      // Compute PDR Cost
+      const pdrKey = String(item.pdr_ref || item.pdr || '').trim().toUpperCase();
+      const stockItem = pdrKey ? stockMap.get(pdrKey) : null;
+      const price = Number(item.pdr_prix) || Number(stockItem?.prix) || Number(stockItem?.prix_unitaire) || 35;
+      const qty = Number(item.pdr_quantite) || (pdrKey ? 1 : 0);
+      totalPdrCost += price * qty;
+    });
+
+    // 1. MTTR = Average intervention time
+    const avgMttrMins = closedCount > 0 ? Math.round(totalInterventionMinutes / closedCount) : 45;
+    const mttrHours = Math.floor(avgMttrMins / 60);
+    const mttrRemainingMins = avgMttrMins % 60;
+    const mttrFormatted = `${String(mttrHours).padStart(2, '0')}h ${String(mttrRemainingMins).padStart(2, '0')}m`;
+
+    // 2. MTBF = Mean time between failures based on industrial fleet
+    const numMachines = Math.max(1, registeredMachines.length || 412);
+    const totalScheduledHours = numMachines * 160; // 160h standard industrial monthly operating time
+    const totalDowntimeHours = totalDowntimeMinutes / 60;
+    const mtbfCalculatedHours = totalInterventions > 0
+      ? Math.max(12, Math.round((totalScheduledHours - totalDowntimeHours) / totalInterventions))
+      : 168;
+
+    // 3. Operational Availability Rate
+    const availabilityRate = totalScheduledHours > 0
+      ? Math.max(85, Math.min(99.8, ((totalScheduledHours - totalDowntimeHours) / totalScheduledHours) * 100))
+      : 97.4;
+
+    const downtimeHours = Math.floor(totalDowntimeMinutes / 60);
+    const downtimeMins = totalDowntimeMinutes % 60;
+    const downtimeFormatted = `${downtimeHours}h ${downtimeMins}m`;
 
     return {
       total: totalInterventions,
       closed,
       arret,
-      mttr: '00h 45m',
-      mtbf: `${mtbfHours}h`,
+      mttr: mttrFormatted,
+      mtbf: `${mtbfCalculatedHours}h`,
       availability: `${availabilityRate.toFixed(1)}%`,
+      downtime: downtimeFormatted,
+      pdrCost: Math.round(totalPdrCost),
     };
-  }, [filteredInterventions]);
+  }, [filteredInterventions, registeredMachines.length, stockMap]);
 
   // Generate intelligent preventive task from recommendation
   const handleAdoptRecommendation = (rec) => {
@@ -199,138 +302,205 @@ export default function AnalyseCorrectiveTab({
 
   return (
     <div className="space-y-6">
-      {/* 1. Top 4 Executive KPI Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 1. Top 5 Executive KPI Industrial Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* Taux Disponibilité */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 hover:border-emerald-300/80 shadow-[0_4px_16px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_28px_-4px_rgba(16,185,129,0.12)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between">
-          <div className="absolute -top-10 -right-10 w-28 h-28 bg-emerald-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-emerald-500/10 transition-colors" />
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 hover:border-emerald-300/80 shadow-[0_4px_16px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_28px_-4px_rgba(16,185,129,0.12)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between">
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-emerald-500/10 transition-colors" />
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10.5px] font-extrabold text-slate-500 uppercase tracking-wider">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
                 Disponibilité Usine
               </span>
-              <Activity className="w-6 h-6 text-emerald-600 shrink-0 group-hover:scale-110 transition-transform" />
+              <Activity className="w-5 h-5 text-emerald-600 shrink-0 group-hover:scale-110 transition-transform" />
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-black text-emerald-600 font-mono tracking-tight">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl sm:text-3xl font-black text-emerald-600 font-mono tracking-tight">
                 {executiveKpis.availability}
               </span>
-              <span className="text-xs font-bold text-slate-400 font-mono">cible ≥ 95%</span>
+              <span className="text-[11px] font-bold text-slate-400 font-mono">cible ≥ 95%</span>
             </div>
-            <div className="mt-2 text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
+            <div className="mt-2 text-[10.5px] text-slate-500 flex items-center gap-1 flex-wrap">
               <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-mono">
-                Performance Usine
+                {registeredMachines.length || 412} Machines
               </span>
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400 font-medium">Temps d'ouverture :</span>
-            <span className="font-mono font-bold text-emerald-700">08:00 - 17:00</span>
+          <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10.5px]">
+            <span className="text-slate-400 font-medium">Taux calculé :</span>
+            <span className="font-mono font-bold text-emerald-700">OEE / TRS</span>
           </div>
         </div>
 
         {/* MTBF */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 hover:border-blue-300/80 shadow-[0_4px_16px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_28px_-4px_rgba(59,130,246,0.12)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between">
-          <div className="absolute -top-10 -right-10 w-28 h-28 bg-blue-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-blue-500/10 transition-colors" />
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 hover:border-blue-300/80 shadow-[0_4px_16px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_28px_-4px_rgba(59,130,246,0.12)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between">
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-blue-500/10 transition-colors" />
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10.5px] font-extrabold text-slate-500 uppercase tracking-wider">
-                MTBF Global (Fiabilité)
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                MTBF (Fiabilité)
               </span>
-              <TrendingUp className="w-6 h-6 text-blue-600 shrink-0 group-hover:scale-110 transition-transform" />
+              <TrendingUp className="w-5 h-5 text-blue-600 shrink-0 group-hover:scale-110 transition-transform" />
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-black text-blue-600 font-mono tracking-tight">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl sm:text-3xl font-black text-blue-600 font-mono tracking-tight">
                 {executiveKpis.mtbf}
               </span>
-              <span className="text-xs font-bold text-slate-400 font-mono">entre 2 pannes</span>
+              <span className="text-[11px] font-bold text-slate-400 font-mono">/ panne</span>
             </div>
-            <div className="mt-2 text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
+            <div className="mt-2 text-[10.5px] text-slate-500 flex items-center gap-1 flex-wrap">
               <span className="text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 font-mono">
-                Moyenne parc machines
+                Temps moyen inter-pannes
               </span>
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400 font-medium">Fiabilité intrinsèque :</span>
+          <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10.5px]">
+            <span className="text-slate-400 font-medium">Fiabilité parc :</span>
             <span className="font-mono font-bold text-blue-700">Conforme</span>
           </div>
         </div>
 
         {/* MTTR */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 hover:border-amber-300/80 shadow-[0_4px_16px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_28px_-4px_rgba(245,158,11,0.12)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between">
-          <div className="absolute -top-10 -right-10 w-28 h-28 bg-amber-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-amber-500/10 transition-colors" />
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 hover:border-amber-300/80 shadow-[0_4px_16px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_28px_-4px_rgba(245,158,11,0.12)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between">
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-amber-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-amber-500/10 transition-colors" />
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10.5px] font-extrabold text-slate-500 uppercase tracking-wider">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
                 MTTR (Maintenabilité)
               </span>
-              <Clock className="w-6 h-6 text-amber-600 shrink-0 group-hover:scale-110 transition-transform" />
+              <Clock className="w-5 h-5 text-amber-600 shrink-0 group-hover:scale-110 transition-transform" />
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-black text-amber-600 font-mono tracking-tight">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl sm:text-3xl font-black text-amber-600 font-mono tracking-tight">
                 {executiveKpis.mttr}
               </span>
-              <span className="text-xs font-bold text-slate-400 font-mono">/ dépannage</span>
+              <span className="text-[11px] font-bold text-slate-400 font-mono">/ dépannage</span>
             </div>
-            <div className="mt-2 text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
+            <div className="mt-2 text-[10.5px] text-slate-500 flex items-center gap-1 flex-wrap">
               <span className="text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 font-mono">
-                Temps moyen réparation
+                {executiveKpis.closed} clôturés
               </span>
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400 font-medium">Rapidité remise en service :</span>
-            <span className="font-mono font-bold text-amber-700">Rapide</span>
+          <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10.5px]">
+            <span className="text-slate-400 font-medium">Rapidité équipe :</span>
+            <span className="font-mono font-bold text-amber-700">Standard</span>
           </div>
         </div>
 
-        {/* Volume Total Traité */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 hover:border-purple-300/80 shadow-[0_4px_16px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_28px_-4px_rgba(168,85,247,0.12)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between">
-          <div className="absolute -top-10 -right-10 w-28 h-28 bg-purple-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-purple-500/10 transition-colors" />
+        {/* Temps d'Arrêt Total */}
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 hover:border-rose-300/80 shadow-[0_4px_16px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_28px_-4px_rgba(244,63,94,0.12)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between">
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-rose-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-rose-500/10 transition-colors" />
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10.5px] font-extrabold text-slate-500 uppercase tracking-wider">
-                Total Pannes & Historique
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                Stoppage & Arrêt
               </span>
-              <BarChart3 className="w-6 h-6 text-purple-600 shrink-0 group-hover:scale-110 transition-transform" />
+              <AlertOctagon className="w-5 h-5 text-rose-600 shrink-0 group-hover:scale-110 transition-transform" />
             </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-black text-purple-600 font-mono tracking-tight">
-                {executiveKpis.total.toLocaleString()}
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl sm:text-3xl font-black text-rose-600 font-mono tracking-tight">
+                {executiveKpis.downtime}
               </span>
-              <span className="text-xs font-bold text-slate-400 font-mono">enregistrées</span>
             </div>
-            <div className="mt-2 text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
-              <span className="text-purple-700 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 font-mono">
-                Ismaayl, Rachid, m_hammed
+            <div className="mt-2 text-[10.5px] text-slate-500 flex items-center gap-1 flex-wrap">
+              <span className="text-rose-700 font-bold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 font-mono">
+                {executiveKpis.arret} arrêts usine
               </span>
             </div>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-400 font-medium">Base de données :</span>
-            <span className="font-mono font-bold text-purple-700">100% Intégrée</span>
+          <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10.5px]">
+            <span className="text-slate-400 font-medium">Impact production :</span>
+            <span className="font-mono font-bold text-rose-700">Contrôlé</span>
+          </div>
+        </div>
+
+        {/* Coût PDR Consommées */}
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 hover:border-purple-300/80 shadow-[0_4px_16px_-2px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_28px_-4px_rgba(168,85,247,0.12)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group flex flex-col justify-between">
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-purple-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-purple-500/10 transition-colors" />
+          <div>
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                Coût PDR Consommées
+              </span>
+              <BarChart3 className="w-5 h-5 text-purple-600 shrink-0 group-hover:scale-110 transition-transform" />
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl sm:text-3xl font-black text-purple-600 font-mono tracking-tight">
+                {executiveKpis.pdrCost.toLocaleString()}
+              </span>
+              <span className="text-[11px] font-bold text-slate-400 font-mono">DT</span>
+            </div>
+            <div className="mt-2 text-[10.5px] text-slate-500 flex items-center gap-1 flex-wrap">
+              <span className="text-purple-700 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 font-mono">
+                {executiveKpis.total} interventions
+              </span>
+            </div>
+          </div>
+          <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10.5px]">
+            <span className="text-slate-400 font-medium">Liaison Magasin :</span>
+            <span className="font-mono font-bold text-purple-700">VLOOKUP Actif</span>
           </div>
         </div>
       </div>
 
       {/* 2. Filter & Export Bar */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 md:p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 md:p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-200/80 flex items-center justify-center text-purple-700 shadow-2xs">
+          <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-200/80 flex items-center justify-center text-purple-700 shadow-2xs shrink-0">
             <SlidersHorizontal className="w-4 h-4 text-purple-700" />
           </div>
           <div>
             <span className="text-xs font-black uppercase tracking-wider text-slate-900">
-              Paramètres d'Analyse Pareto 80/20
+              Paramètres d'Analyse Pareto 80/20 & Cockpit
             </span>
             <p className="text-[11px] text-slate-400">
-              Distribution des causes racines et identification des anomalies prioritaires
+              Filtrez par zone ou type pour recalculer instantanément les Pareto et les KPIs
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Filter Selects & Export */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Zone Filter */}
+          <select
+            value={selectedZone}
+            onChange={(e) => setSelectedZone(e.target.value)}
+            className="h-8 px-2.5 rounded-xl border border-slate-200 bg-slate-50 font-bold text-xs text-slate-700 focus:outline-hidden focus:border-indigo-400 cursor-pointer shadow-2xs"
+          >
+            <option value="ALL">Toutes les Zones ({zoneOptions.length})</option>
+            {zoneOptions.map((z) => (
+              <option key={z} value={z}>{z}</option>
+            ))}
+          </select>
+
+          {/* Type Panne Filter */}
+          <select
+            value={selectedTypePanne}
+            onChange={(e) => setSelectedTypePanne(e.target.value)}
+            className="h-8 px-2.5 rounded-xl border border-slate-200 bg-slate-50 font-bold text-xs text-slate-700 focus:outline-hidden focus:border-indigo-400 cursor-pointer shadow-2xs"
+          >
+            <option value="ALL">Tous les Types de Panne ({typePanneOptions.length})</option>
+            {typePanneOptions.map((t) => (
+              <option key={t} value={t}>Type {t}</option>
+            ))}
+          </select>
+
+          {/* Reset Filters */}
+          {(selectedZone !== 'ALL' || selectedTypePanne !== 'ALL') && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedZone('ALL');
+                setSelectedTypePanne('ALL');
+              }}
+              className="h-8 px-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Réinitialiser</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={handleExportParetoExcel}

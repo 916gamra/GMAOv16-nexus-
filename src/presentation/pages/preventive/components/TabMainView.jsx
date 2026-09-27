@@ -170,13 +170,13 @@ export default function TabMainView({
     const set = new Set();
     if (Array.isArray(zones)) {
       zones.forEach((z) => {
-        const name = typeof z === 'string' ? z : (z?.nom_zone || z?.id_zone || z?.code_zone || z?.code || z?.name);
+        const name = typeof z === 'string' ? z : (z?.id_zone || z?.nom_zone || z?.libelle || z?.code_zone || z?.code || z?.name);
         if (name && typeof name === 'string' && name.trim()) set.add(name.trim());
       });
     }
     if (Array.isArray(machines)) {
       machines.forEach((m) => {
-        const z = m?.id_zone || m?.zone;
+        const z = m?.id_zone_default || m?.id_zone || m?.zone;
         if (z && typeof z === 'string' && z.trim()) set.add(z.trim());
       });
     }
@@ -250,7 +250,9 @@ export default function TabMainView({
         deferredSearchQuery
       );
 
-      const matchZone = selectedZone === 'ALL' || norm(t.id_zone) === norm(selectedZone);
+      const m = machineMap.get(t.id_machine);
+      const effZone = m?.id_zone_default || m?.id_zone || t.id_zone;
+      const matchZone = selectedZone === 'ALL' || norm(effZone) === norm(selectedZone) || norm(t.id_zone) === norm(selectedZone);
       const matchMach = selectedMachine === 'ALL' || norm(t.id_machine) === norm(selectedMachine);
       const matchAct = selectedAction === 'ALL' || (t.action_code || 'C').toUpperCase() === selectedAction.toUpperCase();
       const matchFreq = selectedFrequence === 'ALL' || norm(t.frequence) === norm(selectedFrequence);
@@ -260,7 +262,7 @@ export default function TabMainView({
 
       return matchSearch && matchZone && matchMach && matchAct && matchFreq && matchStat && matchTech && matchWeek;
     });
-  }, [tasks, deferredSearchQuery, selectedZone, selectedMachine, selectedAction, selectedFrequence, selectedStatus, selectedTech, selectedWeek]);
+  }, [tasks, deferredSearchQuery, selectedZone, selectedMachine, selectedAction, selectedFrequence, selectedStatus, selectedTech, selectedWeek, machineMap]);
 
   const stats = useMemo(() => {
     const total = tasks.length;
@@ -309,7 +311,7 @@ export default function TabMainView({
     },
     ...zoneList.filter((z) => z !== 'ALL').map((z) => {
       const machCountInZone = Array.isArray(machines)
-        ? machines.filter((m) => (m.id_zone || m.zone) === z).length
+        ? machines.filter((m) => (m.id_zone_default || m.id_zone || m.zone) === z).length
         : 0;
       return {
         value: z,
@@ -331,8 +333,8 @@ export default function TabMainView({
     ...machineList.filter((m) => m !== 'ALL').map((mId) => {
       const masterMachine = machineMap.get(mId);
       const relatedTask = taskMachineMap.get(mId);
-      const machineName = masterMachine?.nom_machine || masterMachine?.nom || relatedTask?.nom_machine || '';
-      const zoneName = masterMachine?.id_zone || masterMachine?.zone || relatedTask?.id_zone;
+      const machineName = masterMachine?.designation || masterMachine?.nom_machine || masterMachine?.nom || relatedTask?.nom_machine || '';
+      const zoneName = masterMachine?.id_zone_default || masterMachine?.id_zone || masterMachine?.zone || relatedTask?.id_zone;
       const familyName = masterMachine?.id_family || masterMachine?.family;
       return {
         value: mId,

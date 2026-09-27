@@ -17,6 +17,8 @@ export default function CatalogueDonneesView({
   travauxAFaire = [],
   actionsByPanne = {},
   intervenants = [],
+  technicians = [],
+  interventions = [],
   onAddDemandeWithPreset,
   onForceSyncSeed,
   onAddActionForPanne,
@@ -25,6 +27,34 @@ export default function CatalogueDonneesView({
 }) {
   const [activeSubTab, setActiveSubTab] = useState('pannes'); // 'pannes', 'travaux', 'actions', 'intervenants'
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Dynamic Relational Formula:
+  // Intervenants = FILTER(Utilisateurs/Technicians)
+  // TotalInterventions = COUNTIFS(Interventions, intervenant === tech.nom)
+  const resolvedIntervenants = useMemo(() => {
+    const baseList = Array.isArray(technicians) && technicians.length > 0 
+      ? technicians 
+      : (Array.isArray(intervenants) && intervenants.length > 0 ? intervenants : []);
+
+    return baseList.map((tech) => {
+      const techName = String(tech.nom || tech.name || '').trim().toLowerCase();
+      const count = (interventions || []).filter((bt) => {
+        const btTech = String(bt.intervenant || '').trim().toLowerCase();
+        return btTech && (btTech === techName || btTech.includes(techName) || techName.includes(btTech));
+      }).length;
+
+      return {
+        id: tech.id_technician || tech.id || `TECH-${tech.nom}`,
+        id_technician: tech.id_technician || tech.id || `TECH-${tech.nom}`,
+        nom: tech.nom || tech.name || 'Technicien',
+        name: tech.nom || tech.name || 'Technicien',
+        id_zone: tech.id_zone || 'Toutes zones',
+        specialite: tech.specialite || 'Maintenance & Dépannage',
+        role: tech.role || 'Technicien Correctif',
+        total: count,
+      };
+    });
+  }, [technicians, intervenants, interventions]);
 
   // Counts for tabs & badges
   const totalPannesCount = useMemo(() => {
@@ -37,7 +67,7 @@ export default function CatalogueDonneesView({
 
   const totalTravauxCount = (travauxAFaire || []).length || 114;
   const totalActionsKeysCount = Object.keys(actionsByPanne || {}).length || 71;
-  const totalIntervenantsCount = (intervenants || []).length || 5;
+  const totalIntervenantsCount = resolvedIntervenants.length || 5;
 
   const handleForceSync = () => {
     setIsSyncing(true);
@@ -87,10 +117,14 @@ export default function CatalogueDonneesView({
       const wsTravaux = XLSX.utils.json_to_sheet(travauxData);
       XLSX.utils.book_append_sheet(wb, wsTravaux, 'Travaux_Standard');
 
-      // Sheet 3: Intervenants
-      const techData = (intervenants || []).map((i) => ({
-        Nom: i.nom || i.name || '',
-        Nombre_Interventions: i.total || 0,
+      // Sheet 3: Intervenants (Calculés dynamiquement depuis Utilisateurs & BTs)
+      const techData = (resolvedIntervenants || []).map((i) => ({
+        ID_Technicien: i.id_technician || i.id || '',
+        Nom_Prenom: i.nom || i.name || '',
+        Zone_Atelier: i.id_zone || '',
+        Specialite: i.specialite || '',
+        Nombre_Interventions_BT: i.total || 0,
+        Statut: 'Habilité GMAO',
       }));
       const wsTech = XLSX.utils.json_to_sheet(techData);
       XLSX.utils.book_append_sheet(wb, wsTech, 'Équipe_Intervenants');
@@ -246,7 +280,9 @@ export default function CatalogueDonneesView({
         panneCategories={panneCategories}
         travauxAFaire={travauxAFaire}
         actionsByPanne={actionsByPanne}
-        intervenants={intervenants}
+        intervenants={resolvedIntervenants}
+        technicians={technicians}
+        interventions={interventions}
         onAddDemandeWithPreset={onAddDemandeWithPreset}
         onForceSyncSeed={onForceSyncSeed}
         onAddActionForPanne={onAddActionForPanne}

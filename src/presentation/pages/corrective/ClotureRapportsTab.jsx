@@ -26,6 +26,8 @@ import * as XLSX from 'xlsx';
 
 export default function ClotureRapportsTab({
   interventions = [],
+  machines: registeredMachines = [],
+  stockItems = [],
   onUpdateIntervention: _onUpdateIntervention,
   showToast,
 }) {
@@ -42,14 +44,37 @@ export default function ClotureRapportsTab({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
+  // O(1) Relational Lookup Maps
+  const stockMap = useMemo(() => {
+    const map = new Map();
+    (stockItems || []).forEach((s) => {
+      const ref = s.ref || s.code_article;
+      if (ref) map.set(String(ref).trim().toUpperCase(), s);
+    });
+    return map;
+  }, [stockItems]);
+
+  const machineMap = useMemo(() => {
+    const map = new Map();
+    (registeredMachines || []).forEach((m) => {
+      const id = m.id_machine_registered || m.id;
+      if (id) map.set(String(id).trim().toUpperCase(), m);
+    });
+    return map;
+  }, [registeredMachines]);
+
   // Machine options
   const machines = useMemo(() => {
     const set = new Set();
+    (registeredMachines || []).forEach((m) => {
+      const id = m.id_machine_registered || m.id;
+      if (id) set.add(id);
+    });
     interventions.forEach((item) => {
       if (item.code_machine) set.add(item.code_machine);
     });
-    return Array.from(set).sort();
-  }, [interventions]);
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [interventions, registeredMachines]);
 
   // Tech options
   const techs = useMemo(() => {
@@ -806,59 +831,94 @@ export default function ClotureRapportsTab({
             </div>
 
             <div className="p-6 space-y-4 overflow-y-auto text-xs text-slate-700">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Machine</span>
-                  <span className="font-mono font-bold text-slate-900 text-sm">{previewItem.code_machine}</span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Intervenant</span>
-                  <span className="font-bold text-slate-900">{previewItem.intervenant || 'm_hammed'}</span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Temps Ouvré</span>
-                  <span className="font-mono font-bold text-emerald-700 text-sm">
-                    {previewItem.temps_intervention_calc || previewItem.temps_intervention || '00:45'}
-                  </span>
-                </div>
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Arrêt Machine</span>
-                  <span className="font-bold text-purple-700">
-                    {previewItem.arret_machine ? 'OUI (Arrêt usine)' : 'NON'}
-                  </span>
-                </div>
-              </div>
+              {(() => {
+                const targetMach = machineMap.get(String(previewItem.code_machine || '').trim().toUpperCase());
+                const machDesignation = targetMach?.designation || previewItem.code_machine;
+                const machZone = targetMach?.id_zone_default || targetMach?.id_zone || 'Atelier';
 
-              <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-2">
-                <span className="text-[10.5px] font-extrabold text-amber-950 uppercase tracking-wider block">
-                  Diagnostic Panne & Anomalie Constatée
-                </span>
-                <div className="font-medium text-slate-900">
-                  <b>Type {previewItem.type_panne || 'M'} :</b> {previewItem.anomalie || 'court_circuit'}
-                </div>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  <b>Travail Réalisé :</b> {previewItem.action_realisee || previewItem.travail_a_faire || 'Intervention standard'}
-                </p>
-              </div>
+                const pdrRefKey = String(previewItem.pdr_ref || previewItem.pdr || '').trim().toUpperCase();
+                const stockItem = pdrRefKey ? stockMap.get(pdrRefKey) : null;
+                const pdrDesignation = stockItem?.designation || stockItem?.nom || previewItem.pdr_designation || previewItem.pdr || 'Aucune PDR utilisée';
+                const stockDispo = stockItem ? (stockItem.stockActuel ?? stockItem.stock_actuel ?? stockItem.quantite ?? 0) : null;
 
-              <div className="p-4 rounded-2xl bg-cyan-50/60 border border-cyan-200/80 space-y-2">
-                <span className="text-[10.5px] font-extrabold text-cyan-950 uppercase tracking-wider block">
-                  Pièce de Rechange (PDR) Consommée
-                </span>
-                <div className="flex items-center justify-between text-xs">
-                  <span>
-                    <b>Désignation :</b> {previewItem.pdr || previewItem.pdr_ref || 'Aucune PDR utilisée'}
-                  </span>
-                  {previewItem.marque && (
-                    <span className="font-mono bg-white px-2 py-0.5 rounded border border-cyan-200 text-cyan-800">
-                      Marque: {previewItem.marque}
-                    </span>
-                  )}
-                </div>
-                <div className="text-[11px] text-slate-500">
-                  État de la pièce : <b>{previewItem.etat_piece || 'Neuve'}</b>
-                </div>
-              </div>
+                return (
+                  <>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Machine & Zone</span>
+                        <span className="font-mono font-bold text-slate-900 text-sm block">{previewItem.code_machine}</span>
+                        <span className="text-[11px] text-slate-500 font-medium truncate block">{machDesignation} · {machZone}</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Intervenant</span>
+                        <span className="font-bold text-slate-900 block">{previewItem.intervenant || 'Rachid'}</span>
+                        <span className="text-[11px] text-slate-500 font-medium">Technicien GMAO</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Temps Ouvré</span>
+                        <span className="font-mono font-bold text-emerald-700 text-sm block">
+                          {previewItem.temps_intervention_calc || previewItem.temps_intervention || '00:45'}
+                        </span>
+                        <span className="text-[11px] text-slate-400">Durée réelle</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Arrêt Machine</span>
+                        <span className="font-bold text-purple-700 block">
+                          {previewItem.arret_machine ? 'OUI (Arrêt usine)' : 'NON'}
+                        </span>
+                        <span className="text-[11px] text-slate-400">Impact ligne</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-2">
+                      <span className="text-[10.5px] font-extrabold text-amber-950 uppercase tracking-wider block">
+                        Diagnostic Panne & Anomalie Constatée
+                      </span>
+                      <div className="font-medium text-slate-900">
+                        <b>Type {previewItem.type_panne || 'M'} :</b> {previewItem.anomalie || 'court_circuit'}
+                      </div>
+                      <p className="text-[11px] text-slate-600 leading-relaxed">
+                        <b>Travail Réalisé :</b> {previewItem.action_realisee || previewItem.travail_a_faire || 'Intervention standard'}
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-cyan-50/60 border border-cyan-200/80 space-y-2">
+                      <span className="text-[10.5px] font-extrabold text-cyan-950 uppercase tracking-wider block">
+                        Pièce de Rechange (PDR) Consommée & Magasin
+                      </span>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                        <div>
+                          {previewItem.pdr_ref || previewItem.pdr ? (
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-cyan-950 bg-white px-2 py-0.5 rounded border border-cyan-300">
+                                {previewItem.pdr_ref || previewItem.pdr}
+                              </span>
+                              <span className="font-bold text-slate-900">
+                                {pdrDesignation}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-500 italic">Aucune PDR utilisée pour ce dépannage</span>
+                          )}
+                        </div>
+                        {previewItem.marque && (
+                          <span className="font-mono bg-white px-2 py-0.5 rounded border border-cyan-200 text-cyan-800 shrink-0">
+                            Marque: {previewItem.marque}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-cyan-100/60">
+                        <span>État de la pièce : <b>{previewItem.etat_piece || 'Neuve'}</b></span>
+                        {stockDispo !== null && (
+                          <span className="font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            Stock Actuel en Magasin: {stockDispo}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
             <div className="bg-slate-50 p-4 border-t border-slate-200 flex items-center justify-between">

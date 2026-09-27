@@ -47,6 +47,8 @@ export default function ReferentielPannesTravauxTab({
   travauxAFaire = [],
   actionsByPanne = {},
   intervenants = [],
+  technicians = [],
+  interventions = [],
   onAddDemandeWithPreset,
   onForceSyncSeed,
   onAddActionForPanne: _onAddActionForPanne,
@@ -65,6 +67,32 @@ export default function ReferentielPannesTravauxTab({
   const [expandedPanne, setExpandedPanne] = useState(null);
   const [copiedIndex, setCopiedIndex] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Dynamic Relational Formula for Intervenants (Utilisateurs SSOT)
+  const resolvedIntervenants = useMemo(() => {
+    const baseList = Array.isArray(technicians) && technicians.length > 0 
+      ? technicians 
+      : (Array.isArray(intervenants) && intervenants.length > 0 ? intervenants : []);
+
+    return baseList.map((tech) => {
+      const techName = String(tech.nom || tech.name || '').trim().toLowerCase();
+      const count = (interventions || []).filter((bt) => {
+        const btTech = String(bt.intervenant || '').trim().toLowerCase();
+        return btTech && (btTech === techName || btTech.includes(techName) || techName.includes(btTech));
+      }).length;
+
+      return {
+        id: tech.id_technician || tech.id || `TECH-${tech.nom}`,
+        id_technician: tech.id_technician || tech.id || `TECH-${tech.nom}`,
+        nom: tech.nom || tech.name || 'Technicien',
+        name: tech.nom || tech.name || 'Technicien',
+        id_zone: tech.id_zone || 'Toutes zones',
+        specialite: tech.specialite || 'Maintenance & Dépannage',
+        role: tech.role || 'Technicien Correctif',
+        total: tech.total !== undefined ? tech.total : count,
+      };
+    });
+  }, [technicians, intervenants, interventions]);
 
   // 1. Calculations & Counts
   const allCategories = useMemo(() => {
@@ -92,7 +120,7 @@ export default function ReferentielPannesTravauxTab({
   const totalPannesCount = flatPannes.length;
   const totalTravauxCount = (travauxAFaire || []).length;
   const totalActionsKeysCount = Object.keys(actionsByPanne || {}).length;
-  const totalIntervenantsCount = (intervenants || []).length;
+  const totalIntervenantsCount = resolvedIntervenants.length;
 
   // 2. Filtered Pannes
   const filteredPannes = useMemo(() => {
@@ -129,16 +157,18 @@ export default function ReferentielPannesTravauxTab({
     });
   }, [actionsByPanne, searchQuery]);
 
-  // 5. Filtered Intervenants
+  // 5. Filtered Intervenants (Excel Search on Name, Zone, Specialite, ID)
   const filteredIntervenants = useMemo(() => {
-    if (!Array.isArray(intervenants)) return [];
-    if (!searchQuery.trim()) return intervenants;
+    if (!searchQuery.trim()) return resolvedIntervenants;
     const q = searchQuery.toLowerCase();
-    return intervenants.filter((i) => {
+    return resolvedIntervenants.filter((i) => {
       const nom = String(i.nom || i.name || '').toLowerCase();
-      return nom.includes(q);
+      const spec = String(i.specialite || '').toLowerCase();
+      const zone = String(i.id_zone || '').toLowerCase();
+      const id = String(i.id_technician || i.id || '').toLowerCase();
+      return nom.includes(q) || spec.includes(q) || zone.includes(q) || id.includes(q);
     });
-  }, [intervenants, searchQuery]);
+  }, [resolvedIntervenants, searchQuery]);
 
   // Handlers
   const handleCopyText = (text, idx) => {
@@ -209,10 +239,13 @@ export default function ReferentielPannesTravauxTab({
       const wsActions = XLSX.utils.json_to_sheet(actionsData);
       XLSX.utils.book_append_sheet(wb, wsActions, 'Actions_Par_Panne');
 
-      // Sheet 4: Intervenants
-      const techData = (intervenants || []).map((i) => ({
+      // Sheet 4: Intervenants (Calculés dynamiquement depuis Utilisateurs SSOT)
+      const techData = (resolvedIntervenants || []).map((i) => ({
+        ID_Technicien: i.id_technician || i.id || '',
         Nom: i.nom || i.name || '',
-        Total_Interventions_Historique: i.total || 0,
+        Zone_Atelier: i.id_zone || '',
+        Specialite: i.specialite || '',
+        Total_Interventions_BT: i.total || 0,
       }));
       const wsTech = XLSX.utils.json_to_sheet(techData);
       XLSX.utils.book_append_sheet(wb, wsTech, 'Intervenants_Equipe');
@@ -558,6 +591,9 @@ export default function ReferentielPannesTravauxTab({
       {subTab === 'intervenants' && (
         <EquipeIntervenantsTab
           filteredIntervenants={filteredIntervenants}
+          totalIntervenantsCount={totalIntervenantsCount}
+          onAddDemandeWithPreset={onAddDemandeWithPreset}
+          setSearchQuery={setSearchQuery}
         />
       )}
     </div>

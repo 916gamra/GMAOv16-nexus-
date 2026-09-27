@@ -109,9 +109,32 @@ npx vitest run
 
 ---
 
-## ⚠️ 6. المحظورات الهندسية (Strict Anti-Patterns)
+## 🏛️ 7. الميثاق الهندسي لمحرك البيانات العلائقي (The Deterministic Relational Engine & 2-Tier Architecture)
 
-1. **إعادة إنشاء خادم خلفي دون طلب المستخدم:** التطبيق يعمل محلياً في المتصفح، لا تقم بإنشاء مسارات Express Backend إجبارية للمخزون أو المستخدمين.
-2. **إعادة تثبيت حزم C++ Native الممنوعة في المتصفح:** مثل `sharp` أو `better-sqlite3`.
-3. **تغيير أسماء أعمدة جداول Excel:** يمنع تعديل أسماء الحقول الأساسية (`ref`, `designation`, `stockInitial`, `quantite`, `code_bon`, `id_zone`, `id_machine_registered`) لأنها مرتبطة مباشرة بملف `GMAO_Light_Template_V2_Formules.xlsx`.
-4. **تجاوز معايير واجهة المستخدم:** ممنوع استخدام الألوان المتدرجة الفاقعة (Purple-to-Blue Gradients)، أو الأيقونات التعبيرية (Emojis) كأيقونات أساسية بدلاً من أيقونات Lucide SVG.
+### 1. فلسفة "الآلة الميكانيكية وشاشة الـ LCD" (Mechanical Engine + LCD Screen Philosophy):
+- التطبيق يُعامل كأنه مصنف إكسيل موحد في الذاكرة (**Unified In-Memory Excel Workbook**) ذو منطق علائقي حتمي وصارم.
+- شاشات وواجهات المستخدم (**UI Views**) هي مجرد **شاشات عرض رقمية (LCD Readouts)**:
+  - **يمنع قطعياً** أن تخترع الواجهة بيانات محلية مستقلة أو تنشئ مصفوفات خاصة بها معزولة عن باقي النظام (No Data Silos).
+  - جميع الأرقام والإحصائيات والعدادات تحسب ديناميكياً عبر معادلات إكسيل الصريحة (`SUMIFS`, `COUNTIFS`, `FILTER`, `VLOOKUP`).
+
+### 2. بنية المستويين لكل قسم (2-Tier Module Architecture):
+لكل مجموعة رئيسية في النظام مستويان متكاملان:
+1. **المستوى 1: الصفحات التشغيلية (المركز الأول - Transactional / Operational Data):**
+   - مثل: `Correctif Hub` (DI, BT, Chrono, Clôture), `Planning Préventif`, `Stock Articles & Sorties`, `Machines Registered`.
+   - **قاعدة ذهبية:** تخزن هذه الصفحات حصراً **المفاتيح المرجعية الخارجية (Foreign Keys)** مثل (`machine_id`, `panne_code`, `technicien_id`, `pdr_ref`)، ويمنع منعاً باتاً تخزين أسماء ونصوص حرة مكررة.
+2. **المستوى 2: الصفحات المرجعية (المركز الثاني / الكواليس - Master Data & Tools):**
+   - مثل: `Catalogue & Données GMAO` (كتالوج الـ 282 عطلاً، مهام الورشة الـ 114 القياسية، مصفوفات الحلول 71), `Ingénierie & Référentiel Préventif`, `Familles & Blueprints`.
+   - توفر هذه الشاشات الكتالوجات والقوالب الثابتة التي تغذي المستوى التشغيلي وتمنع التكرار البشري.
+
+### 3. شجرة النسب والاعتمادية بين البيانات (Strict Data Lineage):
+- `Zones` (المواقع والورشات) ──► تغذي `Machines Registered`.
+- `Machines Registered` ──► تغذي قطع الغيار (`PDR / Stock / Entrepôt`)، وجداول الصيانة الوقائية (`Preventive`)، والصيانة العلاجية (`Corrective`).
+- `Utilisateurs` (جدول المستخدمين) هو **المصدر الوحيد والحصري** لجميع العمال والتقنيين:
+  - تبويب الفنيين في الصيانة العلاجية (`Équipe Intervenants`) هو مجرد استعلام ديناميكي:
+    `Intervenants = FILTER(Utilisateurs, role === 'Technicien')`
+  - إجمالي تدخلات الفني يحسب بمعادلة إكسيل:
+    `TotalInterventions = COUNTIFS(BonsTravail, technicien_id === user.id)`
+
+### 4. تقسيم التخزين والحقن المباشر في ذاكرة الجهاز (Unified Local Storage Partitions):
+- **القسم الأول (Master Referential):** الكتالوجات المرجعية والآلات والتصنيفات والقوالب (تعديلاتها نادرة ومضبوطة).
+- **القسم الثاني (Operations History):** سجل العمليات اليومية وحركات الصرف والإدخال وبطاقات العمل (تنمو وتُسجل تراكمياً).
