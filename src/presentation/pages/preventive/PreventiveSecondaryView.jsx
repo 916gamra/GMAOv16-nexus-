@@ -34,6 +34,7 @@ export default function PreventiveSecondaryView({
   technicians = [],
   stockItems = [],
   warehouseItems = [],
+  blueprints = [],
   onNavigateToMainView,
   showToast,
   initialSubTab = 'BUILDER',
@@ -276,6 +277,9 @@ export default function PreventiveSecondaryView({
                   technicians={technicians}
                   guides={guides}
                   actions={actions}
+                  stockItems={stockItems}
+                  warehouseItems={warehouseItems}
+                  blueprints={blueprints}
                   onCreatePlanWithTasks={handleCreatePlanWithTasks}
                   onNavigateToMainView={onNavigateToMainView}
                 />

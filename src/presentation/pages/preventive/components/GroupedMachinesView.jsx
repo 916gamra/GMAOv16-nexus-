@@ -33,7 +33,7 @@ const ACTION_PILL_MAP = {
  */
 export default function GroupedMachinesView({
   tasks = [],
-  _machines = [],
+  machines = [],
   onOpenValidate = null,
   _onOpenCorrective = null,
   onOpenPrint = null,
@@ -46,17 +46,32 @@ export default function GroupedMachinesView({
   const [pageSize, setPageSize] = useState(12);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Group filtered tasks by machine
+  // Machine lookup map for Strict Relational Engine (Single Source of Truth)
+  const machineMap = useMemo(() => {
+    const map = new Map();
+    (machines || []).forEach((m) => {
+      const code = String(m.code_machine || m.id_machine_registered || m.id || '').trim().toUpperCase();
+      if (code) map.set(code, m);
+    });
+    return map;
+  }, [machines]);
+
+  // Group filtered tasks by machine with dynamic relational resolution
   const groupedData = useMemo(() => {
     const groups = {};
 
     tasks.forEach((task) => {
       const mId = task.id_machine || 'AUTRE';
       if (!groups[mId]) {
+        const registeredMach = machineMap.get(String(mId).trim().toUpperCase());
+        const resolvedName = registeredMach?.nom || registeredMach?.designation || task.nom_machine || mId;
+        const resolvedZone = registeredMach?.id_zone || registeredMach?.zone || task.id_zone || task.zone || 'Non définie';
+
         groups[mId] = {
           id_machine: mId,
-          nom_machine: task.nom_machine || mId,
-          zone: task.id_zone || task.zone || 'Non définie',
+          nom_machine: resolvedName,
+          zone: resolvedZone,
+          machineEntity: registeredMach,
           tasks: [],
           totalEstimatedMinutes: 0,
           totalCost: 0,

@@ -37,6 +37,7 @@ const STATUT_BADGES = {
  */
 export default function MatrixWeeksView({
   tasks = [],
+  machines = [],
   weekRange = 'ALL',
   onWeekRangeChange = () => {},
   currentWeekNumber = 1,
@@ -51,6 +52,16 @@ export default function MatrixWeeksView({
   const [expandedMachines, setExpandedMachines] = useState(() => new Set());
   const matrixScrollContainerRef = useRef(null);
 
+  // Machine lookup map for Strict Relational Engine (Single Source of Truth)
+  const machineMap = useMemo(() => {
+    const map = new Map();
+    (machines || []).forEach((m) => {
+      const code = String(m.code_machine || m.id_machine_registered || m.id || '').trim().toUpperCase();
+      if (code) map.set(code, m);
+    });
+    return map;
+  }, [machines]);
+
   // Weeks list based on current week range selection
   const matrixWeeks = useMemo(() => {
     if (weekRange === 'S1-S16') return Array.from({ length: 16 }, (_, i) => `S${i + 1}`);
@@ -59,18 +70,23 @@ export default function MatrixWeeksView({
     return Array.from({ length: 52 }, (_, i) => `S${i + 1}`);
   }, [weekRange]);
 
-  // Group tasks by Machine
+  // Group tasks by Machine with dynamic relational resolution
   const machineGroups = useMemo(() => {
     const map = new Map();
 
     tasks.forEach((task) => {
       const machineKey = task.id_machine || task.nom_machine || 'AUTRE';
       if (!map.has(machineKey)) {
+        const registeredMach = machineMap.get(String(machineKey).trim().toUpperCase());
+        const resolvedName = registeredMach?.nom || registeredMach?.designation || task.nom_machine || machineKey;
+        const resolvedZone = registeredMach?.id_zone || registeredMach?.zone || task.id_zone || task.zone || '';
+
         map.set(machineKey, {
           id: machineKey,
           id_machine: task.id_machine || machineKey,
-          nom_machine: task.nom_machine || machineKey,
-          id_zone: task.id_zone || task.zone || '',
+          nom_machine: resolvedName,
+          id_zone: resolvedZone,
+          machineEntity: registeredMach,
           tasks: [],
         });
       }
@@ -87,7 +103,7 @@ export default function MatrixWeeksView({
     });
 
     return groups;
-  }, [tasks]);
+  }, [tasks, machineMap]);
 
   const toggleMachine = useCallback((machineId) => {
     setExpandedMachines((prev) => {

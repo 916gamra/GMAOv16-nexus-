@@ -22,6 +22,18 @@ export default function CatalogueDonneesView({
   onAddDemandeWithPreset,
   onForceSyncSeed,
   onAddActionForPanne,
+  onUpdateActionForPanne,
+  onDeleteActionForPanne,
+  onAddPanne,
+  onUpdatePanne,
+  onDeletePanne,
+  onAddTravail,
+  onUpdateTravail,
+  onDeleteTravail,
+  onAddTechnician,
+  onUpdateTechnician,
+  onDeleteTechnician,
+  zones = [],
   showToast,
   onNavigateToTab,
 }) {
@@ -286,6 +298,18 @@ export default function CatalogueDonneesView({
         onAddDemandeWithPreset={onAddDemandeWithPreset}
         onForceSyncSeed={onForceSyncSeed}
         onAddActionForPanne={onAddActionForPanne}
+        onUpdateActionForPanne={onUpdateActionForPanne}
+        onDeleteActionForPanne={onDeleteActionForPanne}
+        onAddPanne={onAddPanne}
+        onUpdatePanne={onUpdatePanne}
+        onDeletePanne={onDeletePanne}
+        onAddTravail={onAddTravail}
+        onUpdateTravail={onUpdateTravail}
+        onDeleteTravail={onDeleteTravail}
+        onAddTechnician={onAddTechnician}
+        onUpdateTechnician={onUpdateTechnician}
+        onDeleteTechnician={onDeleteTechnician}
+        zones={zones}
         showToast={showToast}
       />
     </div>

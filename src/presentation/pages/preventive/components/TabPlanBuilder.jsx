@@ -20,6 +20,9 @@ export default function TabPlanBuilder({
   technicians = [],
   guides = [],
   actions = [],
+  stockItems = [],
+  warehouseItems = [],
+  blueprints = [],
   onCreatePlanWithTasks,
   onNavigateToMainView,
 }) {
@@ -60,6 +63,79 @@ export default function TabPlanBuilder({
   const [componentPickerOpen, setComponentPickerOpen] = useState(false);
   const [customComponentName, setCustomComponentName] = useState('');
 
+  // 1. Strict Relational Lineage: Machine Components from Entrepôt & Blueprints
+  const machineComponents = useMemo(() => {
+    if (!selectedMachineId) return [];
+    const mach = machines.find((m) => m.id_machine_registered === selectedMachineId || m.code_machine === selectedMachineId || m.id === selectedMachineId);
+    if (!mach) return [];
+
+    const compMap = new Map();
+
+    // 1a. Components already registered directly on the machine entity
+    const realComps = mach.components_reels || mach.components_theoriques || [];
+    realComps.forEach((c) => {
+      const name = c.nom || c.id_component || c.type || c.designation;
+      if (name) compMap.set(String(name).toLowerCase(), { nom: name, source: 'Machine Réelle', icon: 'wrench' });
+    });
+
+    // 1b. Components in warehouseItems linked to this machine
+    (warehouseItems || []).forEach((w) => {
+      const isTarget =
+        w.id_machine_registered === mach.id_machine_registered ||
+        w.code_machine === mach.code_machine ||
+        w.machine === mach.code_machine ||
+        w.id_machine === mach.id_machine_registered;
+      if (isTarget && w.designation) {
+        compMap.set(String(w.designation).toLowerCase(), {
+          nom: w.designation,
+          ref: w.ref,
+          source: 'Entrepôt Composant',
+          icon: 'package',
+        });
+      }
+    });
+
+    // 1c. Components from Blueprints matching machine template
+    const templateId = mach.id_machine_template || mach.template || mach.id_template;
+    if (templateId) {
+      (blueprints || []).forEach((bp) => {
+        if (bp.id_machine_template === templateId || bp.template === templateId) {
+          const bpName = bp.nom_organe || bp.composant || bp.designation;
+          if (bpName) {
+            compMap.set(String(bpName).toLowerCase(), {
+              nom: bpName,
+              ref: bp.ref,
+              source: 'Blueprint Modèle',
+              icon: 'blueprint',
+            });
+          }
+        }
+      });
+    }
+
+    return Array.from(compMap.values());
+  }, [selectedMachineId, machines, warehouseItems, blueprints]);
+
+  // 2. Strict Relational Lineage: Available PDR parts from Magasin Stock
+  const availablePdrList = useMemo(() => {
+    const list = [];
+    const seen = new Set();
+    (stockItems || []).forEach((item) => {
+      const ref = String(item.ref || item.reference || item.code || '').trim();
+      if (ref && !seen.has(ref.toLowerCase())) {
+        seen.add(ref.toLowerCase());
+        list.push({
+          ref,
+          designation: item.designation || ref,
+          stockActuel: Number(item.stockActuel ?? item.stock_actuel ?? 0),
+          seuil: Number(item.seuil ?? 2),
+          unite: item.unit || item.unite || 'pcs',
+        });
+      }
+    });
+    return list;
+  }, [stockItems]);
+
   const handleReset = () => {
     setSelectedMachineId('');
     setTargetZone('');
@@ -82,12 +158,12 @@ export default function TabPlanBuilder({
 
     const mach = machines.find((m) => m.id_machine_registered === selectedMachineId || m.code_machine === selectedMachineId || m.id === selectedMachineId);
     
-    // 1. Auto-discover Zone
-    const autoZone = mach?.id_zone || mach?.zone || (zones[0]?.id_zone || 'AFM');
+    // 1. Auto-discover Zone from machine or zones table
+    const autoZone = mach?.id_zone || mach?.zone || (zones[0]?.id_zone || zones[0]?.nom || 'AFM');
     setTargetZone(autoZone);
 
-    // 2. Auto-discover Technician assigned to this zone or machine
-    const autoTech = mach?.technicien_responsable || mach?.technicien || (technicians[0]?.nom || 'Rachid');
+    // 2. Auto-discover Technician assigned to this machine or technicians table (SSOT Utilisateurs)
+    const autoTech = mach?.technicien_responsable || mach?.technicien || (technicians[0]?.nom || technicians[0]?.name || 'Technicien');
     setTargetTechnician(autoTech);
 
     // 3. Auto-generate Reference
@@ -95,16 +171,14 @@ export default function TabPlanBuilder({
     setPlanReference(`Plan-2025-${autoZone}-${cleanId}-${startWeek}`);
     setPlanDescription(`Plan de maintenance préventive structuré pour ${mach?.nom || selectedMachineId}`);
 
-    // 4. Initial default task suggestions from Guide or machine components
+    // 4. Initial default task suggestions from real machine components or guides
     const initialTasks = [];
 
-    // Check if machine already has components
-    const existingComps = mach?.components_reels || mach?.components_theoriques || [];
-    const compsToAdd = existingComps.length > 0 
-      ? existingComps.map(c => c.nom || c.id_component || c.type)
+    const compsToAdd = machineComponents.length > 0 
+      ? machineComponents.map(c => c.nom)
       : ['Roulement', 'Courroie', 'Niveau d\'huile', 'Glissière', 'Armoire électrique'];
 
-    compsToAdd.forEach((compName) => {
+    compsToAdd.slice(0, 6).forEach((compName) => {
       const guideObj = guides.find((g) => g.composant_nom.toLowerCase() === String(compName).toLowerCase()) 
         || guides.find((g) => String(compName).toLowerCase().includes(g.composant_nom.toLowerCase()));
 
@@ -123,12 +197,13 @@ export default function TabPlanBuilder({
           duree_estimee: fiche.duree || actObj?.duree_standard || '10 min',
           consigne: fiche.description || actObj?.description || `Effectuer ${actObj?.libelle || actCode} sur ${compName}`,
           is_global_machine: false,
+          pdr_ref: '',
         });
       });
     });
 
     setTaskList(initialTasks);
-  }, [selectedMachineId, machines, zones, technicians, guides, actions, startWeek]);
+  }, [selectedMachineId, machines, zones, technicians, guides, actions, startWeek, machineComponents]);
 
   // Handle adding a component with its guide actions
   const handleAddComponentWithGuide = (compName) => {
@@ -461,24 +536,42 @@ export default function TabPlanBuilder({
                 <label className="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                   Zone Usine (Auto)
                 </label>
-                <input
-                  type="text"
-                  readOnly
-                  value={targetZone || 'Auto-détecté'}
-                  className="w-full px-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl font-bold text-slate-800 font-mono"
-                />
+                <select
+                  value={targetZone}
+                  onChange={(e) => setTargetZone(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 font-mono focus:bg-white focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                >
+                  <option value="">-- Sélectionner Zone --</option>
+                  {zones.map((z) => {
+                    const zName = z.id_zone || z.nom || z.code_zone || 'Zone';
+                    return (
+                      <option key={zName} value={zName}>
+                        {zName} {z.nom && z.nom !== zName ? `- ${z.nom}` : ''}
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
 
               <div>
                 <label className="block text-[10.5px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                   Technicien (Auto)
                 </label>
-                <input
-                  type="text"
-                  readOnly
-                  value={targetTechnician || 'Auto-assigné'}
-                  className="w-full px-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl font-bold text-slate-800 truncate"
-                />
+                <select
+                  value={targetTechnician}
+                  onChange={(e) => setTargetTechnician(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 truncate cursor-pointer"
+                >
+                  <option value="">-- Sélectionner Technicien --</option>
+                  {technicians.map((t) => {
+                    const tName = t.nom || t.name || 'Technicien';
+                    return (
+                      <option key={t.id_technician || t.id || tName} value={tName}>
+                        {tName} ({t.id_zone || t.zone || 'Usine'})
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
             </div>
 
@@ -572,22 +665,52 @@ export default function TabPlanBuilder({
                   </button>
 
                   {componentPickerOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 p-3.5 z-30 space-y-2">
-                      <p className="text-xs font-bold text-slate-800">Sélectionner un guide métier :</p>
-                      <div className="max-h-48 overflow-y-auto space-y-1">
-                        {guides.map((g) => (
-                          <button
-                            type="button"
-                            key={g.id}
-                            onClick={() => handleAddComponentWithGuide(g.composant_nom)}
-                            className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 flex items-center justify-between transition-colors cursor-pointer"
-                          >
-                            <span className="font-semibold">{g.composant_nom}</span>
-                            <span className="font-mono text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-bold">
-                              {(g.actions_liees || []).join('+')}
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 p-3.5 z-30 space-y-2.5 max-h-96 overflow-y-auto">
+                      {machineComponents.length > 0 && (
+                        <div>
+                          <p className="text-[11px] font-black text-indigo-900 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                            <span>Composants de la Machine</span>
+                            <span className="text-[10px] px-1.5 py-0.2 bg-indigo-50 rounded text-indigo-700 font-mono font-bold">
+                              Entrepôt / Blueprints
                             </span>
-                          </button>
-                        ))}
+                          </p>
+                          <div className="space-y-1 mb-2">
+                            {machineComponents.map((c, i) => (
+                              <button
+                                type="button"
+                                key={`mach-c-${i}`}
+                                onClick={() => handleAddComponentWithGuide(c.nom)}
+                                className="w-full text-left px-2.5 py-1.5 text-xs rounded-xl bg-indigo-50/60 hover:bg-indigo-100 text-indigo-950 font-bold flex items-center justify-between transition-colors cursor-pointer border border-indigo-200/60"
+                              >
+                                <span className="truncate">{c.nom}</span>
+                                <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-white text-indigo-700 font-mono">
+                                  {c.source}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <p className="text-[11px] font-black text-slate-800 uppercase tracking-wider mb-1.5">
+                          Guides Métier Standards :
+                        </p>
+                        <div className="max-h-36 overflow-y-auto space-y-1">
+                          {guides.map((g) => (
+                            <button
+                              type="button"
+                              key={g.id}
+                              onClick={() => handleAddComponentWithGuide(g.composant_nom)}
+                              className="w-full text-left px-2.5 py-1.5 text-xs rounded-lg hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 flex items-center justify-between transition-colors cursor-pointer"
+                            >
+                              <span className="font-semibold truncate">{g.composant_nom}</span>
+                              <span className="font-mono text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-bold shrink-0 ml-1">
+                                {(g.actions_liees || []).join('+')}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
                       <div className="pt-2 border-t border-slate-100 flex gap-2">
@@ -621,7 +744,7 @@ export default function TabPlanBuilder({
                   {taskList.map((task) => (
                     <div
                       key={task.id_temp}
-                      className="p-3 bg-slate-50 hover:bg-white border border-slate-200/90 hover:border-indigo-300 rounded-xl flex items-center justify-between gap-3 text-xs transition-all shadow-2xs"
+                      className="p-3 bg-slate-50 hover:bg-white border border-slate-200/90 hover:border-indigo-300 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition-all shadow-2xs"
                     >
                       <div className="flex items-center gap-2.5 flex-1 min-w-0">
                         <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-900 font-mono font-black flex items-center justify-center shrink-0 border border-indigo-200">
@@ -637,7 +760,26 @@ export default function TabPlanBuilder({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+                        {/* PDR Selector from Magasin Stock */}
+                        <select
+                          value={task.pdr_ref || ''}
+                          onChange={(e) => handleUpdateTaskField(task.id_temp, 'pdr_ref', e.target.value)}
+                          className={`px-2 py-1 text-[11px] rounded-lg border font-mono ${
+                            task.pdr_ref
+                              ? 'bg-amber-50 text-amber-900 border-amber-300 font-bold'
+                              : 'bg-white text-slate-500 border-slate-200'
+                          }`}
+                          title="Pièce de rechange requise (Stock PDR Magasin)"
+                        >
+                          <option value="">-- Sans PDR --</option>
+                          {availablePdrList.map((p) => (
+                            <option key={p.ref} value={p.ref}>
+                              {p.ref} ({p.stockActuel > 0 ? `Stock: ${p.stockActuel}` : 'Rupture'})
+                            </option>
+                          ))}
+                        </select>
+
                         {/* Action Code selector */}
                         <select
                           value={task.action_code}

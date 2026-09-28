@@ -68,26 +68,54 @@ export default function TabGuide({
   const [customPdrDesignation, setCustomPdrDesignation] = useState('');
 
   const allInventory = useMemo(() => {
-    return [...(stockItems || []), ...(warehouseItems || [])];
+    const list = [];
+    (stockItems || []).forEach((item) => {
+      const ref = String(item.ref || item.reference || item.code || '').trim();
+      if (ref) {
+        list.push({
+          id_article: `PDR-${ref}`,
+          ref,
+          reference: ref,
+          designation: item.designation || 'Pièce PDR',
+          stockActuel: Number(item.stockActuel ?? item.stock_actuel ?? 0),
+          seuil: Number(item.seuil ?? 2),
+          source: 'PDR Magasin',
+        });
+      }
+    });
+    (warehouseItems || []).forEach((item) => {
+      const ref = String(item.ref || item.reference || item.id_warehouse_item || '').trim();
+      if (ref) {
+        list.push({
+          id_article: `WH-${ref}`,
+          ref,
+          reference: ref,
+          designation: item.designation || 'Composant Entrepôt',
+          stockActuel: Number(item.stockActuel ?? item.stock_actuel ?? 0),
+          seuil: Number(item.seuil ?? 2),
+          source: 'Entrepôt',
+        });
+      }
+    });
+    return list;
   }, [stockItems, warehouseItems]);
 
-  const getPdrStockStatus = (pdrRef, pdrId) => {
+  const getPdrStockStatus = (pdrRef, _pdrId) => {
     const cleanRef = (pdrRef || '').trim().toLowerCase();
-    const cleanId = (pdrId || '').trim().toLowerCase();
-    const found = allInventory.find(
-      (item) =>
-        (item.reference && item.reference.toLowerCase() === cleanRef) ||
-        (item.code_article && item.code_article.toLowerCase() === cleanRef) ||
-        (item.id_article && item.id_article.toLowerCase() === cleanId) ||
-        (item.designation && item.designation.toLowerCase().includes(cleanRef))
-    );
+    if (!cleanRef) return { available: 0, status: 'UNKNOWN', label: 'Réf non spécifiée' };
+
+    const found = allInventory.find((item) => {
+      const itemRef = String(item.ref || '').toLowerCase();
+      const itemDesig = String(item.designation || '').toLowerCase();
+      return itemRef === cleanRef || itemRef.includes(cleanRef) || cleanRef.includes(itemRef) || itemDesig.includes(cleanRef);
+    });
 
     if (!found) {
-      return { available: 5, status: 'OK', label: 'En stock (Estimé)' };
+      return { available: 0, status: 'NOT_FOUND', label: 'Non répertorié au stock' };
     }
 
-    const qte = Number(found.quantite || found.stock_actuel || found.qte || 0);
-    const min = Number(found.stock_min || 2);
+    const qte = found.stockActuel;
+    const min = found.seuil || 2;
 
     if (qte <= 0) return { available: 0, status: 'OUT', label: 'Rupture (0)' };
     if (qte <= min) return { available: qte, status: 'LOW', label: `Stock Bas (${qte})` };
@@ -173,16 +201,16 @@ export default function TabGuide({
   const handleAddPdrToForm = () => {
     if (selectedPdrId) {
       const found = allInventory.find(
-        (i) => i.id_article === selectedPdrId || i.id === selectedPdrId || i.reference === selectedPdrId
+        (i) => i.ref === selectedPdrId || i.reference === selectedPdrId || i.id_article === selectedPdrId
       );
       if (found) {
         const newPdr = {
-          id_article: found.id_article || found.id || `PDR-${found.reference || 'STD'}`,
-          designation: found.designation || found.nom || 'Article Stock',
-          reference: found.reference || found.code_article || selectedPdrId,
+          id_article: found.id_article || `PDR-${found.ref || 'STD'}`,
+          designation: found.designation || 'Article Stock',
+          reference: found.ref || found.reference || selectedPdrId,
           quantite: 1,
-          unite: found.unite || 'Pièce',
-          prix_unitaire: Number(found.prix_unitaire || found.prix_achat || 0),
+          unite: 'Pièce',
+          prix_unitaire: Number(found.prix_unitaire || 0),
         };
         setFormData({
           ...formData,
@@ -586,12 +614,12 @@ export default function TabGuide({
                     <select
                       value={selectedPdrId}
                       onChange={(e) => setSelectedPdrId(e.target.value)}
-                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-800"
                     >
-                      <option value="">Sélectionner une pièce du catalogue stock...</option>
+                      <option value="">Sélectionner une pièce du catalogue stock (PDR / Entrepôt)...</option>
                       {allInventory.map((item, idx) => (
-                        <option key={idx} value={item.id_article || item.id || item.reference}>
-                          {item.reference || item.code_article} - {item.designation || item.nom}
+                        <option key={idx} value={item.ref}>
+                          [{item.source}] {item.ref} - {item.designation} (Stock: {item.stockActuel})
                         </option>
                       ))}
                     </select>

@@ -52,7 +52,19 @@ export default function ReferentielPannesTravauxTab({
   interventions = [],
   onAddDemandeWithPreset,
   onForceSyncSeed,
-  onAddActionForPanne: _onAddActionForPanne,
+  onAddActionForPanne,
+  onUpdateActionForPanne,
+  onDeleteActionForPanne,
+  onAddPanne,
+  onUpdatePanne,
+  onDeletePanne,
+  onAddTravail,
+  onUpdateTravail,
+  onDeleteTravail,
+  onAddTechnician,
+  onUpdateTechnician,
+  onDeleteTechnician,
+  zones = [],
   showToast,
 }) {
   const [internalSubTab, setInternalSubTab] = useState('pannes'); // 'pannes', 'travaux', 'actions', 'intervenants'
@@ -583,6 +595,10 @@ export default function ReferentielPannesTravauxTab({
           onAddDemandeWithPreset={onAddDemandeWithPreset}
           setSearchQuery={setSearchQuery}
           setSelectedCategory={setSelectedCategory}
+          onAddPanne={onAddPanne}
+          onUpdatePanne={onUpdatePanne}
+          onDeletePanne={onDeletePanne}
+          showToast={showToast}
         />
       )}
 
@@ -594,6 +610,10 @@ export default function ReferentielPannesTravauxTab({
           handleCopyText={handleCopyText}
           onAddDemandeWithPreset={onAddDemandeWithPreset}
           setSearchQuery={setSearchQuery}
+          onAddTravail={onAddTravail}
+          onUpdateTravail={onUpdateTravail}
+          onDeleteTravail={onDeleteTravail}
+          showToast={showToast}
         />
       )}
 
@@ -605,6 +625,11 @@ export default function ReferentielPannesTravauxTab({
           handleCopyText={handleCopyText}
           formatPanneName={formatPanneName}
           onAddDemandeWithPreset={onAddDemandeWithPreset}
+          onAddActionForPanne={onAddActionForPanne}
+          onUpdateActionForPanne={onUpdateActionForPanne}
+          onDeleteActionForPanne={onDeleteActionForPanne}
+          panneCategories={panneCategories}
+          showToast={showToast}
         />
       )}
 
@@ -614,6 +639,11 @@ export default function ReferentielPannesTravauxTab({
           totalIntervenantsCount={totalIntervenantsCount}
           onAddDemandeWithPreset={onAddDemandeWithPreset}
           setSearchQuery={setSearchQuery}
+          onAddTechnician={onAddTechnician}
+          onUpdateTechnician={onUpdateTechnician}
+          onDeleteTechnician={onDeleteTechnician}
+          zones={zones}
+          showToast={showToast}
         />
       )}
     </div>

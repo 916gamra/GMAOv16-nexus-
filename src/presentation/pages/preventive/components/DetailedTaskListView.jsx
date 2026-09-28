@@ -41,6 +41,7 @@ const STATUT_BADGES = {
  */
 export default function DetailedTaskListView({
   tasks = [],
+  machines = [],
   onOpenValidate = () => {},
   onOpenCorrective = () => {},
   onOpenPrint = () => {},
@@ -52,6 +53,16 @@ export default function DetailedTaskListView({
   const [currentPage, setCurrentPage] = useState(1);
   const [groupByMachine, setGroupByMachine] = useState(true);
   const [collapsedMachines, setCollapsedMachines] = useState({});
+
+  // Machine lookup map for Strict Relational Engine (Single Source of Truth)
+  const machineMap = useMemo(() => {
+    const map = new Map();
+    (machines || []).forEach((m) => {
+      const code = String(m.code_machine || m.id_machine_registered || m.id || '').trim().toUpperCase();
+      if (code) map.set(code, m);
+    });
+    return map;
+  }, [machines]);
 
   // 1. Sort tasks primarily by machine ID, then by component & action
   const sortedTasks = useMemo(() => {
@@ -86,7 +97,7 @@ export default function DetailedTaskListView({
     return sortedTasks.slice(startIndex, startIndex + effectivePageSize);
   }, [sortedTasks, pageSize, startIndex, effectivePageSize]);
 
-  // Group displayed tasks into consecutive machine sections
+  // Group displayed tasks into consecutive machine sections with dynamic relational lookup
   const machineGroups = useMemo(() => {
     const groups = [];
     let currentGroup = null;
@@ -94,10 +105,15 @@ export default function DetailedTaskListView({
     rawDisplayedTasks.forEach((task, index) => {
       const mId = task.id_machine || 'AUTRE';
       if (!currentGroup || currentGroup.id_machine !== mId) {
+        const registeredMach = machineMap.get(String(mId).trim().toUpperCase());
+        const resolvedName = registeredMach?.nom || registeredMach?.designation || task.nom_machine || mId;
+        const resolvedZone = registeredMach?.id_zone || registeredMach?.zone || task.id_zone || task.zone || 'Non définie';
+
         currentGroup = {
           id_machine: mId,
-          nom_machine: task.nom_machine || mId,
-          zone: task.id_zone || task.zone || 'Non définie',
+          nom_machine: resolvedName,
+          zone: resolvedZone,
+          machineEntity: registeredMach,
           tasks: [],
           startIndex: startIndex + index,
         };
@@ -107,7 +123,7 @@ export default function DetailedTaskListView({
     });
 
     return groups;
-  }, [rawDisplayedTasks, startIndex]);
+  }, [rawDisplayedTasks, startIndex, machineMap]);
 
   return (
     <div className="space-y-4 animate-view-transition">

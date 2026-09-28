@@ -68,32 +68,41 @@ export default function PreventiveView({
       PreventiveService.markTaskAsDone(id, validationData);
     }
 
+    const consumedPDR = (validationData?.usedPDR && validationData.usedPDR.length > 0)
+      ? validationData.usedPDR
+      : (Array.isArray(validationData?.pieces_utilisees) ? validationData.pieces_utilisees : []);
+
     // If PDR consumed, synchronize with stock
-    if (validationData?.pieces_utilisees?.length > 0 && onAddMouvement) {
-      validationData.pieces_utilisees.forEach((pdr) => {
+    if (consumedPDR.length > 0 && onAddMouvement) {
+      consumedPDR.forEach((pdr) => {
+        const pdrRef = pdr.reference || pdr.ref;
+        if (!pdrRef) return;
         onAddMouvement({
           code_bon: `BS-PRV-${Date.now().toString().slice(-4)}`,
-          num_commande: targetTask?.ref_plan || 'PREVENTIF',
-          date: validationData.date_execution || new Date().toISOString().split('T')[0],
+          num_commande: targetTask?.ref_plan || targetTask?.code || 'PREVENTIF',
+          date: validationData.date_realisation || validationData.date_execution || new Date().toISOString().split('T')[0],
           heure: '10:00',
-          ref: pdr.reference,
-          designation: pdr.designation,
+          ref: pdrRef,
+          designation: pdr.designation || 'Pièce consommée',
           quantite: Number(pdr.quantite || 1),
           unit: pdr.unite || 'pcs',
           type: 'Sortie Interne',
           action_id: 'PREVENTIVE',
           usage_type: 'technician',
           id_machine_registered: targetTask?.id_machine || '',
-          technicien: validationData.technicien_realisateur || targetTask?.id_technicien || '',
-          commentaire: `Consommation automatique sur maintenance préventive ${targetTask?.composant || ''}`,
+          technicien: validationData.technicien || validationData.technicien_realisateur || targetTask?.responsable || targetTask?.id_technicien || '',
+          commentaire: `Consommation automatique sur maintenance préventive ${targetTask?.composant || ''} (${targetTask?.id_machine || ''})`,
         });
       });
     }
 
     // Direct stock decrement if callback provided
-    if (validationData?.pieces_utilisees?.length > 0 && onDirectAdjustStock) {
-      validationData.pieces_utilisees.forEach((pdr) => {
-        onDirectAdjustStock(pdr.reference, -Number(pdr.quantite || 1));
+    if (consumedPDR.length > 0 && onDirectAdjustStock) {
+      consumedPDR.forEach((pdr) => {
+        const pdrRef = pdr.reference || pdr.ref;
+        if (pdrRef) {
+          onDirectAdjustStock(pdrRef, -Number(pdr.quantite || 1));
+        }
       });
     }
 

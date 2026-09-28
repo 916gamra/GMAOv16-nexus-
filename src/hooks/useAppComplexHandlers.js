@@ -45,7 +45,16 @@ export function useAppComplexHandlers({
       );
     }
   };
-  const handleDeleteZone = (id) => setZones((prev) => prev.filter((z) => z.id_zone !== id));
+  const handleDeleteZone = (id) => {
+    const hasMachines = (_machines || []).some((m) => m.id_zone_default === id || m.id_zone === id);
+    const hasTechs = (technicians || []).some((t) => t.id_zone === id);
+    if (hasMachines || hasTechs) {
+      showToast?.(`Zone ${id} contient des machines ou techniciens actifs. Supprimez ou réaffectez-les d'abord.`, 'warning');
+      return;
+    }
+    setZones((prev) => prev.filter((z) => z.id_zone !== id));
+    showToast?.(`Zone ${id} supprimée.`, 'info');
+  };
 
   const handleUpdateOperation = (id, updatedOp) => {
     setOperations((prev) => prev.map((o) => (o.id_operation === id ? updatedOp : o)));
@@ -71,8 +80,23 @@ export function useAppComplexHandlers({
       );
     }
   };
-  const handleDeleteMachine = (id) =>
-    setMachines((prev) => prev.filter((m) => m.id_machine_registered !== id));
+  const handleDeleteMachine = (id) => {
+    const hasMovements = (mouvements || []).some((m) => m.id_machine_registered === id || m.machine === id);
+    if (hasMovements) {
+      // Soft Delete to safeguard historical MTBF, MTTR, and audit ledgers
+      setMachines((prev) =>
+        prev.map((m) =>
+          m.id_machine_registered === id
+            ? { ...m, status: 'ARCHIVEE', is_active: false, actif: false, date_archivage: new Date().toISOString() }
+            : m
+        )
+      );
+      showToast?.(`Machine ${id} archivée (désactivée) afin de préserver l'historique et les calculs MTTR/MTBF.`, 'info');
+    } else {
+      setMachines((prev) => prev.filter((m) => m.id_machine_registered !== id));
+      showToast?.(`Machine ${id} supprimée définitivement.`, 'success');
+    }
+  };
 
   const handleUpdateType = (id, updatedType) => {
     setTypes((prev) => prev.map((t) => (t.id_type === id ? updatedType : t)));
@@ -257,7 +281,27 @@ export function useAppComplexHandlers({
   };
 
   const handleDeleteTechnician = (id) => {
-    setTechnicians((prev) => prev.filter((t) => t.id_technician !== id));
+    const targetTech = (technicians || []).find((t) => t.id_technician === id || t.id === id);
+    const techName = targetTech?.nom || targetTech?.name || id;
+
+    // Check if technician is linked to movements or machine responsibilities
+    const hasMovements = (mouvements || []).some((m) => m.technicien === techName || m.technicien === id);
+    const hasMachines = (_machines || []).some((m) => m.technician === techName);
+
+    if (hasMovements || hasMachines) {
+      // Soft Delete: Mark as inactive / archived to preserve integrity of Work Orders & KPIs
+      setTechnicians((prev) =>
+        prev.map((t) =>
+          t.id_technician === id || t.id === id
+            ? { ...t, is_active: false, actif: false, statut: 'ARCHIVE', date_archivage: new Date().toISOString() }
+            : t
+        )
+      );
+      showToast?.(`Technicien ${techName} archivé (désactivé) pour préserver l'historique et les KPI des interventions passées.`, 'info');
+    } else {
+      setTechnicians((prev) => prev.filter((t) => t.id_technician !== id && t.id !== id));
+      showToast?.(`Technicien ${techName} supprimé avec succès.`, 'success');
+    }
   };
 
   const handleAddOperation = (newOp) => {
@@ -314,6 +358,19 @@ export function useAppComplexHandlers({
     );
   };
   const handleDeleteArticle = async (id) => {
+    const hasMovements = (mouvements || []).some((m) => m.ref === id || m.code_article === id);
+    if (hasMovements) {
+      setRawStock((prev) =>
+        prev.map((a) =>
+          a.id === id || a.ref === id
+            ? { ...a, is_active: false, actif: false, statut: 'ARCHIVE', date_archivage: new Date().toISOString() }
+            : a
+        )
+      );
+      showToast?.(`Article ${id} archivé (désactivé) pour préserver l'historique des sorties et mouvements.`, 'info');
+      return;
+    }
+
     const service = new SparePartApplicationService();
     try {
       await service.deleteSparePart(id);
@@ -321,6 +378,7 @@ export function useAppComplexHandlers({
       Logger.warn('[useAppComplexHandlers] SparePart delete warning:', err);
     }
     setRawStock((prev) => prev.filter((a) => a.id !== id && a.ref !== id));
+    showToast?.(`Article ${id} supprimé définitivement.`, 'success');
   };
 
   const handleUpdateMouvement = async (id, updatedMvt) => {

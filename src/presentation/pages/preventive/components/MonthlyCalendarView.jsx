@@ -56,7 +56,7 @@ const ACTION_PILL_MAP = {
  */
 export default function MonthlyCalendarView({
   tasks = [],
-  _machines = [],
+  machines = [],
   onOpenValidate = () => {},
   onOpenCorrective = () => {},
   onOpenPrint = () => {},
@@ -70,6 +70,16 @@ export default function MonthlyCalendarView({
   const [searchTerm, setSearchTerm] = useState('');
   const [activeDayDetail, setActiveDayDetail] = useState(null); // { dateStr, dayNum, machines: [...] }
   const [expandedMachineInDrawer, setExpandedMachineInDrawer] = useState({});
+
+  // Machine lookup map for Strict Relational Engine (Single Source of Truth)
+  const masterMachineMap = useMemo(() => {
+    const map = new Map();
+    (machines || []).forEach((m) => {
+      const code = String(m.code_machine || m.id_machine_registered || m.id || '').trim().toUpperCase();
+      if (code) map.set(code, m);
+    });
+    return map;
+  }, [machines]);
 
   // Helper to get ISO week number from date
   const getISOWeek = (d) => {
@@ -886,6 +896,9 @@ export default function MonthlyCalendarView({
             {/* Modal Body: Grouped List by Machine */}
             <div className="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
               {activeDayDetail.machines.map((mach) => {
+                const targetMachObj = masterMachineMap.get(mach.id_machine);
+                const displayNom = mach.nom_machine || targetMachObj?.designation || targetMachObj?.nom || '';
+                const displayZone = mach.zone || targetMachObj?.id_zone_default || targetMachObj?.id_zone || '';
                 const isExpanded = expandedMachineInDrawer[mach.id_machine] !== false; // expanded by default
                 const machDoneCount = mach.tasks.filter((t) => t.etat === 'Fait').length;
 
@@ -908,12 +921,14 @@ export default function MonthlyCalendarView({
                             <span className="font-mono font-black text-slate-900 text-sm">
                               {mach.id_machine}
                             </span>
-                            <span className="text-xs font-semibold text-slate-600">
-                              - {mach.nom_machine}
-                            </span>
-                            {mach.zone && (
+                            {displayNom && (
+                              <span className="text-xs font-semibold text-slate-600">
+                                - {displayNom}
+                              </span>
+                            )}
+                            {displayZone && (
                               <span className="px-2 py-0.2 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
-                                {mach.zone}
+                                {displayZone}
                               </span>
                             )}
                           </div>

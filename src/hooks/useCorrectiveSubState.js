@@ -18,49 +18,7 @@ const STORAGE_KEY_TRAVAUX = 'gmao_corrective_travaux_v4';
 const STORAGE_KEY_INTERVENANTS = 'gmao_corrective_intervenants_v4';
 const STORAGE_KEY_CORRECTIVE_INIT = 'gmao_corrective_initialized_v800';
 
-// Helper to deep-merge dictionaries while guaranteeing baseline seed presence
-function mergeDictsWithBaseline(saved, baseline) {
-  if (!saved || typeof saved !== 'object') return { ...(baseline || {}) };
-  if (!baseline || typeof baseline !== 'object') return { ...saved };
-  const merged = { ...baseline };
-  for (const [key, val] of Object.entries(saved)) {
-    if (!merged[key]) {
-      merged[key] = val;
-    } else if (Array.isArray(val) && Array.isArray(merged[key])) {
-      const set = new Set(merged[key]);
-      val.forEach((item) => set.add(item));
-      merged[key] = Array.from(set);
-    }
-  }
-  return merged;
-}
-
-// Helper to merge string arrays while guaranteeing baseline seed presence
-function mergeArraysWithBaseline(saved, baseline, keyField = null) {
-  if (!Array.isArray(saved) || saved.length === 0) return [...(baseline || [])];
-  if (!Array.isArray(baseline) || baseline.length === 0) return [...saved];
-  if (!keyField) {
-    const set = new Set(baseline);
-    saved.forEach((item) => {
-      if (item && typeof item === 'string') set.add(item.trim());
-    });
-    return Array.from(set);
-  }
-  const map = new Map();
-  baseline.forEach((item) => {
-    const k = String(item[keyField] || JSON.stringify(item)).toLowerCase();
-    map.set(k, item);
-  });
-  saved.forEach((item) => {
-    const k = String(item[keyField] || JSON.stringify(item)).toLowerCase();
-    if (!map.has(k)) {
-      map.set(k, item);
-    }
-  });
-  return Array.from(map.values());
-}
-
-// Robust resolver that guarantees the 800 factory interventions are loaded and not superseded by legacy 23 items
+// Helper to resolve initial interventions
 function resolveInitialInterventions(saved, baseline) {
   if (!Array.isArray(saved) || saved.length === 0) {
     return baseline;
@@ -137,9 +95,11 @@ export function useCorrectiveSubState(groupedState = {}) {
         groupedState.correctiveActionsByPanne ||
         storageService.getItem(STORAGE_KEY_ACTIONS_BY_PANNE) ||
         storageService.getItem('gmao_corrective_actions_by_panne_v2');
-      return saved && typeof saved === 'object' && Object.keys(saved).length > 0
-        ? mergeDictsWithBaseline(saved, initialActionsByPanne)
-        : initialActionsByPanne;
+      if (saved && typeof saved === 'object' && Object.keys(saved).length > 0) {
+        return saved;
+      }
+      storageService.setItem(STORAGE_KEY_ACTIONS_BY_PANNE, initialActionsByPanne);
+      return initialActionsByPanne;
     } catch {
       return initialActionsByPanne;
     }
@@ -152,9 +112,11 @@ export function useCorrectiveSubState(groupedState = {}) {
         groupedState.correctivePanneCategories ||
         storageService.getItem(STORAGE_KEY_PANNE_CATEGORIES) ||
         storageService.getItem('gmao_corrective_panne_categories_v1');
-      return saved && typeof saved === 'object' && Object.keys(saved).length > 0
-        ? mergeDictsWithBaseline(saved, initialPanneCategories)
-        : initialPanneCategories;
+      if (saved && typeof saved === 'object' && Object.keys(saved).length > 0) {
+        return saved;
+      }
+      storageService.setItem(STORAGE_KEY_PANNE_CATEGORIES, initialPanneCategories);
+      return initialPanneCategories;
     } catch {
       return initialPanneCategories;
     }
@@ -167,9 +129,11 @@ export function useCorrectiveSubState(groupedState = {}) {
         groupedState.correctiveTravauxAFaire ||
         storageService.getItem(STORAGE_KEY_TRAVAUX) ||
         storageService.getItem('gmao_corrective_travaux_v1');
-      return Array.isArray(saved) && saved.length > 0
-        ? mergeArraysWithBaseline(saved, initialTravauxAFaire)
-        : initialTravauxAFaire;
+      if (Array.isArray(saved) && saved.length > 0) {
+        return saved;
+      }
+      storageService.setItem(STORAGE_KEY_TRAVAUX, initialTravauxAFaire);
+      return initialTravauxAFaire;
     } catch {
       return initialTravauxAFaire;
     }
@@ -182,9 +146,11 @@ export function useCorrectiveSubState(groupedState = {}) {
         groupedState.correctiveIntervenants ||
         storageService.getItem(STORAGE_KEY_INTERVENANTS) ||
         storageService.getItem('gmao_corrective_intervenants_v1');
-      return Array.isArray(saved) && saved.length > 0
-        ? mergeArraysWithBaseline(saved, initialIntervenants, 'nom')
-        : initialIntervenants;
+      if (Array.isArray(saved) && saved.length > 0) {
+        return saved;
+      }
+      storageService.setItem(STORAGE_KEY_INTERVENANTS, initialIntervenants);
+      return initialIntervenants;
     } catch {
       return initialIntervenants;
     }
@@ -198,7 +164,7 @@ export function useCorrectiveSubState(groupedState = {}) {
     }
   });
 
-  // Initial Bootstrap: Load baseline corrective data on first run or if stale
+  // Initial Bootstrap: Only seed once on initial install without overwriting subsequent user edits
   useEffect(() => {
     const isAlreadyInitialized = storageService.getItem(STORAGE_KEY_CORRECTIVE_INIT);
     const existingInStorage = storageService.getItem(STORAGE_KEY);
@@ -220,41 +186,31 @@ export function useCorrectiveSubState(groupedState = {}) {
       });
     }
 
-    loadBaselineCorrectiveData().then((baseline) => {
-      if (!baseline) return;
+    // Only load baseline dictionaries if completely missing from storage
+    const hasPanneCats = storageService.getItem(STORAGE_KEY_PANNE_CATEGORIES);
+    const hasActions = storageService.getItem(STORAGE_KEY_ACTIONS_BY_PANNE);
+    const hasTravaux = storageService.getItem(STORAGE_KEY_TRAVAUX);
 
-      if (baseline.actionsByPanne && Object.keys(baseline.actionsByPanne).length > 0) {
-        setActionsByPanne((prev) => {
-          const merged = mergeDictsWithBaseline(prev, baseline.actionsByPanne);
-          storageService.setItem(STORAGE_KEY_ACTIONS_BY_PANNE, merged);
-          return merged;
-        });
-      }
+    if (!hasPanneCats || !hasActions || !hasTravaux) {
+      loadBaselineCorrectiveData().then((baseline) => {
+        if (!baseline) return;
 
-      if (baseline.panneCategories && Object.keys(baseline.panneCategories).length > 0) {
-        setPanneCategories((prev) => {
-          const merged = mergeDictsWithBaseline(prev, baseline.panneCategories);
-          storageService.setItem(STORAGE_KEY_PANNE_CATEGORIES, merged);
-          return merged;
-        });
-      }
+        if (!hasActions && baseline.actionsByPanne && Object.keys(baseline.actionsByPanne).length > 0) {
+          setActionsByPanne(baseline.actionsByPanne);
+          storageService.setItem(STORAGE_KEY_ACTIONS_BY_PANNE, baseline.actionsByPanne);
+        }
 
-      if (baseline.travauxAFaire && baseline.travauxAFaire.length > 0) {
-        setTravauxAFaire((prev) => {
-          const merged = mergeArraysWithBaseline(prev, baseline.travauxAFaire);
-          storageService.setItem(STORAGE_KEY_TRAVAUX, merged);
-          return merged;
-        });
-      }
+        if (!hasPanneCats && baseline.panneCategories && Object.keys(baseline.panneCategories).length > 0) {
+          setPanneCategories(baseline.panneCategories);
+          storageService.setItem(STORAGE_KEY_PANNE_CATEGORIES, baseline.panneCategories);
+        }
 
-      if (baseline.intervenants && baseline.intervenants.length > 0) {
-        setIntervenants((prev) => {
-          const merged = mergeArraysWithBaseline(prev, baseline.intervenants, 'nom');
-          storageService.setItem(STORAGE_KEY_INTERVENANTS, merged);
-          return merged;
-        });
-      }
-    });
+        if (!hasTravaux && baseline.travauxAFaire && baseline.travauxAFaire.length > 0) {
+          setTravauxAFaire(baseline.travauxAFaire);
+          storageService.setItem(STORAGE_KEY_TRAVAUX, baseline.travauxAFaire);
+        }
+      });
+    }
   }, []);
 
   // Auto-persist dictionary state changes
@@ -341,6 +297,183 @@ export function useCorrectiveSubState(groupedState = {}) {
       };
       try {
         storageService.setItem(STORAGE_KEY_ACTIONS_BY_PANNE, updated);
+      } catch {}
+      return updated;
+    });
+  }, []);
+
+  // Update a specific action recommendation for a panne
+  const updateActionForPanne = useCallback((panneKey, actionIndex, newText) => {
+    if (!panneKey || actionIndex < 0 || !newText) return;
+    const cleanText = String(newText).trim();
+    if (!cleanText) return;
+
+    setActionsByPanne((prev) => {
+      const existing = prev[panneKey] || [];
+      if (actionIndex >= existing.length) return prev;
+      const updatedList = [...existing];
+      updatedList[actionIndex] = cleanText;
+      const updated = {
+        ...prev,
+        [panneKey]: updatedList,
+      };
+      try {
+        storageService.setItem(STORAGE_KEY_ACTIONS_BY_PANNE, updated);
+      } catch {}
+      return updated;
+    });
+  }, []);
+
+  // Delete a specific action recommendation for a panne
+  const deleteActionForPanne = useCallback((panneKey, actionIndex) => {
+    if (!panneKey || actionIndex < 0) return;
+
+    setActionsByPanne((prev) => {
+      const existing = prev[panneKey] || [];
+      if (actionIndex >= existing.length) return prev;
+      const updatedList = existing.filter((_, idx) => idx !== actionIndex);
+      const updated = { ...prev };
+      if (updatedList.length > 0) {
+        updated[panneKey] = updatedList;
+      } else {
+        delete updated[panneKey];
+      }
+      try {
+        storageService.setItem(STORAGE_KEY_ACTIONS_BY_PANNE, updated);
+      } catch {}
+      return updated;
+    });
+  }, []);
+
+  // Add a new panne to a category
+  const addPanne = useCallback((category, panneCode) => {
+    if (!category || !panneCode) return;
+    const cleanCat = String(category).trim().toUpperCase();
+    const cleanCode = String(panneCode).trim();
+    if (!cleanCode) return;
+
+    setPanneCategories((prev) => {
+      const existingList = prev[cleanCat] || [];
+      if (existingList.includes(cleanCode)) return prev;
+      const updated = {
+        ...prev,
+        [cleanCat]: [...existingList, cleanCode],
+      };
+      try {
+        storageService.setItem(STORAGE_KEY_PANNE_CATEGORIES, updated);
+      } catch {}
+      return updated;
+    });
+  }, []);
+
+  // Update an existing panne code
+  const updatePanne = useCallback((category, oldCode, newCode) => {
+    if (!category || !oldCode || !newCode) return;
+    const cleanCat = String(category).trim();
+    const cleanOld = String(oldCode).trim();
+    const cleanNew = String(newCode).trim();
+    if (!cleanNew || cleanOld === cleanNew) return;
+
+    setPanneCategories((prev) => {
+      const list = prev[cleanCat] || [];
+      const updatedList = list.map((item) => (item === cleanOld ? cleanNew : item));
+      const updated = {
+        ...prev,
+        [cleanCat]: updatedList,
+      };
+      try {
+        storageService.setItem(STORAGE_KEY_PANNE_CATEGORIES, updated);
+      } catch {}
+      return updated;
+    });
+
+    // Also migrate actions dictionary if oldCode had actions
+    setActionsByPanne((prev) => {
+      if (prev[cleanOld] && !prev[cleanNew]) {
+        const updated = { ...prev, [cleanNew]: prev[cleanOld] };
+        delete updated[cleanOld];
+        try {
+          storageService.setItem(STORAGE_KEY_ACTIONS_BY_PANNE, updated);
+        } catch {}
+        return updated;
+      }
+      return prev;
+    });
+  }, []);
+
+  // Delete a panne from a category
+  const deletePanne = useCallback((category, panneCode) => {
+    if (!category || !panneCode) return;
+    const cleanCat = String(category).trim();
+    const cleanCode = String(panneCode).trim();
+
+    setPanneCategories((prev) => {
+      const list = prev[cleanCat] || [];
+      const updatedList = list.filter((item) => item !== cleanCode);
+      const updated = {
+        ...prev,
+        [cleanCat]: updatedList,
+      };
+      try {
+        storageService.setItem(STORAGE_KEY_PANNE_CATEGORIES, updated);
+      } catch {}
+      return updated;
+    });
+
+    setActionsByPanne((prev) => {
+      if (prev[cleanCode]) {
+        const updated = { ...prev };
+        delete updated[cleanCode];
+        try {
+          storageService.setItem(STORAGE_KEY_ACTIONS_BY_PANNE, updated);
+        } catch {}
+        return updated;
+      }
+      return prev;
+    });
+  }, []);
+
+  // Add a standard task (Travail à faire)
+  const addTravail = useCallback((travailText) => {
+    if (!travailText) return;
+    const cleanText = String(travailText).trim();
+    if (!cleanText) return;
+
+    setTravauxAFaire((prev) => {
+      if (prev.includes(cleanText)) return prev;
+      const updated = [...prev, cleanText];
+      try {
+        storageService.setItem(STORAGE_KEY_TRAVAUX, updated);
+      } catch {}
+      return updated;
+    });
+  }, []);
+
+  // Update a standard task
+  const updateTravail = useCallback((oldText, newText) => {
+    if (!oldText || !newText) return;
+    const cleanOld = String(oldText).trim();
+    const cleanNew = String(newText).trim();
+    if (!cleanNew || cleanOld === cleanNew) return;
+
+    setTravauxAFaire((prev) => {
+      const updated = prev.map((item) => (item === cleanOld ? cleanNew : item));
+      try {
+        storageService.setItem(STORAGE_KEY_TRAVAUX, updated);
+      } catch {}
+      return updated;
+    });
+  }, []);
+
+  // Delete a standard task
+  const deleteTravail = useCallback((travailText) => {
+    if (!travailText) return;
+    const cleanText = String(travailText).trim();
+
+    setTravauxAFaire((prev) => {
+      const updated = prev.filter((item) => item !== cleanText);
+      try {
+        storageService.setItem(STORAGE_KEY_TRAVAUX, updated);
       } catch {}
       return updated;
     });
@@ -527,15 +660,25 @@ export function useCorrectiveSubState(groupedState = {}) {
           }).toJSON();
 
           // Auto-generate PDR Sortie if parts were used
-          if (updated.pdr_ref && updated.pdr_quantite > 0) {
+          if (updated.pdr_ref && Number(updated.pdr_quantite) > 0) {
+            const btIdentifier = updated.num_bt || updated.id;
             const mvt = {
+              id: `MVT-BT-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+              code_bon: `BS-BT-${btIdentifier}`,
               ref: updated.pdr_ref,
+              code_article: updated.pdr_ref,
+              designation: updated.pdr_designation || updated.pdr_ref,
               type: 'Sortie',
-              quantite: updated.pdr_quantite,
+              quantite: Number(updated.pdr_quantite),
               date: dFin,
               machine: updated.code_machine,
+              id_machine_registered: updated.code_machine,
               technicien: updated.intervenant || 'Technicien',
-              motif: `Intervention corrective BT ${updated.num_bt || updated.id} sur machine ${updated.code_machine}`,
+              demandeur: updated.intervenant || 'Technicien GMAO',
+              prix_unitaire: Number(updated.pdr_prix) || 0,
+              unite: updated.pdr_unite || 'Pièce',
+              motif: `Consommation BT ${btIdentifier} · Machine: ${updated.code_machine}`,
+              observation: `Sortie PDR automatique clôture BT ${btIdentifier} (${updated.anomalie || 'Correctif'})`,
             };
 
             // Single Write Path via MovementRepository
@@ -617,6 +760,14 @@ export function useCorrectiveSubState(groupedState = {}) {
     setIntervenants,
     getActionsForPanne,
     addActionForPanne,
+    updateActionForPanne,
+    deleteActionForPanne,
+    addPanne,
+    updatePanne,
+    deletePanne,
+    addTravail,
+    updateTravail,
+    deleteTravail,
     resetCorrectiveActionsToSeed,
     forceSyncAllSeedData,
     activeLiveId,

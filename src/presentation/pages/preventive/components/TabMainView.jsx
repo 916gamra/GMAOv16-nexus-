@@ -408,12 +408,51 @@ export default function TabMainView({
     }),
   ], [techList, technicians]);
 
-  // Available warehouse/stock items for fast search
+  // Unified available inventory combining Stock PDR Magasin and Entrepôt Réserve
   const availableInventory = useMemo(() => {
-    if (warehouseItems && warehouseItems.length > 0) return warehouseItems;
-    if (stockItems && stockItems.length > 0) return stockItems;
-    return [];
-  }, [warehouseItems, stockItems]);
+    const list = [];
+    const seen = new Set();
+
+    // 1. Stock PDR Magasin (Single Source of Truth)
+    (stockItems || []).forEach((item) => {
+      const ref = String(item.ref || item.reference || item.code || '').trim();
+      if (ref && !seen.has(ref.toLowerCase())) {
+        list.push({
+          id_article: `PDR-${ref}`,
+          ref,
+          reference: ref,
+          designation: item.designation || 'Pièce PDR',
+          stockActuel: Number(item.stockActuel ?? item.stock_actuel ?? 0),
+          unite: item.unit || item.unite || 'pcs',
+          prix_unitaire: Number(item.prix || item.prix_unitaire || item.prix_achat_ht || 0),
+          source: 'PDR Magasin',
+          emplacement: item.emplacement || 'PDR',
+        });
+        seen.add(ref.toLowerCase());
+      }
+    });
+
+    // 2. Entrepôt Réserve & Composants
+    (warehouseItems || []).forEach((item) => {
+      const ref = String(item.ref || item.reference || item.id_warehouse_item || '').trim();
+      if (ref && !seen.has(ref.toLowerCase())) {
+        list.push({
+          id_article: `WH-${ref}`,
+          ref,
+          reference: ref,
+          designation: item.designation || 'Composant Entrepôt',
+          stockActuel: Number(item.stockActuel ?? item.stock_actuel ?? 0),
+          unite: item.unit || item.unite || 'pcs',
+          prix_unitaire: Number(item.prix || item.prix_unitaire || item.prix_achat_ht || 0),
+          source: 'Entrepôt',
+          emplacement: item.emplacement || 'Entrepôt',
+        });
+        seen.add(ref.toLowerCase());
+      }
+    });
+
+    return list;
+  }, [stockItems, warehouseItems]);
 
   // Open Validation Modal with prefilled recommended PDR
   const handleOpenValidate = (task) => {
@@ -1159,6 +1198,7 @@ export default function TabMainView({
       {viewMode === 'matrix' && (
         <MatrixWeeksView
           tasks={filteredTasks}
+          machines={machines}
           weekRange={weekRange}
           onWeekRangeChange={setWeekRange}
           currentWeekNumber={currentWeekNumber}
@@ -1199,6 +1239,7 @@ export default function TabMainView({
       {viewMode === 'list' && (
         <DetailedTaskListView
           tasks={filteredTasks}
+          machines={machines}
           onOpenValidate={handleOpenValidate}
           onOpenCorrective={handleOpenCorrective}
           onOpenPrint={(task) => setSelectedTaskForPrint(task)}
@@ -1334,26 +1375,27 @@ export default function TabMainView({
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-2 border-t border-indigo-100 text-xs">
                   <div className="sm:col-span-8">
                     <select
-                      value={newPdrItem.id_article}
+                      value={newPdrItem.reference}
                       onChange={(e) => {
-                        const it = availableInventory.find((i) => (i.id_article || i.id || i.reference) === e.target.value);
+                        const it = availableInventory.find((i) => i.reference === e.target.value || i.ref === e.target.value);
                         if (it) {
                           setNewPdrItem({
-                            id_article: it.id_article || it.id || it.reference,
-                            designation: it.designation || it.nom,
-                            reference: it.reference || it.code_article || 'STD',
+                            id_article: it.id_article || `PDR-${it.reference}`,
+                            designation: it.designation,
+                            reference: it.reference,
                             quantite: 1,
-                            unite: it.unite || 'Pièce',
-                            prix_unitaire: Number(it.prix_unitaire || it.prix_achat || 0),
+                            unite: it.unite || 'pcs',
+                            prix_unitaire: Number(it.prix_unitaire || 0),
+                            source: it.source,
                           });
                         }
                       }}
-                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl"
+                      className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-slate-800 font-medium"
                     >
-                      <option value="">Sélectionner une pièce du stock...</option>
+                      <option value="">Sélectionner une pièce du stock (PDR / Entrepôt)...</option>
                       {availableInventory.map((item, idx) => (
-                        <option key={idx} value={item.id_article || item.id || item.reference}>
-                          {item.reference || item.code_article} - {item.designation || item.nom} (Stock: {item.quantite || item.stock_actuel || 0})
+                        <option key={idx} value={item.reference}>
+                          [{item.source}] {item.reference} - {item.designation} (Stock: {item.stockActuel})
                         </option>
                       ))}
                     </select>
@@ -1362,8 +1404,8 @@ export default function TabMainView({
                     <button
                       type="button"
                       onClick={() => handleAddPdrToValidation(newPdrItem)}
-                      disabled={!newPdrItem.designation}
-                      className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl"
+                      disabled={!newPdrItem.reference || !newPdrItem.designation}
+                      className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl cursor-pointer"
                     >
                       + Ajouter PDR
                     </button>

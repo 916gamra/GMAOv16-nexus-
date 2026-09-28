@@ -192,9 +192,9 @@ export class CorrectiveCalculationService {
   }
 
   /**
-   * Compute Industrial MTTR & MTBF
+   * Compute Comprehensive Industrial KPIs (MTTR, MTBF, Availability, Stoppages)
    */
-  static computeKpis(interventions = []) {
+  static computeKpis(interventions = [], plannedOperatingMinutes = null) {
     if (!Array.isArray(interventions) || interventions.length === 0) {
       return {
         totalInterventions: 0,
@@ -207,7 +207,13 @@ export class CorrectiveCalculationService {
         mttrFormatted: '00:00',
         totalStoppageMinutes: 0,
         totalStoppageFormatted: '00:00',
+        mtbfMinutes: 0,
+        mtbfFormatted: '00:00',
+        mtbfHours: 0,
+        disponibilite: 100,
+        tauxDefaillance: 0,
         machinesAffectedCount: 0,
+        breakdownCount: 0,
       };
     }
 
@@ -216,6 +222,7 @@ export class CorrectiveCalculationService {
     let requestsCount = 0;
     let totalWorkingMinutes = 0;
     let totalStoppageMinutes = 0;
+    let breakdownCount = 0;
     const machinesSet = new Set();
 
     interventions.forEach((item) => {
@@ -231,27 +238,79 @@ export class CorrectiveCalculationService {
         requestsCount += 1;
       }
 
-      if (item.arret_machine) {
+      const hasStoppage = item.arret_machine === true || item.arret_machine === 'OUI' || item.arret_machine === 'true';
+      if (hasStoppage) {
+        breakdownCount += 1;
         const arretParts = String(item.temps_arret || '00:00').split(':');
         const arretMins = (parseInt(arretParts[0], 10) || 0) * 60 + (parseInt(arretParts[1], 10) || 0);
-        totalStoppageMinutes += arretMins;
+        totalStoppageMinutes += arretMins > 0 ? arretMins : (Number(item.temps_intervention_mins) || 30);
       }
     });
 
+    const effectiveFailures = Math.max(1, breakdownCount > 0 ? breakdownCount : completedCount);
     const mttrMinutes = completedCount > 0 ? Math.round(totalWorkingMinutes / completedCount) : 0;
+
+    // Industrial Standard: Working window baseline (e.g. 30 working days * 495 mins = 14,850 mins per machine)
+    const baseWorkingWindow = plannedOperatingMinutes || (Math.max(1, machinesSet.size) * 30 * WORK_SCHEDULE.dailyWorkingMinutes);
+    const operatingMinutes = Math.max(0, baseWorkingWindow - totalStoppageMinutes);
+    
+    // MTBF (Mean Time Between Failures)
+    const mtbfMinutes = effectiveFailures > 0 ? Math.round(operatingMinutes / effectiveFailures) : baseWorkingWindow;
+    const mtbfHours = Number((mtbfMinutes / 60).toFixed(1));
+
+    // Availability (Disponibilité Opérationnelle) = MTBF / (MTBF + MTTR) * 100
+    let disponibilite = 100;
+    if (mtbfMinutes + mttrMinutes > 0) {
+      disponibilite = Number(((mtbfMinutes / (mtbfMinutes + mttrMinutes)) * 100).toFixed(1));
+    }
+    disponibilite = Math.min(100, Math.max(0, disponibilite));
+
+    // Failure Rate (Taux de défaillance Lambda) = 1 / MTBF in hours
+    const tauxDefaillance = mtbfHours > 0 ? Number((1 / mtbfHours).toFixed(4)) : 0;
 
     return {
       totalInterventions: interventions.length,
       completedCount,
       inProgressCount,
       requestsCount,
+      breakdownCount,
       totalWorkingMinutes,
       totalWorkingHoursFormatted: formatMinutesToHHMM(totalWorkingMinutes),
       mttrMinutes,
       mttrFormatted: formatMinutesToHHMM(mttrMinutes),
       totalStoppageMinutes,
       totalStoppageFormatted: formatMinutesToHHMM(totalStoppageMinutes),
+      mtbfMinutes,
+      mtbfFormatted: formatMinutesToHHMM(mtbfMinutes),
+      mtbfHours,
+      disponibilite,
+      tauxDefaillance,
       machinesAffectedCount: machinesSet.size,
+    };
+  }
+
+  /**
+   * Compute Deterministic Machine-Specific KPIs
+   */
+  static computeMachineDetailedKpis(interventions = [], machineCode = '') {
+    if (!machineCode) return null;
+    const machineInterventions = (interventions || []).filter(
+      (it) => String(it.code_machine).trim().toUpperCase() === String(machineCode).trim().toUpperCase()
+    );
+
+    const kpis = this.computeKpis(machineInterventions, 30 * WORK_SCHEDULE.dailyWorkingMinutes);
+    
+    // Reliability Index (0 to 100)
+    const reliabilityScore = Math.max(
+      10,
+      Math.min(100, Math.round(100 - (kpis.breakdownCount * 8) - (kpis.totalStoppageMinutes / 60) * 3))
+    );
+
+    return {
+      ...kpis,
+      machineCode,
+      interventionsCount: machineInterventions.length,
+      reliabilityScore,
     };
   }
 
