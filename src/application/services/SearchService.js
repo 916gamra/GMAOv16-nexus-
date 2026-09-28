@@ -1,4 +1,4 @@
-import { normalizeSearchString, multiTokenSearch, fuzzyMatch } from '../../utils/searchUtils.js';
+import { multiTokenSearch, fuzzyMatch } from '../../utils/searchUtils.js';
 import { Logger } from '../../core/logger/LoggerService.js';
 
 /**

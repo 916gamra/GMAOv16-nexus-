@@ -47,6 +47,7 @@ export default function CorrectiveView({
   machines = [],
   technicians = [],
   stockItems = [],
+  warehouseItems = [],
   onAddMouvement,
   onAddPreventiveTask,
   showToast,
@@ -337,6 +338,8 @@ export default function CorrectiveView({
               onConvertToBt={onConvertToBt}
               machines={machines}
               technicians={technicians}
+              stockItems={stockItems}
+              warehouseItems={warehouseItems}
               actionsByPanne={actionsByPanne}
               panneCategories={panneCategories}
               travauxAFaire={travauxAFaire}
@@ -345,6 +348,7 @@ export default function CorrectiveView({
               onAddActionForPanne={onAddActionForPanne}
               showToast={showToast}
               onNavigateToTab={handleTabChange}
+              onAddDemandeWithPreset={handleAddDemandeWithPreset}
               autoOpenCreate={triggerCreateDiModal}
               onResetAutoOpen={() => setTriggerCreateDiModal(false)}
               presetData={diPresetData}
@@ -360,6 +364,7 @@ export default function CorrectiveView({
               onUpdateIntervention={onUpdateIntervention}
               onNavigateToTab={handleTabChange}
               stockItems={stockItems}
+              warehouseItems={warehouseItems}
               technicians={technicians}
               intervenants={intervenants}
               panneCategories={panneCategories}
@@ -380,6 +385,7 @@ export default function CorrectiveView({
               onUpdateIntervention={onUpdateIntervention}
               onNavigateToTab={handleTabChange}
               stockItems={stockItems}
+              warehouseItems={warehouseItems}
               onAddMouvement={onAddMouvement}
               actionsByPanne={actionsByPanne}
               travauxAFaire={travauxAFaire}
@@ -394,6 +400,7 @@ export default function CorrectiveView({
               interventions={interventions}
               machines={machines}
               stockItems={stockItems}
+              warehouseItems={warehouseItems}
               onUpdateIntervention={onUpdateIntervention}
               showToast={showToast}
             />

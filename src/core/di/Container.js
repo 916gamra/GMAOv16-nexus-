@@ -13,8 +13,9 @@ export class Container {
    * Register binding
    */
   static register(key, factory, singleton = true) {
+    const factoryFn = typeof factory === 'function' ? factory : () => factory;
     Container.bindings.set(key, {
-      factory,
+      factory: factoryFn,
       singleton,
       instance: null
     });

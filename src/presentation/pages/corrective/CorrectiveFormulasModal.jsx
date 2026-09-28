@@ -3,13 +3,8 @@ import {
   Calculator,
   X,
   Clock,
-  Zap,
   TrendingUp,
-  RotateCcw,
-  CheckCircle2,
-  Calendar,
   Layers,
-  Sparkles,
 } from 'lucide-react';
 
 /**

@@ -16,6 +16,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { AvailabilityCalculationService } from '../../../domain/services/AvailabilityCalculationService';
 
 export default function AnalyseCorrectiveTab({
   interventions = [],
@@ -188,8 +189,6 @@ export default function AnalyseCorrectiveTab({
     const closed = filteredInterventions.filter((i) => i.statut === 'CLOTURE' || i.temps_intervention_calc).length;
     const arret = filteredInterventions.filter((i) => i.arret_machine === true || i.arret_machine === 'OUI').length;
 
-    let totalInterventionMinutes = 0;
-    let closedCount = 0;
     let totalDowntimeMinutes = 0;
     let totalPdrCost = 0;
 
@@ -208,14 +207,6 @@ export default function AnalyseCorrectiveTab({
         }
       }
 
-      if (mins > 0) {
-        totalInterventionMinutes += mins;
-        closedCount++;
-      } else {
-        totalInterventionMinutes += 45; // baseline nominal
-        closedCount++;
-      }
-
       if (item.arret_machine === true || item.arret_machine === 'OUI') {
         totalDowntimeMinutes += mins > 0 ? mins : 45;
       }
@@ -228,24 +219,16 @@ export default function AnalyseCorrectiveTab({
       totalPdrCost += price * qty;
     });
 
-    // 1. MTTR = Average intervention time
-    const avgMttrMins = closedCount > 0 ? Math.round(totalInterventionMinutes / closedCount) : 45;
-    const mttrHours = Math.floor(avgMttrMins / 60);
-    const mttrRemainingMins = avgMttrMins % 60;
-    const mttrFormatted = `${String(mttrHours).padStart(2, '0')}h ${String(mttrRemainingMins).padStart(2, '0')}m`;
+    // 1. MTTR via AvailabilityCalculationService
+    const mttrFormatted = AvailabilityCalculationService.formatMTTR(filteredInterventions);
 
-    // 2. MTBF = Mean time between failures based on industrial fleet
+    // 2. MTBF via AvailabilityCalculationService
     const numMachines = Math.max(1, registeredMachines.length || 412);
     const totalScheduledHours = numMachines * 160; // 160h standard industrial monthly operating time
-    const totalDowntimeHours = totalDowntimeMinutes / 60;
-    const mtbfCalculatedHours = totalInterventions > 0
-      ? Math.max(12, Math.round((totalScheduledHours - totalDowntimeHours) / totalInterventions))
-      : 168;
+    const mtbfCalculatedHours = AvailabilityCalculationService.calculateMTBF(filteredInterventions, totalScheduledHours);
 
     // 3. Operational Availability Rate
-    const availabilityRate = totalScheduledHours > 0
-      ? Math.max(85, Math.min(99.8, ((totalScheduledHours - totalDowntimeHours) / totalScheduledHours) * 100))
-      : 97.4;
+    const availabilityRate = AvailabilityCalculationService.calculateAvailability(filteredInterventions, totalScheduledHours);
 
     const downtimeHours = Math.floor(totalDowntimeMinutes / 60);
     const downtimeMins = totalDowntimeMinutes % 60;

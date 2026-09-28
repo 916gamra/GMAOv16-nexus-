@@ -5,7 +5,8 @@ import { INITIAL_FAMILIES, INITIAL_TEMPLATES } from '../data/seedData';
 import { stockIndexStore } from '../application/StockIndexStore';
 
 /**
- * Hook to compute real-time stock calculations, warehouse stock, KPIs, and fallback lists
+ * High-Performance Hook to compute real-time stock calculations, warehouse stock, KPIs, and fallback lists.
+ * Utilizes stockIndexStore for O(1) indexed lookups and eliminates linear array scans over movement history.
  */
 export function useAppCalculations({
   rawStock = [],
@@ -15,15 +16,17 @@ export function useAppCalculations({
   templates = [],
   warehouseItems = [],
 }) {
-  const hydratedRef = useRef(false);
+  const lastMouvementsLengthRef = useRef(0);
 
-  // Sync initial movements once on startup or when bulk data changes
+  // Sync movements into O(1) stock index store whenever movements change
   useEffect(() => {
-    if (hydratedRef.current) return;
-    if (!mouvements || mouvements.length === 0) return;
+    if (!mouvements) return;
 
-    if (stockIndexStore.isHydrated()) {
-      hydratedRef.current = true;
+    // Avoid redundant rebuilds if array reference and length are unchanged
+    if (
+      lastMouvementsLengthRef.current === mouvements.length &&
+      stockIndexStore.isHydrated()
+    ) {
       return;
     }
 
@@ -32,20 +35,21 @@ export function useAppCalculations({
       type: m.type || m['Type (Entrée/Sortie)'] || '',
       quantity: safeNum(m.quantite != null ? m.quantite : m['Quantité'], 0),
     }));
+
     stockIndexStore.index.rebuild(deltas);
     stockIndexStore.markHydrated();
     stockIndexStore.notifyAll();
-    hydratedRef.current = true;
+    lastMouvementsLengthRef.current = mouvements.length;
   }, [mouvements]);
 
-  // Subscribe to index version changes
+  // Subscribe to index version changes via useSyncExternalStore
   const globalVersion = useSyncExternalStore(
     stockIndexStore.subscribeAll,
     stockIndexStore.getGlobalVersion,
     () => 0
   );
 
-  // Compute Full Stock with Dynamic Live Calculations (Formula F, G, H, J)
+  // Compute Full Stock with Dynamic O(1) Lookups (Formula F, G, H, J)
   const stockItems = useMemo(() => {
     return rawStock.map((item) => {
       const itemRef = String(item.ref || '').trim();
@@ -54,24 +58,8 @@ export function useAppCalculations({
         .trim()
         .toLowerCase();
 
-      let totals = stockIndexStore.index.getTotals(itemRef);
-      if (totals.entrees === 0 && totals.sorties === 0 && mouvements && mouvements.length > 0) {
-        let e = 0;
-        let s = 0;
-        const refLower = itemRef.toLowerCase();
-        mouvements.forEach((m) => {
-          const mRef = String(m.ref || m['Référence'] || m['Reference'] || '').trim().toLowerCase();
-          if (mRef === refLower) {
-            const qty = safeNum(m.quantite != null ? m.quantite : m['Quantité'], 0);
-            const typeStr = String(m.type || m['Type (Entrée/Sortie)'] || '').toLowerCase();
-            if (typeStr.includes('sort')) s += qty;
-            else if (typeStr.includes('entr')) e += qty;
-          }
-        });
-        if (e > 0 || s > 0) {
-          totals = { ...totals, entrees: e, sorties: s };
-        }
-      }
+      // Direct O(1) lookup from stockIndexStore without linear scanning
+      const totals = stockIndexStore.index.getTotals(itemRef);
 
       let stockInitial = 0;
       if (
@@ -186,7 +174,7 @@ export function useAppCalculations({
     });
   }, [warehouseItems, globalVersion]);
 
-  // Stock KPIs
+  // Stock KPIs computed efficiently
   const stockKPIs = useMemo(() => {
     let totalEntrees = 0;
     let totalSorties = 0;
@@ -194,13 +182,14 @@ export function useAppCalculations({
     let ruptures = 0;
     let alertes = 0;
 
-    stockItems.forEach((s) => {
+    for (let i = 0; i < stockItems.length; i++) {
+      const s = stockItems[i];
       totalEntrees += s.entrees;
       totalSorties += s.sorties;
       totalStockActuel += s.stockActuel;
       if (s.alerte === 'RUPTURE') ruptures++;
       else if (s.alerte === 'ALERTE') alertes++;
-    });
+    }
 
     return {
       totalArticles: stockItems.length,

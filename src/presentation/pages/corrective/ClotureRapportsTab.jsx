@@ -1,6 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
-  Download,
   Search,
   Eye,
   Printer,
@@ -20,9 +19,14 @@ import {
   FileText,
   User,
   Factory,
+  ChevronDown,
+  Radio,
+  Calendar,
 } from 'lucide-react';
 import { CorrectiveCalculationService } from '../../../domain/corrective/services/CorrectiveCalculationService';
 import * as XLSX from 'xlsx';
+import CustomSelect from '../../components/common/CustomSelect';
+import TablePaginationCard from '../../components/common/TablePaginationCard';
 
 export default function ClotureRapportsTab({
   interventions = [],
@@ -43,6 +47,18 @@ export default function ClotureRapportsTab({
   const [sortOrder, setSortOrder] = useState('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const sortMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target)) {
+        setShowSortMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // O(1) Relational Lookup Maps
   const stockMap = useMemo(() => {
@@ -67,7 +83,7 @@ export default function ClotureRapportsTab({
   const machines = useMemo(() => {
     const set = new Set();
     (registeredMachines || []).forEach((m) => {
-      const id = m.id_machine_registered || m.id;
+      const id = m.id_machine_registered || m.id || m.code;
       if (id) set.add(id);
     });
     interventions.forEach((item) => {
@@ -174,14 +190,13 @@ export default function ClotureRapportsTab({
   // Pagination
   const totalItems = sortedInterventions.length;
   const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
-  const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / effectivePageSize) || 1;
   const startIndex = (currentPage - 1) * effectivePageSize;
   const rawDisplayed =
     pageSize === 0 ? sortedInterventions : sortedInterventions.slice(startIndex, startIndex + effectivePageSize);
 
-  // Padded rows
+  // Table row padding (20-row standard)
   const displayedInterventions = useMemo(() => {
-    const minRows = 15;
+    const minRows = 20;
     if (rawDisplayed.length >= minRows) return rawDisplayed;
     const padded = [...rawDisplayed];
     for (let i = 0; i < minRows - rawDisplayed.length; i++) {
@@ -453,7 +468,7 @@ export default function ClotureRapportsTab({
               <button
                 type="button"
                 onClick={clearAllFilters}
-                className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in"
                 title="Réinitialiser tous les filtres actifs"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -469,24 +484,33 @@ export default function ClotureRapportsTab({
             Filtres Rapides :
           </span>
           {[
-            { key: 'ALL', label: 'Tous', count: interventions.length },
+            {
+              key: 'ALL',
+              label: 'Tous les Rapports',
+              count: interventions.length,
+              activeBg: 'bg-slate-900 text-white shadow-xs',
+              colorDot: null,
+            },
             {
               key: 'CLOTURE',
               label: 'Clôturés Validés',
               count: kpiStats.closed,
-              color: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+              activeBg: 'bg-emerald-600 text-white shadow-xs',
+              colorDot: 'bg-emerald-500',
             },
             {
               key: 'ARRET',
               label: 'Avec Arrêt Machine',
               count: kpiStats.arret,
-              color: 'text-purple-700 bg-purple-50 border-purple-200',
+              activeBg: 'bg-purple-600 text-white shadow-xs',
+              colorDot: 'bg-purple-500',
             },
             {
               key: 'PDR',
               label: 'Avec PDR Utilisée',
               count: kpiStats.withPdr,
-              color: 'text-cyan-700 bg-cyan-50 border-cyan-200',
+              activeBg: 'bg-cyan-600 text-white shadow-xs',
+              colorDot: 'bg-cyan-500',
             },
           ].map((preset) => {
             const isActive = selectedStatus === preset.key;
@@ -494,17 +518,27 @@ export default function ClotureRapportsTab({
               <button
                 key={preset.key}
                 type="button"
-                onClick={() => setSelectedStatus(preset.key)}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer text-xs ${
+                onClick={() => {
+                  setSelectedStatus(preset.key);
+                  setCurrentPage(1);
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                   isActive
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                    ? preset.activeBg
+                    : 'bg-slate-100/80 hover:bg-slate-200/80 text-slate-700 border border-slate-200/60'
                 }`}
               >
+                {preset.colorDot && (
+                  <span
+                    className={`w-2 h-2 rounded-full ${preset.colorDot} ${
+                      isActive ? 'ring-2 ring-white/50' : ''
+                    }`}
+                  />
+                )}
                 <span>{preset.label}</span>
                 <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-extrabold ${
-                    isActive ? 'bg-white/20 text-white' : preset.color || 'bg-white text-slate-700'
+                  className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-white text-slate-600 border border-slate-200/60'
                   }`}
                 >
                   {preset.count}
@@ -514,288 +548,620 @@ export default function ClotureRapportsTab({
           })}
         </div>
 
-        {/* 4-Column Dropdowns Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
-          {/* Search Box */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
+        {/* 5-Column Multi-Criteria Filter Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 items-end">
+          {/* 1. Omni-Text Search */}
+          <div className="w-full sm:col-span-2 lg:col-span-1">
+            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
+              <span>Recherche</span>
+              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200/80">
+                Col. B+A
+              </span>
+            </div>
+            <div className="relative">
+              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shadow-2xs pointer-events-none">
+                <Search className="w-3 h-3" />
+              </div>
+              <input
+                type="text"
+                placeholder="BT, machine, PDR..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-9 pl-9 pr-7 rounded-xl border border-slate-200 bg-slate-50/70 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setCurrentPage(1);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 cursor-pointer"
+                  title="Effacer la recherche"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 2. Machine Filter (Col. A) */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
+              <span>Machine</span>
+              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
+                Col. A
+              </span>
+            </div>
+            <CustomSelect
+              value={selectedMachine}
+              prefixIcon={
+                <span className="w-5 h-5 rounded-md bg-amber-100 border border-amber-300/80 flex items-center justify-center text-amber-700 shadow-2xs">
+                  <Factory className="w-3 h-3" />
+                </span>
+              }
+              onChange={(val) => {
+                setSelectedMachine(val);
                 setCurrentPage(1);
               }}
-              placeholder="Rechercher BT, machine, anomalie, PDR..."
-              className="w-full pl-9 pr-8 py-2 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50/70 focus:bg-white focus:border-emerald-400 focus:outline-hidden transition"
+              searchable
+              options={[
+                { value: 'ALL', label: `Toutes les Machines (${machines.length})` },
+                ...machines.map((m) => ({
+                  value: m,
+                  label: m,
+                })),
+              ]}
             />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+          </div>
+
+          {/* 3. Intervenant Filter (Col. D) */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
+              <span>Intervenant</span>
+              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
+                Col. D
+              </span>
+            </div>
+            <CustomSelect
+              value={selectedTech}
+              prefixIcon={
+                <span className="w-5 h-5 rounded-md bg-blue-100 border border-blue-300/80 flex items-center justify-center text-blue-700 shadow-2xs">
+                  <User className="w-3 h-3" />
+                </span>
+              }
+              onChange={(val) => {
+                setSelectedTech(val);
+                setCurrentPage(1);
+              }}
+              searchable
+              options={[
+                { value: 'ALL', label: `Tous les Techniciens (${techs.length})` },
+                ...techs.map((t) => ({
+                  value: t,
+                  label: t,
+                })),
+              ]}
+            />
+          </div>
+
+          {/* 4. Type Panne Filter (Col. I) */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
+              <span>Type de Panne</span>
+              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-cyan-50 text-cyan-700 border border-cyan-200/80">
+                Col. I
+              </span>
+            </div>
+            <CustomSelect
+              value={selectedTypePanne}
+              prefixIcon={
+                <span className="w-5 h-5 rounded-md bg-cyan-100 border border-cyan-300/80 flex items-center justify-center text-cyan-700 shadow-2xs">
+                  <Layers className="w-3 h-3" />
+                </span>
+              }
+              onChange={(val) => {
+                setSelectedTypePanne(val);
+                setCurrentPage(1);
+              }}
+              options={[
+                { value: 'ALL', label: `Tous Types (${typesPanne.length})` },
+                ...typesPanne.map((tp) => ({
+                  value: tp,
+                  label: `Type ${tp}`,
+                })),
+              ]}
+            />
+          </div>
+
+          {/* 5. Sort Menu Button & Popover */}
+          <div className="relative" ref={sortMenuRef}>
+            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
+              <span>Tri & Ordre</span>
+              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+                Col. A→N
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              className={`w-full h-9 px-2.5 rounded-xl border text-xs font-semibold transition flex items-center justify-between cursor-pointer ${
+                showSortMenu || sortField !== 'date_demande' || sortOrder !== 'desc'
+                  ? 'bg-indigo-50/80 text-indigo-950 border-indigo-300 ring-1 ring-indigo-200'
+                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2 truncate">
+                <span className="w-5 h-5 rounded-md bg-indigo-100 border border-indigo-300/80 flex items-center justify-center text-indigo-700 shrink-0 shadow-2xs">
+                  <ArrowUpDown className="w-3 h-3" />
+                </span>
+                <span className="truncate">
+                  Tri : <b className="font-mono text-slate-900">{sortField.slice(0, 10).toUpperCase()}</b> (
+                  {sortOrder === 'asc' ? 'A→Z' : 'Z→A'})
+                </span>
+              </div>
+              <ChevronDown
+                className={`w-3 h-3 text-slate-400 transition-transform shrink-0 ${showSortMenu ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            {/* Sort Popover Menu */}
+            {showSortMenu && (
+              <div className="absolute right-0 mt-1 w-64 bg-white rounded-2xl border border-slate-200 shadow-xl z-50 p-2.5 space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <span>Sélectionner la Colonne de Tri</span>
+                  <span>A→N</span>
+                </div>
+                <div className="grid grid-cols-1 gap-1 text-xs max-h-60 overflow-y-auto pr-0.5">
+                  {[
+                    { key: 'num_bt', label: 'N° BT (Col. B)' },
+                    { key: 'code_machine', label: 'Machine (Col. A)' },
+                    { key: 'intervenant', label: 'Intervenant (Col. D)' },
+                    { key: 'date_demande', label: 'Date Demande (Col. C)' },
+                    { key: 'temps_intervention_calc', label: 'Temps Calculé (Col. G)' },
+                    { key: 'type_panne', label: 'Type Panne (Col. I)' },
+                    { key: 'anomalie', label: 'Anomalie (Col. J)' },
+                    { key: 'action_realisee', label: 'Travail Réalisé (Col. K)' },
+                    { key: 'pdr', label: 'PDR Utilisée (Col. L)' },
+                    { key: 'arret_machine', label: 'Arrêt Machine (Col. H)' },
+                  ].map((col) => (
+                    <button
+                      key={col.key}
+                      type="button"
+                      onClick={() => {
+                        toggleSort(col.key);
+                        setShowSortMenu(false);
+                      }}
+                      className={`px-2.5 py-1.5 rounded-lg border text-left font-medium text-[11px] flex items-center justify-between transition cursor-pointer ${
+                        sortField === col.key
+                          ? 'bg-indigo-50 text-indigo-950 border-indigo-300 font-bold'
+                          : 'bg-slate-50 text-slate-700 border-slate-200/80 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>{col.label}</span>
+                      {sortField === col.key && (
+                        sortOrder === 'asc' ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-indigo-700" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-indigo-700" />
+                        )
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
-
-          {/* Machine Filter */}
-          <div>
-            <select
-              value={selectedMachine}
-              onChange={(e) => {
-                setSelectedMachine(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full py-2 px-3 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50/70 focus:bg-white focus:border-emerald-400 focus:outline-hidden transition"
-            >
-              <option value="ALL">Toutes les Machines ({machines.length})</option>
-              {machines.slice(0, 50).map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Technicien Filter */}
-          <div>
-            <select
-              value={selectedTech}
-              onChange={(e) => {
-                setSelectedTech(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full py-2 px-3 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50/70 focus:bg-white focus:border-emerald-400 focus:outline-hidden transition"
-            >
-              <option value="ALL">Tous les Techniciens ({techs.length})</option>
-              {techs.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Type Panne Filter */}
-          <div>
-            <select
-              value={selectedTypePanne}
-              onChange={(e) => {
-                setSelectedTypePanne(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full py-2 px-3 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50/70 focus:bg-white focus:border-emerald-400 focus:outline-hidden transition"
-            >
-              <option value="ALL">Tous Types Panne ({typesPanne.length})</option>
-              {typesPanne.map((tp) => (
-                <option key={tp} value={tp}>
-                  Type {tp}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
+
+        {/* Active Filter Chips Bar */}
+        {hasActiveFilters && (
+          <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 flex-wrap gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-bold text-slate-400 text-[11px] uppercase tracking-wider">
+                Filtres actifs :
+              </span>
+              {searchTerm && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-800 font-bold text-[11px] border border-slate-200">
+                  <span>Recherche: &quot;{searchTerm}&quot;</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setCurrentPage(1);
+                    }}
+                    className="hover:text-rose-600 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {selectedStatus !== 'ALL' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 font-bold text-[11px] border border-emerald-200">
+                  <span>Filtre: {selectedStatus}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedStatus('ALL');
+                      setCurrentPage(1);
+                    }}
+                    className="hover:text-emerald-950 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {selectedMachine !== 'ALL' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 font-bold text-[11px] border border-amber-200">
+                  <span>Machine: {selectedMachine}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedMachine('ALL');
+                      setCurrentPage(1);
+                    }}
+                    className="hover:text-amber-900 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {selectedTech !== 'ALL' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700 font-bold text-[11px] border border-blue-200">
+                  <span>Tech: {selectedTech}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedTech('ALL');
+                      setCurrentPage(1);
+                    }}
+                    className="hover:text-blue-900 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {selectedTypePanne !== 'ALL' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-50 text-cyan-700 font-bold text-[11px] border border-cyan-200">
+                  <span>Type: {selectedTypePanne}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedTypePanne('ALL');
+                      setCurrentPage(1);
+                    }}
+                    className="hover:text-cyan-900 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="text-slate-400 hover:text-rose-600 font-semibold text-[11px] transition cursor-pointer flex items-center gap-1"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Tout effacer</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 3. Excel-Grade Clean Industrial Data Table */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-slate-50/90 text-slate-700 text-[11px] font-black uppercase tracking-wider border-b border-slate-200 select-none">
+      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] overflow-hidden">
+        {/* Subheader info bar */}
+        <div className="bg-slate-50/80 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs font-bold text-slate-600">
+          <div className="flex items-center gap-2">
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <span>Tableau Rapport_Correctif • Ordre Excel Row 3 : A → N</span>
+          </div>
+          <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
+            N° | N° BT (B) | Machine (A) | Intervenant (D) | Date (C) | Temps Ouvré (G) | Arrêt (H) | Type (I) | Anomalie (J) | Travail Réalisé (K) | PDR (L/M) | Fiche
+          </div>
+        </div>
+
+        <div className="h-[1150px] overflow-y-auto overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs min-w-[1450px]">
+            <thead className="sticky top-0 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 z-10 shadow-2xs select-none">
+              <tr>
+                {/* Row N° Column Header */}
+                <th className="py-3.5 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0 select-none whitespace-nowrap">
+                  N°
+                </th>
+
+                {/* N° BT (Col B) */}
                 <th
                   onClick={() => toggleSort('num_bt')}
-                  className="py-3 px-4 cursor-pointer hover:bg-slate-100 transition group"
+                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[130px]"
+                  title="Cliquer pour trier par N° BT"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span>N° BT (B)</span>
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>N° BT</span>
+                    <span className="text-slate-400 font-normal text-[10px]">(Col B)</span>
                     {renderSortIcon('num_bt')}
                   </div>
                 </th>
+
+                {/* Machine (Col A) */}
                 <th
                   onClick={() => toggleSort('code_machine')}
-                  className="py-3 px-4 cursor-pointer hover:bg-slate-100 transition group"
+                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[140px]"
+                  title="Cliquer pour trier par Machine"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span>Machine (A)</span>
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <Factory className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Machine</span>
+                    <span className="text-slate-400 font-normal text-[10px]">(Col A)</span>
                     {renderSortIcon('code_machine')}
                   </div>
                 </th>
+
+                {/* Intervenant (Col D) */}
                 <th
                   onClick={() => toggleSort('intervenant')}
-                  className="py-3 px-4 cursor-pointer hover:bg-slate-100 transition group"
+                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[160px]"
+                  title="Cliquer pour trier par Intervenant"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span>Intervenant (D)</span>
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Intervenant</span>
+                    <span className="text-slate-400 font-normal text-[10px]">(Col D)</span>
                     {renderSortIcon('intervenant')}
                   </div>
                 </th>
+
+                {/* Date Demande (Col C) */}
+                <th
+                  onClick={() => toggleSort('date_demande')}
+                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[150px]"
+                  title="Cliquer pour trier par Date"
+                >
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Date Demande</span>
+                    <span className="text-slate-400 font-normal text-[10px]">(Col C)</span>
+                    {renderSortIcon('date_demande')}
+                  </div>
+                </th>
+
+                {/* Temps Ouvré (Col G) */}
                 <th
                   onClick={() => toggleSort('temps_intervention_calc')}
-                  className="py-3 px-3 cursor-pointer hover:bg-slate-100 transition group"
+                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[140px]"
+                  title="Cliquer pour trier par Temps Ouvré"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span>Temps Ouvré (G)</span>
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Temps Ouvré</span>
+                    <span className="text-slate-400 font-normal text-[10px]">(Col G)</span>
                     {renderSortIcon('temps_intervention_calc')}
                   </div>
                 </th>
-                <th className="py-3 px-3 text-center">Arrêt (H)</th>
-                <th className="py-3 px-3">Type (I)</th>
-                <th className="py-3 px-4">Anomalie (J)</th>
-                <th className="py-3 px-4">Travail Réalisé (K)</th>
-                <th className="py-3 px-4">PDR / Marque (L/M)</th>
-                <th className="py-3 px-4 text-right">Fiche</th>
+
+                {/* Arrêt Machine (Col H) */}
+                <th
+                  onClick={() => toggleSort('arret_machine')}
+                  className="py-3.5 px-3 text-center cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[110px]"
+                  title="Cliquer pour trier par Arrêt"
+                >
+                  <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <AlertTriangle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Arrêt (H)</span>
+                    {renderSortIcon('arret_machine')}
+                  </div>
+                </th>
+
+                {/* Type Panne (Col I) */}
+                <th
+                  onClick={() => toggleSort('type_panne')}
+                  className="py-3.5 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[110px]"
+                  title="Cliquer pour trier par Type de Panne"
+                >
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Type</span>
+                    <span className="text-slate-400 font-normal text-[10px]">(Col I)</span>
+                    {renderSortIcon('type_panne')}
+                  </div>
+                </th>
+
+                {/* Anomalie (Col J) */}
+                <th
+                  onClick={() => toggleSort('anomalie')}
+                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[180px]"
+                  title="Cliquer pour trier par Anomalie"
+                >
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <Radio className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Anomalie</span>
+                    <span className="text-slate-400 font-normal text-[10px]">(Col J)</span>
+                    {renderSortIcon('anomalie')}
+                  </div>
+                </th>
+
+                {/* Action / Travail Réalisé (Col K) */}
+                <th className="py-3.5 px-3.5 select-none whitespace-nowrap min-w-[220px]">
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Travail Réalisé</span>
+                    <span className="text-slate-400 font-normal text-[10px]">(Col K)</span>
+                  </div>
+                </th>
+
+                {/* PDR / Marque (Col L/M) */}
+                <th className="py-3.5 px-3.5 select-none whitespace-nowrap min-w-[180px]">
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>PDR & Marque</span>
+                    <span className="text-slate-400 font-normal text-[10px]">(Col L/M)</span>
+                  </div>
+                </th>
+
+                {/* Action Fiche */}
+                <th className="py-3.5 px-3.5 text-center select-none whitespace-nowrap min-w-[90px]">
+                  <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <Eye className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Fiche</span>
+                  </div>
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-sans">
-              {displayedInterventions.map((item, idx) => {
-                if (item.__isEmptyPlaceholder) {
+            <tbody className="divide-y divide-slate-200/80 font-sans">
+              {filteredInterventions.length === 0 ? (
+                <tr>
+                  <td colSpan="12" className="py-12 text-center text-slate-500 font-medium">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <FileSpreadsheet className="w-8 h-8 text-slate-300" />
+                      <span>Aucun rapport d'intervention trouvé pour les filtres sélectionnés.</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                displayedInterventions.map((item, idx) => {
+                  const realIndex = startIndex + idx;
+                  if (item.__isEmptyPlaceholder) {
+                    return (
+                      <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+                        <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
+                          {realIndex + 1}
+                        </td>
+                        <td colSpan={11} className="py-3 px-3 text-center text-slate-300 font-mono text-[11px]">
+                          —
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  const isArret = item.arret_machine === true || item.arret_machine === 'OUI';
+
                   return (
-                    <tr key={item.id} className="h-11 bg-slate-50/20">
-                      <td colSpan={10} className="py-2 px-4 text-slate-300 font-mono text-[11px]">
-                        &nbsp;
+                    <tr
+                      key={item.id || idx}
+                      className="even:bg-slate-50/70 odd:bg-white hover:bg-emerald-50/40 border-b border-slate-200/70 transition-colors"
+                    >
+                      {/* Row N° */}
+                      <td className="py-3 px-3 text-center font-mono text-[11px] font-bold text-slate-400 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
+                        {realIndex + 1}
+                      </td>
+
+                      {/* N° BT */}
+                      <td className="py-3 px-3.5 font-bold text-emerald-900 font-mono whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-700 flex items-center justify-center font-black text-[10px] border border-emerald-200/60 shadow-2xs">
+                            BT
+                          </span>
+                          <span>{item.num_bt || `BT-${String(item.id || 'OK').slice(-4)}`}</span>
+                        </div>
+                      </td>
+
+                      {/* Machine */}
+                      <td className="py-3 px-3.5 font-bold text-slate-800 font-mono whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 text-xs">
+                          {item.code_machine}
+                        </span>
+                      </td>
+
+                      {/* Intervenant */}
+                      <td className="py-3 px-3.5 text-slate-700 font-medium whitespace-nowrap min-w-[150px]">
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span className="font-semibold text-slate-800">{item.intervenant || 'm_hammed'}</span>
+                        </div>
+                      </td>
+
+                      {/* Date Demande */}
+                      <td className="py-3 px-3.5 text-slate-600 font-mono whitespace-nowrap">
+                        <span className="font-semibold text-slate-800">{item.date_demande || item.date || '2026-03-24'}</span>
+                      </td>
+
+                      {/* Temps Ouvré */}
+                      <td className="py-3 px-3.5 font-mono font-bold text-emerald-700 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>{item.temps_intervention_calc || item.temps_intervention || '00:45'}</span>
+                        </div>
+                      </td>
+
+                      {/* Arrêt */}
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                        {isArret ? (
+                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-purple-100 text-purple-800 border border-purple-200 font-mono shadow-2xs">
+                            ARRÊT
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-slate-100 text-slate-500 font-mono">
+                            NON
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Type Panne */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className="px-2.5 py-1 rounded-md font-mono font-bold text-xs bg-slate-100 text-slate-800 border border-slate-200 shadow-2xs">
+                          {item.type_panne || 'M'}
+                        </span>
+                      </td>
+
+                      {/* Anomalie */}
+                      <td className="py-3 px-3.5 font-medium text-slate-800 max-w-xs truncate min-w-[170px]" title={item.anomalie}>
+                        <span className="font-bold text-slate-900">{item.anomalie || 'court_circuit'}</span>
+                      </td>
+
+                      {/* Travail Réalisé */}
+                      <td className="py-3 px-3.5 text-slate-600 max-w-xs truncate min-w-[200px]" title={item.action_realisee || item.travail_a_faire}>
+                        <span className="text-slate-700">{item.action_realisee || item.travail_a_faire || 'Dépannage et remise en route'}</span>
+                      </td>
+
+                      {/* PDR */}
+                      <td className="py-3 px-3.5 text-slate-600 max-w-xs truncate min-w-[160px]">
+                        {item.pdr || item.pdr_ref ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-50 text-cyan-800 border border-cyan-200 text-xs font-mono font-bold shadow-2xs">
+                            <Package className="w-3 h-3 text-cyan-600 shrink-0" />
+                            <span className="truncate">
+                              {item.pdr || item.pdr_ref} {item.marque ? `(${item.marque})` : ''}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 font-mono text-[11px]">—</span>
+                        )}
+                      </td>
+
+                      {/* View Modal Trigger */}
+                      <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                        <button
+                          onClick={() => setPreviewItem(item)}
+                          className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 text-slate-600 hover:text-emerald-800 transition cursor-pointer shadow-2xs active:scale-95"
+                          title="Consulter la fiche technique d'intervention"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
                       </td>
                     </tr>
                   );
-                }
-
-                const isArret = item.arret_machine === true || item.arret_machine === 'OUI';
-
-                return (
-                  <tr
-                    key={item.id || idx}
-                    className="hover:bg-emerald-50/40 transition-colors group h-11"
-                  >
-                    {/* N° BT */}
-                    <td className="py-2.5 px-4 font-black text-slate-900 font-mono flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-700 flex items-center justify-center font-black text-[10px]">
-                        BT
-                      </div>
-                      <span>{item.num_bt || `BT-${item.id?.slice(-4) || 'OK'}`}</span>
-                    </td>
-
-                    {/* Machine */}
-                    <td className="py-2.5 px-4 font-bold text-slate-800 font-mono">
-                      {item.code_machine}
-                    </td>
-
-                    {/* Intervenant */}
-                    <td className="py-2.5 px-4 text-slate-700 font-medium flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{item.intervenant || 'm_hammed'}</span>
-                    </td>
-
-                    {/* Temps Ouvré */}
-                    <td className="py-2.5 px-3 font-mono font-bold text-emerald-700">
-                      {item.temps_intervention_calc || item.temps_intervention || '00:45'}
-                    </td>
-
-                    {/* Arrêt */}
-                    <td className="py-2.5 px-3 text-center">
-                      {isArret ? (
-                        <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-purple-100 text-purple-800 border border-purple-200 font-mono">
-                          ARRÊT
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-slate-100 text-slate-500 font-mono">
-                          NON
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Type Panne */}
-                    <td className="py-2.5 px-3">
-                      <span className="px-2 py-0.5 rounded-md font-mono font-bold text-[10px] bg-slate-100 text-slate-700 border border-slate-200">
-                        {item.type_panne || 'M'}
-                      </span>
-                    </td>
-
-                    {/* Anomalie */}
-                    <td className="py-2.5 px-4 font-medium text-slate-800 max-w-xs truncate" title={item.anomalie}>
-                      {item.anomalie || 'court_circuit'}
-                    </td>
-
-                    {/* Travail Réalisé */}
-                    <td className="py-2.5 px-4 text-slate-600 max-w-xs truncate" title={item.travail_a_faire || item.action_realisee}>
-                      {item.action_realisee || item.travail_a_faire || 'Dépannage et remise en route'}
-                    </td>
-
-                    {/* PDR */}
-                    <td className="py-2.5 px-4 text-slate-600 max-w-xs truncate">
-                      {item.pdr || item.pdr_ref ? (
-                        <span className="text-cyan-800 font-medium flex items-center gap-1">
-                          <Package className="w-3 h-3 text-cyan-600 shrink-0" />
-                          <span className="truncate">{item.pdr || item.pdr_ref} {item.marque ? `(${item.marque})` : ''}</span>
-                        </span>
-                      ) : (
-                        <span className="text-slate-300 font-mono text-[11px]">—</span>
-                      )}
-                    </td>
-
-                    {/* View Modal Trigger */}
-                    <td className="py-2.5 px-4 text-right">
-                      <button
-                        onClick={() => setPreviewItem(item)}
-                        className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition cursor-pointer shadow-2xs"
-                        title="Consulter la fiche technique d'intervention"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                })
+              )}
             </tbody>
           </table>
         </div>
-
-        {/* Table Footer & Pagination */}
-        <div className="bg-slate-50/90 px-4 py-3 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600">
-          <div className="flex items-center gap-2">
-            <span>Afficher par page :</span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-xs focus:outline-hidden"
-            >
-              <option value={15}>15 lignes</option>
-              <option value={20}>20 lignes</option>
-              <option value={50}>50 lignes</option>
-              <option value={100}>100 lignes</option>
-              <option value={0}>Tous ({totalItems})</option>
-            </select>
-            <span className="text-slate-400 font-mono">
-              ({startIndex + 1} à {Math.min(startIndex + effectivePageSize, totalItems)} sur {totalItems})
-            </span>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center gap-1">
-              <button
-                disabled={currentPage <= 1}
-                onClick={() => setCurrentPage((p) => p - 1)}
-                className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none font-bold text-xs cursor-pointer shadow-2xs"
-              >
-                Précédent
-              </button>
-              <span className="px-3 font-mono font-bold text-slate-800">
-                Page {currentPage} / {totalPages}
-              </span>
-              <button
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage((p) => p + 1)}
-                className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none font-bold text-xs cursor-pointer shadow-2xs"
-              >
-                Suivant
-              </button>
-            </div>
-          )}
-        </div>
       </div>
+
+      {/* Pagination Footer */}
+      <TablePaginationCard
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        totalItems={totalItems}
+        pageSizeOptions={[20, 25, 50, 100, 200, 0]}
+        color="emerald"
+      />
 
       {/* Technical Report Preview Modal */}
       {previewItem && (

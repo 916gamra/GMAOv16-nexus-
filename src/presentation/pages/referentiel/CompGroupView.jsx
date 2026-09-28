@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import AnimatedPage from '../../components/common/AnimatedPage';
 import Action3DButton from '../../components/common/Action3DButton';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
+import TablePaginationCard from '../../components/common/TablePaginationCard';
 import {
   Search,
   ArrowRight,
@@ -11,8 +12,6 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   RotateCcw,
   X,
@@ -154,7 +153,6 @@ export default function CompGroupView({
   }, [filtered, sortField, sortOrder, groupStats]);
 
   const totalItems = sortedData.length;
-  const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / pageSize);
   const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
   const startIndex = (currentPage - 1) * effectivePageSize;
   const rawDisplayedData =
@@ -815,63 +813,15 @@ export default function CompGroupView({
       </div>
 
       {/* Pagination Footer */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-slate-600">Lignes par page :</span>
-          <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-            {[20, 50, 100, 200, 0].map((size) => (
-              <button
-                key={size}
-                onClick={() => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                  pageSize === size
-                    ? 'bg-white text-indigo-800 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] border border-slate-200/50'
-                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                }`}
-              >
-                {size === 0 ? 'Tout' : size}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-xs font-semibold text-slate-500">
-            Affichage <b className="text-slate-900">{totalItems === 0 ? 0 : startIndex + 1}</b> à{' '}
-            <b className="text-slate-900">{Math.min(startIndex + effectivePageSize, totalItems)}</b> sur{' '}
-            <b className="text-slate-900">{totalItems}</b>
-          </div>
-
-          {pageSize !== 0 && totalPages > 1 && (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Précédent
-              </button>
-
-              <span className="px-2 font-mono text-xs font-bold text-slate-600">
-                {currentPage} / {totalPages}
-              </span>
-
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
-              >
-                Suivant
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      <TablePaginationCard
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        totalItems={totalItems}
+        pageSizeOptions={[20, 50, 100, 200, 0]}
+        color="indigo"
+      />
 
       {/* Modal: Add Group */}
       {showAddModal && (

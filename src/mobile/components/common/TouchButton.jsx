@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Mobile-optimised touch button with minimum 44px height and ripple effect.
  */

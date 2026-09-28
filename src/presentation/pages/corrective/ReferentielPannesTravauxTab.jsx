@@ -14,6 +14,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import CustomSelect from '../../components/common/CustomSelect';
 import PannesCatalogTab from './referentiel/PannesCatalogTab';
 import TravauxStandardTab from './referentiel/TravauxStandardTab';
 import MatricesActionsTab from './referentiel/MatricesActionsTab';
@@ -258,6 +259,31 @@ export default function ReferentielPannesTravauxTab({
     }
   };
 
+  // Category options formatted for CustomSelect
+  const categoryOptions = useMemo(() => {
+    const list = [
+      {
+        value: 'ALL',
+        label: `Toutes les Catégories (${totalPannesCount})`,
+        badge: totalPannesCount,
+        badgeColor: 'bg-slate-100 text-slate-800 border-slate-300',
+      },
+    ];
+
+    allCategories.forEach((cat) => {
+      const meta = CATEGORY_META[cat] || { label: cat };
+      const count = (panneCategories[cat] || []).length;
+      list.push({
+        value: cat,
+        label: `${cat} - ${meta.label} (${count})`,
+        badge: count,
+        badgeColor: meta.color || 'bg-amber-100 text-amber-900 border-amber-300',
+      });
+    });
+
+    return list;
+  }, [allCategories, panneCategories, totalPannesCount]);
+
   return (
     <div className="space-y-6">
       {/* 1. Header & KPI Metrics Card */}
@@ -393,31 +419,31 @@ export default function ReferentielPannesTravauxTab({
         </div>
       )}
 
-      {/* 2. Multi-Criteria Filter & Search Card Archetype (Identical to StockView original archetype) */}
-      <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/90 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05),0_4px_10px_-2px_rgba(0,0,0,0.02)] space-y-3.5">
-        {/* Header Row: Title with Icon, Result Count & Reset Button */}
+      {/* 2. Unified Multi-Criteria Filter & Search Card Archetype */}
+      <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/90 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05),0_4px_10px_-2px_rgba(0,0,0,0.02)] space-y-4">
+        {/* Header Row: Title with Icon, Dynamic Count & Reset Button */}
         <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100/90">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-300/80 flex items-center justify-center text-amber-700 shadow-2xs">
-              <Filter className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-transparent border border-amber-300/80 flex items-center justify-center text-amber-700 shadow-2xs">
+              <Filter className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+              <h3 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
                 <span>Filtres & Recherche Avancée</span>
-                <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200/80">
+                <span className="px-2 py-0.5 rounded-md text-[10.5px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200/80">
                   {subTab === 'pannes'
-                    ? `${filteredPannes.length} Pannes`
+                    ? `${filteredPannes.length} / ${totalPannesCount} Pannes`
                     : subTab === 'travaux'
-                    ? `${filteredTravaux.length} Travaux`
+                    ? `${filteredTravaux.length} / ${totalTravauxCount} Travaux`
                     : subTab === 'actions'
-                    ? `${filteredActionsMatrix.length} Pannes`
-                    : `${filteredIntervenants.length} Intervenants`}
+                    ? `${filteredActionsMatrix.length} / ${totalActionsKeysCount} Matrices`
+                    : `${filteredIntervenants.length} / ${totalIntervenantsCount} Intervenants`}
                 </span>
               </h3>
             </div>
           </div>
 
-          {/* Reset Filters button */}
+          {/* Reset Filters 3D Button */}
           {(searchQuery || selectedCategory !== 'ALL') && (
             <button
               type="button"
@@ -425,27 +451,28 @@ export default function ReferentielPannesTravauxTab({
                 setSearchQuery('');
                 setSelectedCategory('ALL');
               }}
-              className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in"
+              className="px-3 py-1.5 rounded-xl border border-rose-200/90 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 animate-in fade-in"
               title="Réinitialiser tous les filtres"
             >
               <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Réinitialiser</span>
             </button>
           )}
         </div>
 
         {/* 2. Grid Row: Omni-Text Search Input & Category Dropdown */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 items-end">
+        <div className={`grid grid-cols-1 ${subTab === 'pannes' ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-1'} gap-3.5 items-end`}>
           {/* Omni Search Input */}
-          <div className="w-full sm:col-span-2 lg:col-span-2">
-            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
+          <div className={subTab === 'pannes' ? 'sm:col-span-1 lg:col-span-2' : 'w-full'}>
+            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800 font-mono">
               <span>Recherche Multi-Critères</span>
               <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200/80">
                 Mots-Clés / Codes
               </span>
             </div>
             <div className="relative">
-              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shadow-2xs pointer-events-none">
-                <Search className="w-3 h-3" />
+              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shadow-2xs pointer-events-none">
+                <Search className="w-3.5 h-3.5" />
               </div>
               <input
                 type="text"
@@ -453,72 +480,65 @@ export default function ReferentielPannesTravauxTab({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={`Rechercher dans ${
                   subTab === 'pannes'
-                    ? 'les 282 pannes...'
+                    ? 'les 282 pannes cataloguées...'
                     : subTab === 'travaux'
-                    ? 'les 114 travaux...'
+                    ? 'les 114 travaux standards...'
                     : subTab === 'actions'
-                    ? 'les matrices d\'actions...'
-                    : 'les intervenants...'
+                    ? 'les 71 matrices d\'actions...'
+                    : 'les techniciens habilités...'
                 }`}
-                className="w-full h-9 pl-9 pr-7 rounded-xl border border-slate-200 bg-slate-50/70 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 transition-colors"
+                className="w-full h-10 pl-10 pr-8 rounded-xl border border-slate-200/90 bg-slate-50/80 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all shadow-inner"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 cursor-pointer p-0.5"
                   title="Effacer la recherche"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-4 h-4" />
                 </button>
               )}
             </div>
           </div>
 
-          {/* Category Dropdown (When in pannes tab) */}
+          {/* Category CustomSelect Dropdown (When in pannes tab) */}
           {subTab === 'pannes' && (
             <div>
-              <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
+              <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800 font-mono">
                 <span>Catégorie D'Anomalie</span>
-                <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
-                  10 Types
+                <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200/80">
+                  10 Familles
                 </span>
               </div>
-              <select
+              <CustomSelect
                 value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer transition-colors"
-              >
-                <option value="ALL">Toutes les Catégories ({totalPannesCount})</option>
-                {allCategories.map((cat) => {
-                  const meta = CATEGORY_META[cat] || { label: cat };
-                  const count = (panneCategories[cat] || []).length;
-                  return (
-                    <option key={cat} value={cat}>
-                      {meta.label} ({count})
-                    </option>
-                  );
-                })}
-              </select>
+                onChange={(val) => setSelectedCategory(val)}
+                options={categoryOptions}
+                placeholder="Sélectionner une catégorie..."
+                prefixIcon={ShieldAlert}
+                prefixIconClassName="text-amber-600"
+                className="h-10 text-xs font-semibold"
+              />
             </div>
           )}
         </div>
 
-        {/* 3. Category Tags Row (When in pannes tab) */}
+        {/* 3. Category Fast Pills Row (When in pannes tab) */}
         {subTab === 'pannes' && (
-          <div className="pt-2.5 border-t border-slate-100/90 flex items-center gap-1.5 flex-wrap">
+          <div className="pt-3 border-t border-slate-100/90 flex items-center gap-1.5 flex-wrap">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 flex items-center gap-1 font-mono">
-              <SlidersHorizontal className="w-3 h-3 text-slate-400" />
+              <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
               Filtre Rapide :
             </span>
 
             <button
               type="button"
               onClick={() => setSelectedCategory('ALL')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition cursor-pointer active:scale-95 ${
                 selectedCategory === 'ALL'
-                  ? 'bg-slate-900 text-white shadow-2xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-slate-900 text-white shadow-2xs font-black'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
               }`}
             >
               Toutes ({totalPannesCount})
@@ -533,15 +553,15 @@ export default function ReferentielPannesTravauxTab({
                   key={cat}
                   type="button"
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95 ${
                     isSelected
-                      ? `${meta.color} ring-1 ring-slate-400 shadow-2xs`
+                      ? `${meta.color} ring-2 ring-amber-500/40 shadow-2xs font-black`
                       : 'bg-slate-100/90 text-slate-600 hover:bg-slate-200/80 border border-slate-200/60'
                   }`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${meta.dot || 'bg-slate-400'}`} />
+                  <span className={`w-2 h-2 rounded-full ${meta.dot || 'bg-slate-400'}`} />
                   <span>{meta.label}</span>
-                  <span className="px-1 py-0.1 text-[9.5px] font-mono rounded bg-white/60">
+                  <span className="px-1.5 py-0.2 text-[9.5px] font-mono font-bold rounded-md bg-white/80 border border-slate-200/50">
                     {count}
                   </span>
                 </button>

@@ -22,7 +22,7 @@ describe('AutoBackupService', () => {
     expect(list[0].id).toBe(snap.id);
   });
 
-  it('should restore data from snapshot correctly', () => {
+  it('should restore data from snapshot correctly', async () => {
     localStorage.setItem('gmao_spare_parts', JSON.stringify([{ id: 1, ref: 'OLD-REF' }]));
     const snap1 = AutoBackupService.createSnapshot('Initial state', false);
 
@@ -30,7 +30,7 @@ describe('AutoBackupService', () => {
     localStorage.setItem('gmao_spare_parts', JSON.stringify([{ id: 2, ref: 'MODIFIED-REF' }]));
 
     // Restore snap1
-    const ok = AutoBackupService.restoreSnapshot(snap1.id);
+    const ok = await AutoBackupService.restoreSnapshot(snap1.id);
     expect(ok).toBe(true);
 
     const restored = JSON.parse(localStorage.getItem('gmao_spare_parts'));

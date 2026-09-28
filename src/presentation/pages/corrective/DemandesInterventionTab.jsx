@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   Flame,
   AlertTriangle,
@@ -6,7 +6,6 @@ import {
   ArrowRight,
   Search,
   Clock,
-  CheckCircle,
   SlidersHorizontal,
   RotateCcw,
   FileSpreadsheet,
@@ -17,10 +16,16 @@ import {
   Layers,
   Wrench,
   Check,
-  Zap,
   BookOpen,
+  Factory,
+  ChevronDown,
+  User,
+  Radio,
+  Power,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import CustomSelect from '../../components/common/CustomSelect';
+import TablePaginationCard from '../../components/common/TablePaginationCard';
 
 export default function DemandesInterventionTab({
   interventions = [],
@@ -28,6 +33,8 @@ export default function DemandesInterventionTab({
   onConvertToBt,
   machines = [],
   technicians = [],
+  stockItems = [],
+  warehouseItems = [],
   actionsByPanne = {},
   panneCategories = {},
   travauxAFaire = [],
@@ -65,6 +72,18 @@ export default function DemandesInterventionTab({
   const [sortOrder, setSortOrder] = useState('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const sortMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target)) {
+        setShowSortMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Robust search for suggested actions for a panne anomalie
   const getActionsForPanne = useCallback((anomalie) => {
@@ -162,6 +181,10 @@ export default function DemandesInterventionTab({
   // Form State for new DI
   const [newForm, setNewForm] = useState({
     code_machine: allMachineOptions[0]?.code || allMachineOptions[0]?.id_machine_registered || 'RCP-02',
+    id_composant: '',
+    id_part: '',
+    pdr_ref: '',
+    pdr_quantite: 1,
     demandeur: 'Production',
     priorite: 'HAUTE',
     type_panne: 'E',
@@ -169,6 +192,28 @@ export default function DemandesInterventionTab({
     travail_a_faire: '',
     arret_machine: true,
   });
+
+  // Available components for the selected machine from Entrepôt
+  const machineComponents = useMemo(() => {
+    if (!newForm.code_machine || !Array.isArray(warehouseItems)) return [];
+    const code = String(newForm.code_machine).trim().toUpperCase();
+    return warehouseItems.filter((w) => {
+      const wMach = String(w.id_machine_registered || w.id_machine || '').trim().toUpperCase();
+      const isComp = w.category === 'COMPOSANT' || w.type === 'COMPOSANT' || (!w.part_type && !w.id_part);
+      return (wMach === code || wMach.includes(code)) && isComp;
+    });
+  }, [newForm.code_machine, warehouseItems]);
+
+  // Available special parts for the selected machine from Entrepôt
+  const machineParts = useMemo(() => {
+    if (!newForm.code_machine || !Array.isArray(warehouseItems)) return [];
+    const code = String(newForm.code_machine).trim().toUpperCase();
+    return warehouseItems.filter((w) => {
+      const wMach = String(w.id_machine_registered || w.id_machine || '').trim().toUpperCase();
+      const isPart = w.category === 'PART' || w.type === 'PART' || Boolean(w.part_type);
+      return (wMach === code || wMach.includes(code)) && isPart;
+    });
+  }, [newForm.code_machine, warehouseItems]);
 
   useEffect(() => {
     if (presetData) {
@@ -286,14 +331,13 @@ export default function DemandesInterventionTab({
   // Pagination
   const totalItems = sortedDis.length;
   const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
-  const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / effectivePageSize) || 1;
   const startIndex = (currentPage - 1) * effectivePageSize;
   const rawDisplayedDis =
     pageSize === 0 ? sortedDis : sortedDis.slice(startIndex, startIndex + effectivePageSize);
 
   // Table row padding to guarantee crisp Excel layout
   const displayedDis = useMemo(() => {
-    const minRows = 15;
+    const minRows = 20;
     if (rawDisplayedDis.length >= minRows) return rawDisplayedDis;
     const padded = [...rawDisplayedDis];
     for (let i = 0; i < minRows - rawDisplayedDis.length; i++) {
@@ -578,8 +622,8 @@ export default function DemandesInterventionTab({
       </div>
 
       {/* 2. Filter & Search Card (Unified Mature Light UI Design System) */}
-      <div className="relative z-30 bg-white border border-slate-200/90 rounded-2xl p-4 md:p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out space-y-4">
-        {/* Top Header */}
+      <div className="relative z-30 bg-white border border-slate-200 rounded-2xl p-4 md:p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out space-y-4">
+        {/* Filter Card Top Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-200/80 flex items-center justify-center text-amber-700 shadow-2xs">
@@ -615,7 +659,7 @@ export default function DemandesInterventionTab({
               <button
                 type="button"
                 onClick={clearAllFilters}
-                className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95"
+                className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in"
                 title="Réinitialiser tous les filtres actifs"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -639,24 +683,33 @@ export default function DemandesInterventionTab({
             Statut DI :
           </span>
           {[
-            { key: 'ALL', label: 'Toutes', count: interventions.length },
+            {
+              key: 'ALL',
+              label: 'Toutes Demandes',
+              count: interventions.length,
+              activeBg: 'bg-slate-900 text-white shadow-xs',
+              colorDot: null,
+            },
             {
               key: 'DEMANDE',
               label: 'En Attente',
               count: kpiStats.pending,
-              color: 'text-rose-700 bg-rose-50 border-rose-200',
+              activeBg: 'bg-rose-600 text-white shadow-xs',
+              colorDot: 'bg-rose-500',
             },
             {
               key: 'EN_COURS',
               label: 'Converties BT',
               count: kpiStats.converted,
-              color: 'text-blue-700 bg-blue-50 border-blue-200',
+              activeBg: 'bg-blue-600 text-white shadow-xs',
+              colorDot: 'bg-blue-500',
             },
             {
               key: 'ARRET',
               label: 'Arrêt Machine',
               count: kpiStats.arret,
-              color: 'text-purple-700 bg-purple-50 border-purple-200',
+              activeBg: 'bg-purple-600 text-white shadow-xs',
+              colorDot: 'bg-purple-500',
             },
           ].map((preset) => {
             const isActive = filterStatus === preset.key;
@@ -664,17 +717,27 @@ export default function DemandesInterventionTab({
               <button
                 key={preset.key}
                 type="button"
-                onClick={() => setFilterStatus(preset.key)}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer text-xs ${
+                onClick={() => {
+                  setFilterStatus(preset.key);
+                  setCurrentPage(1);
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                   isActive
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                    ? preset.activeBg
+                    : 'bg-slate-100/80 hover:bg-slate-200/80 text-slate-700 border border-slate-200/60'
                 }`}
               >
+                {preset.colorDot && (
+                  <span
+                    className={`w-2 h-2 rounded-full ${preset.colorDot} ${
+                      isActive ? 'ring-2 ring-white/50' : ''
+                    }`}
+                  />
+                )}
                 <span>{preset.label}</span>
                 <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-extrabold ${
-                    isActive ? 'bg-white/20 text-white' : preset.color || 'bg-white text-slate-700'
+                  className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-white text-slate-600 border border-slate-200/60'
                   }`}
                 >
                   {preset.count}
@@ -684,303 +747,607 @@ export default function DemandesInterventionTab({
           })}
         </div>
 
-        {/* 4-Column Dropdowns Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
-          {/* Search Box */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
+        {/* 5-Column Multi-Criteria Filter Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 items-end">
+          {/* 1. Omni-Text Search */}
+          <div className="w-full sm:col-span-2 lg:col-span-1">
+            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
+              <span>Recherche</span>
+              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200/80">
+                Col. A+J
+              </span>
+            </div>
+            <div className="relative">
+              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shadow-2xs pointer-events-none">
+                <Search className="w-3 h-3" />
+              </div>
+              <input
+                type="text"
+                placeholder="Machine, anomalie, BT..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-9 pl-9 pr-7 rounded-xl border border-slate-200 bg-slate-50/70 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 transition-colors"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setCurrentPage(1);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 cursor-pointer"
+                  title="Effacer la recherche"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 2. Machine Filter (Col. A) */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
+              <span>Machine</span>
+              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
+                Col. A
+              </span>
+            </div>
+            <CustomSelect
+              value={filterMachine}
+              prefixIcon={
+                <span className="w-5 h-5 rounded-md bg-amber-100 border border-amber-300/80 flex items-center justify-center text-amber-700 shadow-2xs">
+                  <Factory className="w-3 h-3" />
+                </span>
+              }
+              onChange={(val) => {
+                setFilterMachine(val);
                 setCurrentPage(1);
               }}
-              placeholder="Rechercher machine, anomalie, BT..."
-              className="w-full pl-9 pr-8 py-2 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50/70 focus:bg-white focus:border-amber-400 focus:outline-hidden transition"
+              searchable
+              options={[
+                { value: 'ALL', label: `Toutes les Machines (${allMachineOptions.length})` },
+                ...allMachineOptions.map((m) => {
+                  const code = m.code || m.id_machine_registered || m.id;
+                  return {
+                    value: code,
+                    label: `${code} ${m.zone ? `(${m.zone})` : ''}`,
+                    sublabel: m.designation,
+                  };
+                }),
+              ]}
             />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+          </div>
+
+          {/* 3. Type Panne Filter (Col. I) */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
+              <span>Type de Panne</span>
+              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-cyan-50 text-cyan-700 border border-cyan-200/80">
+                Col. I
+              </span>
+            </div>
+            <CustomSelect
+              value={filterTypePanne}
+              prefixIcon={
+                <span className="w-5 h-5 rounded-md bg-cyan-100 border border-cyan-300/80 flex items-center justify-center text-cyan-700 shadow-2xs">
+                  <Layers className="w-3 h-3" />
+                </span>
+              }
+              onChange={(val) => {
+                setFilterTypePanne(val);
+                setCurrentPage(1);
+              }}
+              options={[
+                { value: 'ALL', label: `Tous Types (${availableCategories.length})` },
+                ...availableCategories.map((cat) => ({
+                  value: cat,
+                  label: `Type ${cat} (${panneCategories[cat]?.length || 0} anomalies)`,
+                })),
+              ]}
+            />
+          </div>
+
+          {/* 4. Urgence / Priorité */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
+              <span>Urgence / Priorité</span>
+              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200/80">
+                Priorité
+              </span>
+            </div>
+            <CustomSelect
+              value={filterUrgence}
+              prefixIcon={
+                <span className="w-5 h-5 rounded-md bg-rose-100 border border-rose-300/80 flex items-center justify-center text-rose-700 shadow-2xs">
+                  <Flame className="w-3 h-3" />
+                </span>
+              }
+              onChange={(val) => {
+                setFilterUrgence(val);
+                setCurrentPage(1);
+              }}
+              options={[
+                { value: 'ALL', label: 'Toutes les Urgences' },
+                { value: 'HAUTE', label: '🔴 HAUTE (Urgent)' },
+                { value: 'MOYENNE', label: '🟡 MOYENNE (Normal)' },
+                { value: 'BASSE', label: '⚪ BASSE (Faible)' },
+              ]}
+            />
+          </div>
+
+          {/* 5. Sort Menu Button & Popover */}
+          <div className="relative" ref={sortMenuRef}>
+            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
+              <span>Tri & Ordre</span>
+              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+                Col. A→J
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              className={`w-full h-9 px-2.5 rounded-xl border text-xs font-semibold transition flex items-center justify-between cursor-pointer ${
+                showSortMenu || sortField !== 'date_demande' || sortOrder !== 'desc'
+                  ? 'bg-indigo-50/80 text-indigo-950 border-indigo-300 ring-1 ring-indigo-200'
+                  : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              <div className="flex items-center gap-2 truncate">
+                <span className="w-5 h-5 rounded-md bg-indigo-100 border border-indigo-300/80 flex items-center justify-center text-indigo-700 shrink-0 shadow-2xs">
+                  <ArrowUpDown className="w-3 h-3" />
+                </span>
+                <span className="truncate">
+                  Tri : <b className="font-mono text-slate-900">{sortField.slice(0, 10).toUpperCase()}</b> (
+                  {sortOrder === 'asc' ? 'A→Z' : 'Z→A'})
+                </span>
+              </div>
+              <ChevronDown
+                className={`w-3 h-3 text-slate-400 transition-transform shrink-0 ${showSortMenu ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            {/* Sort Popover Menu */}
+            {showSortMenu && (
+              <div className="absolute right-0 mt-1 w-64 bg-white rounded-2xl border border-slate-200 shadow-xl z-50 p-2.5 space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <span>Sélectionner la Colonne de Tri</span>
+                  <span>A→J</span>
+                </div>
+                <div className="grid grid-cols-1 gap-1 text-xs max-h-60 overflow-y-auto pr-0.5">
+                  {[
+                    { key: 'code_machine', label: 'Machine (Col. A)' },
+                    { key: 'date_demande', label: 'Date & Heure (Col. C)' },
+                    { key: 'type_panne', label: 'Type Panne (Col. I)' },
+                    { key: 'anomalie', label: 'Anomalie Constatée (Col. J)' },
+                    { key: 'demandeur', label: 'Demandeur / Émetteur' },
+                    { key: 'arret_machine', label: 'Arrêt Machine' },
+                    { key: 'priorite', label: 'Priorité & Urgence' },
+                    { key: 'statut', label: 'Statut de la Demande' },
+                    { key: 'num_bt', label: 'N° Bon de Travail (BT)' },
+                  ].map((col) => (
+                    <button
+                      key={col.key}
+                      type="button"
+                      onClick={() => {
+                        toggleSort(col.key);
+                        setShowSortMenu(false);
+                      }}
+                      className={`px-2.5 py-1.5 rounded-lg border text-left font-medium text-[11px] flex items-center justify-between transition cursor-pointer ${
+                        sortField === col.key
+                          ? 'bg-indigo-50 text-indigo-950 border-indigo-300 font-bold'
+                          : 'bg-slate-50 text-slate-700 border-slate-200/80 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span>{col.label}</span>
+                      {sortField === col.key && (
+                        sortOrder === 'asc' ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-indigo-700" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-indigo-700" />
+                        )
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
-
-          {/* Machine Filter */}
-          <div>
-            <select
-              value={filterMachine}
-              onChange={(e) => {
-                setFilterMachine(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full py-2 px-3 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50/70 focus:bg-white focus:border-amber-400 focus:outline-hidden transition"
-            >
-              <option value="ALL">Toutes les Machines ({allMachineOptions.length})</option>
-              {allMachineOptions.slice(0, 50).map((m) => {
-                const code = m.code || m.id_machine_registered || m.id;
-                return (
-                  <option key={code} value={code}>
-                    {code} {m.zone ? `(${m.zone})` : ''}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-
-          {/* Type Panne Filter */}
-          <div>
-            <select
-              value={filterTypePanne}
-              onChange={(e) => {
-                setFilterTypePanne(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full py-2 px-3 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50/70 focus:bg-white focus:border-amber-400 focus:outline-hidden transition"
-            >
-              <option value="ALL">Tous Types Panne ({availableCategories.length})</option>
-              {availableCategories.map((cat) => (
-                <option key={cat} value={cat}>
-                  Type {cat} ({panneCategories[cat]?.length || 0} anomalies)
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Urgence Filter */}
-          <div>
-            <select
-              value={filterUrgence}
-              onChange={(e) => {
-                setFilterUrgence(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full py-2 px-3 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50/70 focus:bg-white focus:border-amber-400 focus:outline-hidden transition"
-            >
-              <option value="ALL">Toutes les Urgences</option>
-              <option value="HAUTE">HAUTE (Urgent)</option>
-              <option value="MOYENNE">MOYENNE (Normal)</option>
-              <option value="BASSE">BASSE (Faible)</option>
-            </select>
-          </div>
         </div>
+
+        {/* Active Filter Chips Bar */}
+        {hasActiveFilters && (
+          <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 flex-wrap gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-bold text-slate-400 text-[11px] uppercase tracking-wider">
+                Filtres actifs :
+              </span>
+              {searchTerm && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-800 font-bold text-[11px] border border-slate-200">
+                  <span>Recherche: &quot;{searchTerm}&quot;</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setCurrentPage(1);
+                    }}
+                    className="hover:text-rose-600 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {filterStatus !== 'ALL' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-800 font-bold text-[11px] border border-amber-200">
+                  <span>Statut: {filterStatus}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterStatus('ALL');
+                      setCurrentPage(1);
+                    }}
+                    className="hover:text-amber-950 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {filterMachine !== 'ALL' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 font-bold text-[11px] border border-amber-200">
+                  <span>Machine: {filterMachine}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterMachine('ALL');
+                      setCurrentPage(1);
+                    }}
+                    className="hover:text-amber-900 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {filterTypePanne !== 'ALL' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-50 text-cyan-700 font-bold text-[11px] border border-cyan-200">
+                  <span>Type: {filterTypePanne}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterTypePanne('ALL');
+                      setCurrentPage(1);
+                    }}
+                    className="hover:text-cyan-900 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {filterUrgence !== 'ALL' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 text-rose-700 font-bold text-[11px] border border-rose-200">
+                  <span>Urgence: {filterUrgence}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterUrgence('ALL');
+                      setCurrentPage(1);
+                    }}
+                    className="hover:text-rose-900 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="text-slate-400 hover:text-rose-600 font-semibold text-[11px] transition cursor-pointer flex items-center gap-1"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Tout effacer</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 3. Excel-Grade Clean Industrial Data Table */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-slate-50/90 text-slate-700 text-[11px] font-black uppercase tracking-wider border-b border-slate-200 select-none">
+      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] overflow-hidden">
+        {/* Subheader info bar */}
+        <div className="bg-slate-50/80 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs font-bold text-slate-600">
+          <div className="flex items-center gap-2">
+            <FileSpreadsheet className="w-4 h-4 text-amber-600" />
+            <span>Tableau Demandes_Intervention • Ordre Excel Row 3 : A → J</span>
+          </div>
+          <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
+            N° | Machine (A) | Date & Heure (C) | Type (I) | Anomalie Constatée (J) | Demandeur / Travail | Arrêt | Priorité | Statut | Action BT
+          </div>
+        </div>
+
+        <div className="h-[1150px] overflow-y-auto overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs min-w-[1350px]">
+            <thead className="sticky top-0 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 z-10 shadow-2xs select-none">
+              <tr>
+                {/* Row N° Column Header */}
+                <th className="py-3.5 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0 select-none whitespace-nowrap">
+                  N°
+                </th>
+
+                {/* Machine (Col A) */}
                 <th
                   onClick={() => toggleSort('code_machine')}
-                  className="py-3 px-4 cursor-pointer hover:bg-slate-100 transition group"
+                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[160px]"
+                  title="Cliquer pour trier par Machine"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span>Machine (Col A)</span>
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <Factory className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Machine</span>
+                    <span className="text-slate-400 font-normal text-[10px]">(Col A)</span>
                     {renderSortIcon('code_machine')}
                   </div>
                 </th>
+
+                {/* Date & Heure (Col C) */}
                 <th
                   onClick={() => toggleSort('date_demande')}
-                  className="py-3 px-4 cursor-pointer hover:bg-slate-100 transition group"
+                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[170px]"
+                  title="Cliquer pour trier par Date & Heure"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span>Date & Heure (Col C)</span>
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Date & Heure</span>
+                    <span className="text-slate-400 font-normal text-[10px]">(Col C)</span>
                     {renderSortIcon('date_demande')}
                   </div>
                 </th>
+
+                {/* Type (Col I) */}
                 <th
                   onClick={() => toggleSort('type_panne')}
-                  className="py-3 px-3 cursor-pointer hover:bg-slate-100 transition group"
+                  className="py-3.5 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[110px]"
+                  title="Cliquer pour trier par Type de Panne"
                 >
-                  <div className="flex items-center gap-1.5">
-                    <span>Type (Col I)</span>
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Type</span>
+                    <span className="text-slate-400 font-normal text-[10px]">(Col I)</span>
                     {renderSortIcon('type_panne')}
                   </div>
                 </th>
-                <th className="py-3 px-4">Anomalie Constatée (Col J)</th>
-                <th className="py-3 px-4">Demandeur / Travail Demandé</th>
-                <th className="py-3 px-3 text-center">Arrêt Machine</th>
-                <th className="py-3 px-3 text-center">Priorité</th>
-                <th className="py-3 px-3 text-center">Statut</th>
-                <th className="py-3 px-4 text-right">Action Rapide</th>
+
+                {/* Anomalie (Col J) */}
+                <th
+                  onClick={() => toggleSort('anomalie')}
+                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[220px]"
+                  title="Cliquer pour trier par Anomalie"
+                >
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <AlertTriangle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Anomalie Constatée</span>
+                    <span className="text-slate-400 font-normal text-[10px]">(Col J)</span>
+                    {renderSortIcon('anomalie')}
+                  </div>
+                </th>
+
+                {/* Demandeur / Travail */}
+                <th className="py-3.5 px-3.5 select-none whitespace-nowrap min-w-[260px]">
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                    <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Demandeur / Travail Demandé</span>
+                  </div>
+                </th>
+
+                {/* Arrêt Machine */}
+                <th
+                  onClick={() => toggleSort('arret_machine')}
+                  className="py-3.5 px-3 text-center cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[140px]"
+                  title="Cliquer pour trier par Arrêt Machine"
+                >
+                  <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <Power className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Arrêt Machine</span>
+                    {renderSortIcon('arret_machine')}
+                  </div>
+                </th>
+
+                {/* Priorité */}
+                <th
+                  onClick={() => toggleSort('priorite')}
+                  className="py-3.5 px-3 text-center cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[120px]"
+                  title="Cliquer pour trier par Priorité"
+                >
+                  <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <Flame className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Priorité</span>
+                    {renderSortIcon('priorite')}
+                  </div>
+                </th>
+
+                {/* Statut */}
+                <th
+                  onClick={() => toggleSort('statut')}
+                  className="py-3.5 px-3 text-center cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[130px]"
+                  title="Cliquer pour trier par Statut"
+                >
+                  <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <Radio className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Statut</span>
+                    {renderSortIcon('statut')}
+                  </div>
+                </th>
+
+                {/* Action Rapide */}
+                <th className="py-3.5 px-3.5 text-center select-none whitespace-nowrap min-w-[140px]">
+                  <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Action Rapide</span>
+                  </div>
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 font-sans">
-              {displayedDis.map((di, idx) => {
-                if (di.__isEmptyPlaceholder) {
+            <tbody className="divide-y divide-slate-200/80 font-sans">
+              {filteredDis.length === 0 ? (
+                <tr>
+                  <td colSpan="10" className="py-12 text-center text-slate-500 font-medium">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Flame className="w-8 h-8 text-slate-300" />
+                      <span>Aucune demande d'intervention trouvée pour les filtres sélectionnés.</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                displayedDis.map((di, idx) => {
+                  const realIndex = startIndex + idx;
+                  if (di.__isEmptyPlaceholder) {
+                    return (
+                      <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+                        <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
+                          {realIndex + 1}
+                        </td>
+                        <td colSpan={9} className="py-3 px-3 text-center text-slate-300 font-mono text-[11px]">
+                          —
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  const isPending =
+                    di.statut === 'DEMANDE' ||
+                    di.statut === 'DEMANDE_CREEE' ||
+                    di.statut === 'EN_ATTENTE_VALIDATION';
+                  const isArret = di.arret_machine === true || di.arret_machine === 'OUI';
+
                   return (
-                    <tr key={di.id} className="h-11 bg-slate-50/20">
-                      <td colSpan={9} className="py-2 px-4 text-slate-300 font-mono text-[11px]">
-                        &nbsp;
+                    <tr
+                      key={di.id || idx}
+                      className="even:bg-slate-50/70 odd:bg-white hover:bg-amber-50/40 border-b border-slate-200/70 transition-colors"
+                    >
+                      {/* Row N° */}
+                      <td className="py-3 px-3 text-center font-mono text-[11px] font-bold text-slate-400 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
+                        {realIndex + 1}
+                      </td>
+
+                      {/* Machine */}
+                      <td className="py-3 px-4 font-bold text-slate-900 font-mono whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-700 flex items-center justify-center font-black text-[10px] border border-amber-200/60 shadow-2xs">
+                            {String(di.code_machine || 'MCH').slice(0, 3)}
+                          </span>
+                          <span>{di.code_machine}</span>
+                        </div>
+                      </td>
+
+                      {/* Date / Heure */}
+                      <td className="py-3 px-4 text-slate-600 font-mono whitespace-nowrap">
+                        <div className="font-semibold text-slate-800">{di.date_demande || di.date || '2026-03-24'}</div>
+                        <div className="text-[10.5px] text-slate-400">{di.heure_demande || di.heure || '08:00'}</div>
+                      </td>
+
+                      {/* Type Panne */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className="px-2.5 py-1 rounded-md font-mono font-bold text-xs bg-slate-100 text-slate-800 border border-slate-200 shadow-2xs">
+                          {di.type_panne || 'M'}
+                        </span>
+                      </td>
+
+                      {/* Anomalie */}
+                      <td className="py-3 px-4 font-medium text-slate-800 max-w-xs truncate min-w-[160px]" title={di.anomalie}>
+                        <span className="font-bold text-slate-900">{di.anomalie || 'court_circuit'}</span>
+                      </td>
+
+                      {/* Demandeur / Travail */}
+                      <td className="py-3 px-4 text-slate-600 max-w-xs truncate min-w-[200px]" title={di.travail_a_faire}>
+                        <span className="font-semibold text-slate-800 mr-1.5 px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-[10.5px]">
+                          {di.demandeur || 'Production'}
+                        </span>
+                        <span className="text-slate-600">{di.travail_a_faire || 'Diagnostic en attente'}</span>
+                      </td>
+
+                      {/* Arrêt Machine */}
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                        {isArret ? (
+                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-rose-100 text-rose-800 border border-rose-200 font-mono shadow-2xs">
+                            ARRÊT
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-slate-100 text-slate-500 font-mono">
+                            NON
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Priorité */}
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                        <span
+                          className={`px-2.5 py-1 rounded-full font-bold text-[10.5px] font-mono shadow-2xs ${
+                            di.priorite === 'HAUTE'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : di.priorite === 'BASSE'
+                              ? 'bg-slate-100 text-slate-600 border border-slate-200/60'
+                              : 'bg-amber-50 text-amber-700 border border-amber-200'
+                          }`}
+                        >
+                          {di.priorite || 'MOYENNE'}
+                        </span>
+                      </td>
+
+                      {/* Statut */}
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                        {isPending ? (
+                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-amber-100 text-amber-900 border border-amber-300 font-mono animate-pulse shadow-2xs">
+                            EN ATTENTE
+                          </span>
+                        ) : di.statut === 'EN_COURS' ? (
+                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-blue-100 text-blue-900 border border-blue-300 font-mono shadow-2xs">
+                            BT ACTIF
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono shadow-2xs">
+                            CLÔTURÉ
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                        {isPending ? (
+                          <button
+                            onClick={() => handleOpenConvert(di)}
+                            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 mx-auto cursor-pointer shadow-2xs active:scale-95"
+                            title="Convertir en Bon de Travail (BT) et affecter un technicien"
+                          >
+                            <Wrench className="w-3.5 h-3.5" />
+                            <span>Générer BT</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </button>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 font-mono font-bold text-xs shadow-2xs">
+                            <Check className="w-3 h-3 text-indigo-600" />
+                            {di.num_bt || 'BT-OK'}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
-                }
-
-                const isPending =
-                  di.statut === 'DEMANDE' ||
-                  di.statut === 'DEMANDE_CREEE' ||
-                  di.statut === 'EN_ATTENTE_VALIDATION';
-                const isArret = di.arret_machine === true || di.arret_machine === 'OUI';
-
-                return (
-                  <tr
-                    key={di.id || idx}
-                    className="hover:bg-amber-50/40 transition-colors group h-11"
-                  >
-                    {/* Machine */}
-                    <td className="py-2.5 px-4 font-bold text-slate-900 font-mono flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-700 flex items-center justify-center font-black text-[10px]">
-                        {String(di.code_machine || 'MCH').slice(0, 3)}
-                      </div>
-                      <span>{di.code_machine}</span>
-                    </td>
-
-                    {/* Date / Heure */}
-                    <td className="py-2.5 px-4 text-slate-600 font-mono">
-                      <div>{di.date_demande || di.date || '2026-03-24'}</div>
-                      <div className="text-[10px] text-slate-400">{di.heure_demande || di.heure || '08:00'}</div>
-                    </td>
-
-                    {/* Type Panne */}
-                    <td className="py-2.5 px-3">
-                      <span className="px-2 py-0.5 rounded-md font-mono font-bold text-[10px] bg-slate-100 text-slate-700 border border-slate-200">
-                        {di.type_panne || 'M'}
-                      </span>
-                    </td>
-
-                    {/* Anomalie */}
-                    <td className="py-2.5 px-4 font-medium text-slate-800 max-w-xs truncate" title={di.anomalie}>
-                      {di.anomalie || 'court_circuit'}
-                    </td>
-
-                    {/* Demandeur / Travail */}
-                    <td className="py-2.5 px-4 text-slate-600 max-w-xs truncate" title={di.travail_a_faire}>
-                      <span className="font-semibold text-slate-700 mr-1">[{di.demandeur || 'Production'}]</span>
-                      <span className="text-slate-500">{di.travail_a_faire || 'Diagnostic en attente'}</span>
-                    </td>
-
-                    {/* Arrêt Machine */}
-                    <td className="py-2.5 px-3 text-center">
-                      {isArret ? (
-                        <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-rose-100 text-rose-800 border border-rose-200 font-mono">
-                          ARRÊT
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-slate-100 text-slate-500 font-mono">
-                          NON
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Priorité */}
-                    <td className="py-2.5 px-3 text-center">
-                      <span
-                        className={`px-2 py-0.5 rounded-full font-bold text-[10px] font-mono ${
-                          di.priorite === 'HAUTE'
-                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                            : di.priorite === 'BASSE'
-                            ? 'bg-slate-100 text-slate-600'
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}
-                      >
-                        {di.priorite || 'MOYENNE'}
-                      </span>
-                    </td>
-
-                    {/* Statut */}
-                    <td className="py-2.5 px-3 text-center">
-                      {isPending ? (
-                        <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-mono animate-pulse">
-                          EN ATTENTE
-                        </span>
-                      ) : di.statut === 'EN_COURS' ? (
-                        <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-blue-100 text-blue-900 border border-blue-300 font-mono">
-                          BT ACTIF
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono">
-                          CLÔTURÉ
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="py-2.5 px-4 text-right">
-                      {isPending ? (
-                        <button
-                          onClick={() => handleOpenConvert(di)}
-                          className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition flex items-center gap-1.5 ml-auto cursor-pointer shadow-2xs active:scale-95"
-                          title="Convertir en Bon de Travail (BT) et affecter un technicien"
-                        >
-                          <Wrench className="w-3.5 h-3.5" />
-                          <span>Générer BT</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </button>
-                      ) : (
-                        <span className="text-[11px] font-mono text-slate-500 font-bold">
-                          {di.num_bt || 'BT-OK'}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                })
+              )}
             </tbody>
           </table>
         </div>
-
-        {/* Table Footer & Pagination */}
-        <div className="bg-slate-50/90 px-4 py-3 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-600">
-          <div className="flex items-center gap-2">
-            <span>Afficher par page :</span>
-            <select
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="bg-white border border-slate-200 rounded-lg px-2 py-1 font-semibold text-xs focus:outline-hidden"
-            >
-              <option value={15}>15 lignes</option>
-              <option value={20}>20 lignes</option>
-              <option value={50}>50 lignes</option>
-              <option value={100}>100 lignes</option>
-              <option value={0}>Tous ({totalItems})</option>
-            </select>
-            <span className="text-slate-400 font-mono">
-              ({startIndex + 1} à {Math.min(startIndex + effectivePageSize, totalItems)} sur {totalItems})
-            </span>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center gap-1">
-              <button
-                disabled={currentPage <= 1}
-                onClick={() => setCurrentPage((p) => p - 1)}
-                className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none font-bold text-xs cursor-pointer shadow-2xs"
-              >
-                Précédent
-              </button>
-              <span className="px-3 font-mono font-bold text-slate-800">
-                Page {currentPage} / {totalPages}
-              </span>
-              <button
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage((p) => p + 1)}
-                className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none font-bold text-xs cursor-pointer shadow-2xs"
-              >
-                Suivant
-              </button>
-            </div>
-          )}
-        </div>
       </div>
+
+      {/* Pagination Footer */}
+      <TablePaginationCard
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        totalItems={totalItems}
+        pageSizeOptions={[20, 25, 50, 100, 200, 0]}
+        color="amber"
+      />
 
       {/* MODAL 1: Nouvelle Demande d'Intervention (DI) */}
       {showCreateModal && (
@@ -1024,7 +1391,7 @@ export default function DemandesInterventionTab({
                 <select
                   required
                   value={newForm.code_machine}
-                  onChange={(e) => setNewForm({ ...newForm, code_machine: e.target.value })}
+                  onChange={(e) => setNewForm({ ...newForm, code_machine: e.target.value, id_composant: '', id_part: '' })}
                   className="w-full py-2 px-3 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-amber-400 focus:outline-hidden"
                 >
                   {allMachineOptions.map((m) => {
@@ -1036,6 +1403,93 @@ export default function DemandesInterventionTab({
                     );
                   })}
                 </select>
+              </div>
+
+              {/* Entrepôt: Composants & Pièces Spéciales de la Machine */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-2xl bg-amber-50/50 border border-amber-200/60">
+                <div>
+                  <label className="block text-[10.5px] font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                    <span>Composant (Entrepôt)</span>
+                    <span className="text-[10px] text-amber-700 font-mono font-bold">
+                      {machineComponents.length} détectés
+                    </span>
+                  </label>
+                  <select
+                    value={newForm.id_composant}
+                    onChange={(e) => setNewForm({ ...newForm, id_composant: e.target.value })}
+                    className="w-full py-1.5 px-2.5 text-xs font-medium rounded-xl border border-slate-200 bg-white focus:border-amber-400 focus:outline-hidden"
+                  >
+                    <option value="">-- Machine Globale / Sans composant --</option>
+                    {machineComponents.map((c) => {
+                      const id = c.id_warehouse_item || c.id;
+                      const name = c.designation || c.nom_composant || c.nom || id;
+                      return (
+                        <option key={id} value={id}>
+                          {name} ({c.status || c.statut || 'En Service'})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10.5px] font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                    <span>Part Spéciale (Entrepôt)</span>
+                    <span className="text-[10px] text-amber-700 font-mono font-bold">
+                      {machineParts.length} pièces
+                    </span>
+                  </label>
+                  <select
+                    value={newForm.id_part}
+                    onChange={(e) => setNewForm({ ...newForm, id_part: e.target.value })}
+                    className="w-full py-1.5 px-2.5 text-xs font-medium rounded-xl border border-slate-200 bg-white focus:border-amber-400 focus:outline-hidden"
+                  >
+                    <option value="">-- Aucune pièce spéciale --</option>
+                    {machineParts.map((p) => {
+                      const id = p.id_warehouse_item || p.id;
+                      const name = p.designation_part || p.designation || id;
+                      return (
+                        <option key={id} value={id}>
+                          {name}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              </div>
+
+              {/* Pièce Consommable PDR (Stock Actuel) */}
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10.5px] font-bold text-slate-700 uppercase tracking-wider">
+                    Pièce PDR Consommable (Stock Actuel)
+                  </label>
+                  <span className="text-[10px] font-mono text-slate-500">Magasin Central</span>
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={newForm.pdr_ref}
+                    onChange={(e) => setNewForm({ ...newForm, pdr_ref: e.target.value })}
+                    className="flex-1 py-1.5 px-2.5 text-xs font-medium rounded-xl border border-slate-200 bg-white focus:border-amber-400 focus:outline-hidden"
+                  >
+                    <option value="">-- Aucune PDR consommable requise --</option>
+                    {stockItems.map((s) => (
+                      <option key={s.ref} value={s.ref}>
+                        {s.ref} - {s.designation} (Dispo: {s.stockActuel ?? s.stock_actuel ?? 0} {s.unite || 'U'})
+                      </option>
+                    ))}
+                  </select>
+                  {newForm.pdr_ref && (
+                    <input
+                      type="number"
+                      min="1"
+                      value={newForm.pdr_quantite}
+                      onChange={(e) => setNewForm({ ...newForm, pdr_quantite: Math.max(1, Number(e.target.value) || 1) })}
+                      placeholder="Qté"
+                      className="w-16 py-1.5 px-2 text-xs font-bold text-center rounded-xl border border-slate-200 bg-white focus:border-amber-400 focus:outline-hidden font-mono"
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Type Panne & Anomalie Autocomplete */}

@@ -179,6 +179,16 @@ export default function FloatingSidebar({
     localStorage.setItem('gmao_sidebar_theme', sidebarTheme);
   }, [sidebarTheme]);
 
+  useEffect(() => {
+    const handleAppearanceChanged = () => {
+      const savedTheme = localStorage.getItem('gmao_sidebar_theme') || localStorage.getItem('gmao_theme') || 'light';
+      setSidebarTheme(savedTheme);
+    };
+
+    window.addEventListener('gmao_appearance_changed', handleAppearanceChanged);
+    return () => window.removeEventListener('gmao_appearance_changed', handleAppearanceChanged);
+  }, []);
+
   // Delayed translucency effect: when sidebar is collapsed, remain solid for 2 seconds before slowly fading to translucent
   useEffect(() => {
     if (!isExpanded) {

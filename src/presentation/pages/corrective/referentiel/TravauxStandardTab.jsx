@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import TablePaginationCard from '../../../components/common/TablePaginationCard';
 import {
   BookOpen,
   Check,
@@ -6,8 +7,9 @@ import {
   Plus,
   LayoutGrid,
   Table,
-  ChevronLeft,
-  ChevronRight,
+  ListOrdered,
+  FileText,
+  Zap,
 } from 'lucide-react';
 
 export default function TravauxStandardTab({
@@ -18,11 +20,11 @@ export default function TravauxStandardTab({
   onAddDemandeWithPreset = () => {},
   setSearchQuery = () => {},
 }) {
-  // View mode state: 'grid' | 'excel'
-  const [displayMode, setDisplayMode] = useState('grid');
+  // View mode state: 'excel' (Tableau) | 'grid' (Cartes)
+  const [displayMode, setDisplayMode] = useState('excel');
 
-  // Pagination state
-  const [pageSize, setPageSize] = useState(10); // 10, 25, 50, 'ALL'
+  // Pagination state: Default 20 rows standard
+  const [pageSize, setPageSize] = useState(20); // 20, 50, 100, 200, 'ALL'
   const [currentPage, setCurrentPage] = useState(1);
 
   // Reset to page 1 whenever search/filter changes
@@ -32,13 +34,13 @@ export default function TravauxStandardTab({
 
   // Calculate paginated slice
   const totalItems = filteredTravaux.length;
-  const effectivePageSize = pageSize === 'ALL' ? (totalItems || 1) : Number(pageSize);
-  const totalPages = pageSize === 'ALL' ? 1 : Math.max(1, Math.ceil(totalItems / effectivePageSize));
+  const effectivePageSize = pageSize === 0 || pageSize === 'ALL' ? (totalItems || 1) : Number(pageSize);
+  const totalPages = pageSize === 0 || pageSize === 'ALL' ? 1 : Math.max(1, Math.ceil(totalItems / effectivePageSize));
 
-  // Ensure current page is valid
+  // Safe current page
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const startIndex = (safeCurrentPage - 1) * effectivePageSize;
-  const endIndex = pageSize === 'ALL' ? totalItems : Math.min(startIndex + effectivePageSize, totalItems);
+  const endIndex = pageSize === 0 || pageSize === 'ALL' ? totalItems : Math.min(startIndex + effectivePageSize, totalItems);
 
   const paginatedTravaux = useMemo(() => {
     return filteredTravaux.slice(startIndex, endIndex);
@@ -50,15 +52,22 @@ export default function TravauxStandardTab({
     }
   };
 
+  // Fixed 20 rows placeholder filler when fewer than 20 items in page
+  const emptyRowsCount = useMemo(() => {
+    if (pageSize === 0 || pageSize === 'ALL') return 0;
+    const count = effectivePageSize - paginatedTravaux.length;
+    return count > 0 ? Math.min(count, 20) : 0;
+  }, [effectivePageSize, paginatedTravaux.length, pageSize]);
+
   return (
     <div className="space-y-4 font-sans select-none">
-      {/* 1. Sub-Header Toolbar: View Mode Toggle & Pagination Controls */}
+      {/* 1. Sub-Header Toolbar: Summary on Left & Mode Switch on Top Right */}
       <div className="bg-white p-3 md:p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Left: Result Counter & Range */}
         <div className="flex items-center gap-2 flex-wrap text-xs text-slate-600">
           <span className="font-bold text-slate-800 flex items-center gap-1.5">
             <BookOpen className="w-4 h-4 text-blue-600" />
-            <span>Travaux Standards</span>
+            <span>Référentiel des Travaux & Tâches Standards</span>
           </span>
 
           <span className="text-slate-300">|</span>
@@ -66,267 +75,239 @@ export default function TravauxStandardTab({
           <span>
             {totalItems > 0 ? (
               <>
-                Affichage de <b>{startIndex + 1}</b> à <b>{endIndex}</b> sur <b>{totalItems}</b> tâches
+                Affichage de <b>{startIndex + 1}</b> à <b>{endIndex}</b> sur <b>{totalItems}</b> tâches standards
               </>
             ) : (
-              'Aucun résultat'
+              'Aucune tâche trouvée'
             )}
           </span>
 
           {totalItems < totalTravauxCount && (
             <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
-              Filtre actif
+              Filtre actif ({totalItems} / {totalTravauxCount})
             </span>
           )}
         </div>
 
-        {/* Right: View Mode Toggle & Items Per Page Selector */}
-        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
-          {/* Items Per Page Selector */}
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-slate-400 font-medium text-[11px] hidden md:inline">Par page :</span>
-            <div className="inline-flex items-center p-0.5 bg-slate-100/90 rounded-xl border border-slate-200/80">
-              {[10, 25, 50, 'ALL'].map((size) => (
-                <button
-                  key={String(size)}
-                  type="button"
-                  onClick={() => {
-                    setPageSize(size);
-                    setCurrentPage(1);
-                  }}
-                  className={`px-2 py-1 rounded-lg text-[11px] font-bold font-mono transition cursor-pointer ${
-                    pageSize === size
-                      ? 'bg-white text-blue-900 shadow-2xs border border-slate-200'
-                      : 'text-slate-500 hover:text-slate-900'
-                  }`}
-                >
-                  {size === 'ALL' ? 'Tous' : size}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Right: Mode Switch (Grille vs Tableau Excel) */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="inline-flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setDisplayMode('excel')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                displayMode === 'excel'
+                  ? 'bg-white text-slate-900 shadow-2xs border border-slate-200 font-black'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              title="Affichage en tableau Excel avec 20 lignes fixes"
+            >
+              <Table className="w-3.5 h-3.5 text-blue-600" />
+              <span>Tableau Excel</span>
+            </button>
 
-          <div className="w-px h-6 bg-slate-200 hidden sm:block" />
-
-          {/* View Mode Toggle: Grid Cards vs Excel Spreadsheet Table */}
-          <div className="inline-flex items-center p-0.5 bg-slate-100/90 rounded-xl border border-slate-200/80">
             <button
               type="button"
               onClick={() => setDisplayMode('grid')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95 ${
                 displayMode === 'grid'
-                  ? 'bg-white text-blue-950 shadow-2xs border border-slate-200 font-black'
+                  ? 'bg-white text-slate-900 shadow-2xs border border-slate-200 font-black'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
               title="Affichage en cartes / grille"
             >
               <LayoutGrid className="w-3.5 h-3.5 text-blue-600" />
-              <span>Grille</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setDisplayMode('excel')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                displayMode === 'excel'
-                  ? 'bg-white text-blue-950 shadow-2xs border border-slate-200 font-black'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-              title="Affichage en tableau style Excel"
-            >
-              <Table className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Tableau Excel</span>
+              <span>Cartes / Grille</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* 2. MAIN CONTENT DISPLAY: GRID CARDS MODE */}
-      {displayMode === 'grid' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-          {paginatedTravaux.map((travail, relativeIdx) => {
-            const absoluteIdx = startIndex + relativeIdx;
-            const lines = String(travail).split('\n');
-            const isCopied = copiedIndex === absoluteIdx;
-
-            return (
-              <div
-                key={absoluteIdx}
-                className="bg-white border border-slate-200/90 rounded-2xl p-4 transition-all duration-200 hover:shadow-md hover:border-blue-300 flex flex-col justify-between group/card relative"
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="px-2.5 py-0.5 rounded-md text-[10.5px] font-mono font-black bg-blue-50 text-blue-800 border border-blue-200/80 shadow-2xs">
-                      Travail #{String(absoluteIdx + 1).padStart(3, '0')}
-                    </span>
-
-                    <button
-                      onClick={() => handleCopyText(travail, absoluteIdx)}
-                      className="px-2.5 py-1 rounded-lg border border-slate-200/90 bg-slate-50 hover:bg-slate-100 text-slate-600 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
-                      title="Copier le texte du travail"
-                    >
-                      {isCopied ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                          <span className="text-emerald-700">Copié !</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3.5 h-3.5 text-slate-400 group-hover/card:text-blue-600 transition-colors" />
-                          <span>Copier</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  <div className="space-y-1.5 mt-2.5 text-xs font-semibold text-slate-800 leading-relaxed">
-                    {lines.map((l, lIdx) => (
-                      <p
-                        key={lIdx}
-                        className={
-                          lIdx > 0
-                            ? 'text-slate-600 pl-2.5 border-l-2 border-blue-300/80 mt-1 font-normal'
-                            : 'font-black text-slate-900'
-                        }
-                      >
-                        {l}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-slate-100/90 flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
-                    Standard GMAO Usine
-                  </span>
-
-                  <button
-                    onClick={() => {
-                      if (typeof onAddDemandeWithPreset === 'function') {
-                        onAddDemandeWithPreset({
-                          travail_a_faire: travail,
-                        });
-                      }
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold transition flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95"
-                    title="Créer une DI avec ce travail prérempli"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Utiliser dans DI</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* 3. MAIN CONTENT DISPLAY: EXCEL SPREADSHEET TABLE MODE */}
+      {/* 2. MAIN CONTENT DISPLAY: EXCEL SPREADSHEET TABLE MODE */}
       {displayMode === 'excel' && (
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05)] overflow-hidden transition-all">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse min-w-[800px]">
-              <thead className="bg-slate-100/90 text-[10.5px] font-black uppercase text-slate-600 tracking-wider border-b border-slate-200/90 sticky top-0 z-10 font-mono">
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out">
+          {/* Top Info Header Bar inside Card */}
+          <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-slate-50/50 gap-2">
+            <div className="font-bold text-slate-800 text-[13px] flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-blue-600" />
+              <span>Tableau Travaux_Standard • Ordre Excel Row 3 : A → C</span>
+            </div>
+            <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
+              N° | Réf. Tâche (A) | Description Standard (B) | Actions & Déclenchement BT (C)
+            </div>
+          </div>
+
+          <div className="overflow-x-auto max-h-[65vh] overflow-y-auto">
+            <table className="w-full text-left text-xs border-collapse min-w-[850px]">
+              <thead className="bg-slate-100 text-[11px] font-black uppercase text-slate-700 tracking-wider border-b border-slate-200 sticky top-0 z-20 font-mono shadow-2xs">
                 <tr>
-                  <th className="py-3 px-3 text-center w-12 bg-slate-200/60 border-r border-slate-200/80">
+                  <th className="py-3 px-3 text-center w-12 bg-slate-200/70 border-r border-slate-200/90">
                     N°
                   </th>
-                  <th className="py-3 px-3.5 text-center w-24 border-r border-slate-200/80">
-                    CODE
+                  <th className="py-3 px-3.5 text-center w-36 border-r border-slate-200/90 whitespace-nowrap">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <ListOrdered className="w-3.5 h-3.5 text-blue-600" />
+                      <span>RÉF. TÂCHE</span>
+                    </div>
                   </th>
-                  <th className="py-3 px-4">
-                    DESCRIPTIF DE LA TÂCHE STANDARD (INSTRUCTIONS)
+                  <th className="py-3 px-4 border-r border-slate-200/90 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-slate-600" />
+                      <span>DESCRIPTION DE LA TÂCHE STANDARD</span>
+                    </div>
                   </th>
-                  <th className="py-3 px-3.5 text-center w-36 border-l border-slate-200/80">
-                    CATÉGORIE
-                  </th>
-                  <th className="py-3 px-3.5 text-center w-48 border-l border-slate-200/80">
-                    ACTIONS RAPIDES
+                  <th className="py-3 px-3.5 text-center w-48 whitespace-nowrap">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 text-amber-600" />
+                      <span>ACTIONS RAPIDES</span>
+                    </div>
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100/90">
                 {paginatedTravaux.map((travail, relativeIdx) => {
                   const absoluteIdx = startIndex + relativeIdx;
-                  const lines = String(travail).split('\n');
                   const isCopied = copiedIndex === absoluteIdx;
+                  const taskRef = `TS-${String(absoluteIdx + 1).padStart(3, '0')}`;
 
                   return (
                     <tr
                       key={absoluteIdx}
-                      className="hover:bg-blue-50/50 transition-colors group/row"
+                      className="odd:bg-white even:bg-slate-50/60 hover:bg-blue-50/40 transition-colors group/row"
                     >
                       {/* Row Index */}
-                      <td className="py-3 px-3 text-center font-mono font-bold text-slate-400 bg-slate-50/60 border-r border-slate-200/60 text-[11px]">
+                      <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-400 bg-slate-100/60 border-r border-slate-200/60 text-[11px]">
                         {absoluteIdx + 1}
                       </td>
 
-                      {/* Code Badge */}
-                      <td className="py-3 px-3.5 text-center font-mono font-bold border-r border-slate-200/60">
-                        <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-900 border border-blue-200 text-[10.5px]">
-                          #{String(absoluteIdx + 1).padStart(3, '0')}
+                      {/* Task Reference Code */}
+                      <td className="py-2.5 px-3.5 text-center font-mono border-r border-slate-200/60 whitespace-nowrap">
+                        <span className="px-2.5 py-0.5 rounded bg-blue-50 text-blue-800 font-bold border border-blue-200 text-[11px]">
+                          {taskRef}
                         </span>
                       </td>
 
-                      {/* Content Description */}
-                      <td className="py-3 px-4 font-medium text-slate-800 leading-relaxed">
-                        {lines.map((l, lIdx) => (
-                          <div
-                            key={lIdx}
-                            className={
-                              lIdx > 0
-                                ? 'text-slate-600 pl-2 border-l border-blue-200 mt-1 font-normal text-[11.5px]'
-                                : 'font-bold text-slate-900 text-xs'
-                            }
-                          >
-                            {l}
-                          </div>
-                        ))}
-                      </td>
-
-                      {/* Category */}
-                      <td className="py-3 px-3.5 text-center border-l border-slate-200/60 font-mono text-[10.5px] text-slate-500">
-                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold">
-                          Standard Usine
-                        </span>
+                      {/* Task Description */}
+                      <td className="py-2.5 px-4 font-bold text-slate-800 text-xs border-r border-slate-200/60 leading-relaxed">
+                        {travail}
                       </td>
 
                       {/* Action Buttons */}
-                      <td className="py-3 px-3.5 text-center border-l border-slate-200/60">
+                      <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
+                            type="button"
                             onClick={() => handleCopyText(travail, absoluteIdx)}
-                            className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 transition cursor-pointer"
-                            title="Copier le texte"
+                            className={`p-1.5 rounded-lg border text-xs font-bold transition cursor-pointer active:scale-95 ${
+                              isCopied
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                                : 'bg-white hover:bg-slate-100 text-slate-600 border-slate-200'
+                            }`}
+                            title="Copier le libellé"
                           >
-                            {isCopied ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-600" />
-                            ) : (
-                              <Copy className="w-3.5 h-3.5 text-slate-400 group-hover/row:text-blue-600 transition-colors" />
-                            )}
+                            {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                           </button>
 
                           <button
+                            type="button"
                             onClick={() => {
                               if (typeof onAddDemandeWithPreset === 'function') {
                                 onAddDemandeWithPreset({
-                                  travail_a_faire: travail,
+                                  anomalie: `Tâche Standard: ${travail.slice(0, 60)}...`,
                                 });
                               }
                             }}
-                            className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
-                            title="Créer une DI avec ce travail"
+                            className="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] transition inline-flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                            title="Créer une Demande d'Intervention"
                           >
-                            <Plus className="w-3 h-3" />
-                            <span>Utiliser</span>
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Créer DI</span>
                           </button>
                         </div>
                       </td>
                     </tr>
                   );
                 })}
+
+                {/* Placeholder rows to maintain 20 rows height */}
+                {Array.from({ length: emptyRowsCount }).map((_, idx) => (
+                  <tr key={`empty-${idx}`} className="h-10 opacity-30 select-none pointer-events-none">
+                    <td className="py-2.5 px-3 text-center font-mono text-[10px] text-slate-300 bg-slate-50 border-r border-slate-100">
+                      -
+                    </td>
+                    <td className="border-r border-slate-100 text-center text-[10px] text-slate-300">-</td>
+                    <td className="border-r border-slate-100 text-[10px] text-slate-300 px-4">-</td>
+                    <td className="text-center text-[10px] text-slate-300">-</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* 3. MAIN CONTENT DISPLAY: GRID CARDS MODE */}
+      {displayMode === 'grid' && (
+        <div className="overflow-y-auto max-h-[65vh] pr-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 content-start">
+            {paginatedTravaux.map((travail, relativeIdx) => {
+              const absoluteIdx = startIndex + relativeIdx;
+              const isCopied = copiedIndex === absoluteIdx;
+              const taskRef = `TS-${String(absoluteIdx + 1).padStart(3, '0')}`;
+
+              return (
+                <div
+                  key={absoluteIdx}
+                  className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs hover:shadow-md transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-100">
+                      <span className="px-2.5 py-0.5 rounded-md text-[10.5px] font-mono font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                        {taskRef}
+                      </span>
+                      <span className="text-[10.5px] font-mono text-slate-400">
+                        Ordre N° {absoluteIdx + 1}
+                      </span>
+                    </div>
+
+                    <p className="text-xs font-bold text-slate-800 leading-relaxed">
+                      {travail}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyText(travail, absoluteIdx)}
+                      className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-95 ${
+                        isCopied
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'
+                      }`}
+                    >
+                      {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{isCopied ? 'Copié !' : 'Copier'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof onAddDemandeWithPreset === 'function') {
+                          onAddDemandeWithPreset({
+                            anomalie: `Tâche Standard: ${travail.slice(0, 60)}...`,
+                          });
+                        }
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                      title="Créer une Demande d'Intervention avec cette tâche"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Créer DI</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -335,8 +316,8 @@ export default function TravauxStandardTab({
       {filteredTravaux.length === 0 && (
         <div className="bg-white border border-slate-200/90 rounded-2xl p-10 text-center text-slate-500 shadow-2xs">
           <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm font-extrabold text-slate-800">Aucune tâche standard ne correspond à votre recherche.</p>
-          <p className="text-xs text-slate-400 mt-1">Essayez de modifier votre mot-clé dans la barre de recherche ci-dessus.</p>
+          <p className="text-sm font-extrabold text-slate-800">Aucune tâche trouvée pour cette recherche.</p>
+          <p className="text-xs text-slate-400 mt-1">Vérifiez les mots-clés saisis.</p>
           <button
             type="button"
             onClick={() => setSearchQuery('')}
@@ -347,74 +328,16 @@ export default function TravauxStandardTab({
         </div>
       )}
 
-      {/* 5. FOOTER PAGINATION BAR */}
-      {totalItems > 0 && totalPages > 1 && (
-        <div className="bg-white p-3 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          {/* Counter info */}
-          <div className="text-xs text-slate-500 font-medium">
-            Page <b>{safeCurrentPage}</b> sur <b>{totalPages}</b> ({totalItems} tâches totales)
-          </div>
-
-          {/* Page numbers navigation buttons */}
-          <div className="flex items-center gap-1 self-center sm:self-auto">
-            <button
-              type="button"
-              onClick={() => handlePageChange(safeCurrentPage - 1)}
-              disabled={safeCurrentPage === 1}
-              className={`p-1.5 rounded-xl border transition flex items-center justify-center cursor-pointer ${
-                safeCurrentPage === 1
-                  ? 'opacity-40 border-slate-200 text-slate-400 cursor-not-allowed'
-                  : 'border-slate-200/90 bg-slate-50 hover:bg-slate-100 text-slate-700 active:scale-95'
-              }`}
-              title="Page précédente"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (safeCurrentPage <= 3) {
-                pageNum = i + 1;
-              } else if (safeCurrentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = safeCurrentPage - 2 + i;
-              }
-
-              return (
-                <button
-                  key={pageNum}
-                  type="button"
-                  onClick={() => handlePageChange(pageNum)}
-                  className={`w-8 h-8 rounded-xl text-xs font-bold font-mono transition flex items-center justify-center cursor-pointer active:scale-95 ${
-                    safeCurrentPage === pageNum
-                      ? 'bg-blue-600 text-white shadow-xs font-black'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-
-            <button
-              type="button"
-              onClick={() => handlePageChange(safeCurrentPage + 1)}
-              disabled={safeCurrentPage === totalPages}
-              className={`p-1.5 rounded-xl border transition flex items-center justify-center cursor-pointer ${
-                safeCurrentPage === totalPages
-                  ? 'opacity-40 border-slate-200 text-slate-400 cursor-not-allowed'
-                  : 'border-slate-200/90 bg-slate-50 hover:bg-slate-100 text-slate-700 active:scale-95'
-              }`}
-              title="Page suivante"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
+      {/* 5. FOOTER PAGINATION BAR (Always at bottom of container) */}
+      <TablePaginationCard
+        currentPage={safeCurrentPage}
+        setCurrentPage={handlePageChange}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        totalItems={totalItems}
+        pageSizeOptions={[20, 25, 50, 100, 200, 0]}
+        color="blue"
+      />
     </div>
   );
 }

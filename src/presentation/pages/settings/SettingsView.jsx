@@ -39,6 +39,7 @@ import {
   KeyRound,
   Save,
   Wrench,
+  Palette,
 } from 'lucide-react';
 
 import initialStock from '../../../data/stock/seedStockItems.json';
@@ -67,6 +68,7 @@ import { useAuth } from '../../../context/AuthContext';
 import BackupManagerModal from '../../components/backup/BackupManagerModal';
 import TelemetryAuditPanel from '../../components/settings/TelemetryAuditPanel';
 import PerformanceDashboardPanel from '../../components/settings/PerformanceDashboardPanel';
+import AppearanceLayoutSelector from '../../components/settings/AppearanceLayoutSelector';
 
 
 export default function SettingsView({
@@ -1116,6 +1118,17 @@ export default function SettingsView({
               activeBorder: 'border-teal-500',
               activeText: 'text-teal-950',
               activeIconBg: 'bg-teal-100/80',
+            },
+            {
+              id: 'appearance',
+              label: 'المظهر (Appearance)',
+              sub: 'Thème, Sidebar & Layout',
+              icon: Palette,
+              color: 'text-purple-600',
+              activeBg: 'bg-purple-50/70',
+              activeBorder: 'border-purple-500',
+              activeText: 'text-purple-950',
+              activeIconBg: 'bg-purple-100/80',
             },
           ].map((tab) => {
             const IconComponent = tab.icon;
@@ -3249,6 +3262,11 @@ export default function SettingsView({
             mouvements={mouvements}
             showToast={showToast}
           />
+        )}
+
+        {/* PANEL 10: APPEARANCE & LAYOUT SELECTOR */}
+        {activeTab === 'appearance' && (
+          <AppearanceLayoutSelector showToast={showToast} />
         )}
       </div>
 

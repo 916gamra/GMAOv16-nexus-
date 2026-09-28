@@ -7,7 +7,13 @@ describe('Offline Scenarios & Fallback E2E Test', () => {
     
     // Simulate recovery in offline environment
     const context = { retryDelay: 10 };
+    const originalOnLine = navigator.onLine;
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+
     const recovered = await errorRecoveryService.recover(netError, context);
+
+    // Restore navigator.onLine
+    Object.defineProperty(navigator, 'onLine', { value: originalOnLine, configurable: true });
 
     // In simulated offline, network recovery correctly reports offline status
     expect(recovered).toBe(false);

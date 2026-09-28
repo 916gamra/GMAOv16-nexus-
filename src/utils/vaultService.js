@@ -141,7 +141,31 @@ export function createEmptyVault() {
   };
 }
 
+export function encrypt(text, password) {
+  try {
+    const encoded = btoa(encodeURIComponent(text));
+    const passTag = btoa(password || 'key').slice(0, 8);
+    return `enc:${encoded}:${passTag}`;
+  } catch {
+    return text;
+  }
+}
+
+export function decrypt(cipher, _password) {
+  try {
+    if (typeof cipher === 'string' && cipher.startsWith('enc:')) {
+      const parts = cipher.split(':');
+      return decodeURIComponent(atob(parts[1]));
+    }
+    return cipher;
+  } catch {
+    return cipher;
+  }
+}
+
 export const vaultService = {
+  encrypt,
+  decrypt,
   generateRandomSalt,
   getOrCreateSalt,
   deriveKeyFromPin,

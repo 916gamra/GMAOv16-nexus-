@@ -2,9 +2,13 @@ import { useEffect, useRef, useCallback } from 'react';
 import { storageService } from '../utils/storageService';
 import { indexedDBService } from '../utils/indexedDBService';
 import { Logger } from '../core/logger/LoggerService';
+import { AutoBackupService } from '../core/backup/AutoBackupService';
+
+const REALTIME_CHANNEL_NAME = 'gmao_realtime_sync_channel';
 
 /**
- * Hook to manage debounced auto-saving of GMAO application state to LocalStorage and IndexedDB
+ * High-Performance Hook to manage debounced auto-saving of GMAO application state to LocalStorage and IndexedDB,
+ * with storage quota checks, persistent storage protection, and instant BroadcastChannel multi-tab broadcasting.
  */
 export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
   const {
@@ -39,6 +43,30 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
 
   const saveTimer = useRef(null);
   const lastSavedState = useRef(null);
+  const broadcastChannelRef = useRef(null);
+
+  // Initialize BroadcastChannel on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.BroadcastChannel) {
+      try {
+        broadcastChannelRef.current = new BroadcastChannel(REALTIME_CHANNEL_NAME);
+      } catch (e) {
+        Logger.warn('[useAutoSave] BroadcastChannel init error:', e);
+      }
+    }
+    // Request persistent storage protection on mount
+    AutoBackupService.requestPersistentStorage();
+
+    return () => {
+      if (broadcastChannelRef.current) {
+        try {
+          broadcastChannelRef.current.close();
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, []);
 
   const saveAllState = useCallback(() => {
     const fullState = {
@@ -79,6 +107,9 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
     lastSavedState.current = currentStateStr;
 
     try {
+      // Check storage quota safety before writing
+      AutoBackupService.checkStorageQuota();
+
       // Save unified state to LocalStorage
       storageService.setItem('gmao_full_state_v1', fullState);
       storageService.setItem('gmao_blueprints_v1', blueprints);
@@ -114,6 +145,19 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
         gmao_corrective_intervenants_v1: correctiveIntervenants || [],
       });
 
+      // Broadcast state update instantly to other open browser tabs
+      if (broadcastChannelRef.current) {
+        try {
+          broadcastChannelRef.current.postMessage({
+            type: 'GMAO_STATE_UPDATE',
+            timestamp: Date.now(),
+            payload: fullState,
+          });
+        } catch (bcPostErr) {
+          Logger.warn('[useAutoSave] BroadcastChannel postMessage error:', bcPostErr);
+        }
+      }
+
       window.dispatchEvent(new CustomEvent('gmao:state_saved', { detail: { timestamp: Date.now() } }));
       if (typeof onStateChange === 'function') {
         onStateChange(fullState);
@@ -148,6 +192,8 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
     correctiveActionsByPanne,
     correctivePanneCategories,
     correctiveTravauxAFaire,
+    correctiveIntervenants,
+    onStateChange,
   ]);
 
   // Debounce saving

@@ -1,4 +1,3 @@
-import React from 'react';
 import { MobileHeader } from './MobileHeader.jsx';
 import { BottomNavigation } from './BottomNavigation.jsx';
 import { PullToRefresh } from '../common/PullToRefresh.jsx';

@@ -1,5 +1,12 @@
-import {  useState, useRef, useEffect, useMemo, useCallback  } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback, isValidElement } from 'react';
 import { ChevronDown, Check, Search, X, Plus } from 'lucide-react';
+
+const renderIconHelper = (Icon, className = '') => {
+  if (!Icon) return null;
+  if (isValidElement(Icon)) return Icon;
+  const Component = Icon;
+  return <Component className={className} />;
+};
 
 /**
  * CustomSelect - Reusable styled dropdown component for CIOB GMAO Light
@@ -282,20 +289,20 @@ export default function CustomSelect({
         <div className="flex items-center gap-2 truncate text-left flex-1 min-w-0">
           {PrefixIcon && (
             <span className="shrink-0 flex items-center justify-center">
-              {typeof PrefixIcon === 'function' ? (
-                <PrefixIcon className={`w-3.5 h-3.5 ${prefixIconClassName || 'text-slate-400'}`} />
-              ) : (
-                PrefixIcon
-              )}
+              {renderIconHelper(PrefixIcon, `w-3.5 h-3.5 ${prefixIconClassName || 'text-slate-400'}`)}
             </span>
           )}
-          {selectedOption?.icon && <span className="shrink-0">{selectedOption.icon}</span>}
+          {selectedOption?.icon && (
+            <span className="shrink-0 flex items-center justify-center">
+              {renderIconHelper(selectedOption.icon, 'w-3.5 h-3.5')}
+            </span>
+          )}
           {selectedOption ? (
             <span className="truncate text-slate-900 font-semibold">{selectedOption.label}</span>
           ) : (
             <span className="text-slate-400 truncate">{placeholder}</span>
           )}
-          {selectedOption?.badge && (
+          {selectedOption?.badge !== undefined && selectedOption?.badge !== null && (
             <span
               className={`text-[10px] font-mono px-1.5 py-0.2 rounded shrink-0 font-bold ${
                 selectedOption.badgeColor || 'bg-slate-200 text-slate-700'
@@ -361,7 +368,7 @@ export default function CustomSelect({
                 }}
                 className="w-full h-7 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100/90 border border-indigo-200 text-indigo-700 hover:text-indigo-900 font-bold text-[11px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
               >
-                <AddNewIcon className="w-3.5 h-3.5 shrink-0" />
+                {renderIconHelper(AddNewIcon, "w-3.5 h-3.5 shrink-0")}
                 <span className="truncate">{addNewLabel}</span>
               </button>
             )}
@@ -414,7 +421,11 @@ export default function CustomSelect({
                         aria-selected={isSelected}
                       >
                         <div className="flex items-center gap-2 truncate flex-1 min-w-0">
-                          {opt.icon && <span className="shrink-0">{opt.icon}</span>}
+                          {opt.icon && (
+                            <span className="shrink-0 flex items-center justify-center">
+                              {renderIconHelper(opt.icon, "w-3.5 h-3.5")}
+                            </span>
+                          )}
                           <div className="truncate flex-1">
                             <div className="truncate">{opt.label}</div>
                             {opt.sublabel && (
@@ -426,7 +437,7 @@ export default function CustomSelect({
                         </div>
 
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {opt.badge && (
+                          {opt.badge !== undefined && opt.badge !== null && (
                             <span
                               className={`text-[9.5px] font-mono px-1.5 py-0.2 rounded font-bold ${
                                 opt.badgeColor || 'bg-slate-200/70 text-slate-700'

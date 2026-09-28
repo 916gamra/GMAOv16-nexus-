@@ -1,23 +1,13 @@
 import { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
 import {
   CheckCircle,
-  Clock,
   Wrench,
   Package,
-  Sparkles,
   Timer,
   Play,
-  RotateCcw,
-  SlidersHorizontal,
   ArrowRight,
   ShieldCheck,
-  Zap,
-  Flame,
-  AlertTriangle,
-  Layers,
   FileCheck,
-  User,
-  Factory,
 } from 'lucide-react';
 import { CorrectiveCalculationService } from '../../../domain/corrective/services/CorrectiveCalculationService';
 import { stockIndexStore } from '../../../application/StockIndexStore';

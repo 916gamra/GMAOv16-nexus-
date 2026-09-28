@@ -1,9 +1,10 @@
 import { Logger } from '../logger/LoggerService.js';
 import { storageService } from '../../utils/storageService.js';
+import { indexedDBService } from '../../infrastructure/database/IndexedDBService.js';
 
 /**
  * Database Service
- * Support SQLite in Node environment & In-Memory / LocalStorage Engine in Browser
+ * Support SQLite in Node environment & In-Memory / LocalStorage / IndexedDB Engine in Browser
  */
 export class DatabaseService {
   static instance = null;
@@ -15,7 +16,13 @@ export class DatabaseService {
 
     this.isBrowser = typeof window !== 'undefined';
     this.db = null;
+    this.indexedDB = indexedDBService;
     Logger.info('✅ Database initialized (Offline LocalStorage & IndexedDB Engine)');
+
+    // Pre-initialize IndexedDB in background
+    if (this.isBrowser) {
+      this.indexedDB.init().catch(() => {});
+    }
 
     DatabaseService.instance = this;
   }
@@ -99,6 +106,11 @@ export class DatabaseService {
       storageService.setItem('gmao_mouvements', all);
     }
 
+    // Background sync to IndexedDB
+    if (this.indexedDB) {
+      this.indexedDB.put(storeName, record).catch(() => {});
+    }
+
     return true;
   }
 
@@ -124,6 +136,11 @@ export class DatabaseService {
       storageService.setItem('gmao_raw_stock_v6', filtered);
     } else if (storeName === 'movements') {
       storageService.setItem('gmao_mouvements', filtered);
+    }
+
+    // Background sync delete to IndexedDB
+    if (this.indexedDB) {
+      this.indexedDB.delete(storeName, id).catch(() => {});
     }
 
     return true;

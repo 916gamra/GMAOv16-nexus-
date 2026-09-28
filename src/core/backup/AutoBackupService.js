@@ -61,6 +61,103 @@ export class AutoBackupService {
   static isSanitized = false;
 
   /**
+   * Request persistent storage to prevent automatic browser deletion of IndexedDB / LocalStorage
+   * @returns {Promise<boolean>}
+   */
+  static async requestPersistentStorage() {
+    if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.persist) {
+      try {
+        const isPersisted = await navigator.storage.persisted();
+        if (!isPersisted) {
+          const granted = await navigator.storage.persist();
+          Logger.info(`[AutoBackupService] Persistent storage requested. Granted: ${granted}`);
+          return granted;
+        }
+        return isPersisted;
+      } catch (err) {
+        Logger.warn('[AutoBackupService] Persistent storage request error:', err);
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Check storage quota using navigator.storage.estimate().
+   * Creates an emergency restore snapshot if quota usage exceeds 80%.
+   * @returns {Promise<{ usage: number, quota: number, percentage: number, isCritical: boolean }>}
+   */
+  static async checkStorageQuota() {
+    if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.estimate) {
+      try {
+        const estimate = await navigator.storage.estimate();
+        const usage = estimate.usage || 0;
+        const quota = estimate.quota || 1;
+        const percentage = Math.min(100, Number(((usage / quota) * 100).toFixed(2)));
+        const isCritical = percentage >= 80;
+
+        if (isCritical) {
+          Logger.warn(`[AutoBackupService] CRITICAL Storage Quota Warning: ${percentage}% used (${(usage/1024/1024).toFixed(1)}MB / ${(quota/1024/1024).toFixed(1)}MB)`);
+          this.createSnapshot('Sauvegarde d\'urgence - Quota stockage > 80%', false);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('gmao:storage_quota_critical', {
+              detail: { usage, quota, percentage }
+            }));
+          }
+        }
+
+        return { usage, quota, percentage, isCritical };
+      } catch (err) {
+        Logger.warn('[AutoBackupService] Storage estimate error:', err);
+      }
+    }
+    return { usage: 0, quota: 0, percentage: 0, isCritical: false };
+  }
+
+  /**
+   * Direct export using File System Access API (showSaveFilePicker) with blob download fallback
+   * @param {object} payloadData
+   * @param {string} suggestedName
+   */
+  static async exportBackupToFileSystem(payloadData, suggestedName = '') {
+    const defaultName = suggestedName || `CIOB_GMAO_Enterprise_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    const jsonStr = JSON.stringify(payloadData, null, 2);
+
+    if (typeof window !== 'undefined' && window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: defaultName,
+          types: [{
+            description: 'Fichier de sauvegarde GMAO (JSON)',
+            accept: { 'application/json': ['.json'] }
+          }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(jsonStr);
+        await writable.close();
+        Logger.info('[AutoBackupService] Backup written directly to file system via File System Access API');
+        return true;
+      } catch (err) {
+        if (err && err.name === 'AbortError') {
+          return false; // User cancelled dialog
+        }
+        Logger.warn('[AutoBackupService] File System Access API error, falling back to standard download', err);
+      }
+    }
+
+    // Fallback standard browser download
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = defaultName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return true;
+  }
+
+  /**
    * Safely writes a key to localStorage with automatic quota management
    * @param {string} key
    * @param {string} value
@@ -71,7 +168,6 @@ export class AutoBackupService {
       return true;
     } catch (e) {
       Logger.warn(`[AutoBackupService] LocalStorage quota pressure on '${key}'. Purging legacy history...`, e);
-      // Attempt recovery: strip legacy heavy keys from localStorage
       try {
         const rawHistory = localStorage.getItem(BACKUP_STORAGE_KEY);
         if (rawHistory) {
@@ -89,7 +185,6 @@ export class AutoBackupService {
             localStorage.setItem(BACKUP_STORAGE_KEY, JSON.stringify(stripped.slice(0, 5)));
           }
         }
-        // Retry the original setItem
         localStorage.setItem(key, value);
         return true;
       } catch (retryErr) {
@@ -121,12 +216,10 @@ export class AutoBackupService {
 
         if (item.data) {
           hasHeavyPayloads = true;
-          // Cache in memory and persist in IndexedDB
           snapshotDataCache.set(item.id, item);
           indexedDBService.setItem(`gmao_snap_${item.id}`, item).catch(() => {});
         }
 
-        // Keep only lightweight metadata for localStorage
         cleanMetadataList.push({
           id: item.id,
           timestamp: item.timestamp || Date.now(),
@@ -150,13 +243,14 @@ export class AutoBackupService {
 
   /**
    * Captures the current snapshot of all application data
-   * @param {string} reason - Cause of snapshot (e.g. 'Avant import Excel', 'Périodique', 'Manuel')
-   * @param {boolean} isManual - Whether triggered manually by user
+   * @param {string} reason - Cause of snapshot
+   * @param {boolean} isManual - Whether triggered manually
    * @returns {object} The created snapshot metadata object
    */
   static createSnapshot(reason = 'Point de restauration automatique', isManual = false) {
     try {
       this.sanitizeLegacyStorage();
+      this.requestPersistentStorage();
 
       const data = {};
       const counts = {};
@@ -188,7 +282,6 @@ export class AutoBackupService {
 
       const snapshotId = `snap-${timestamp}-${Math.random().toString(36).substring(2, 7)}`;
 
-      // Full snapshot with data payload
       const fullSnapshot = {
         id: snapshotId,
         timestamp,
@@ -200,17 +293,14 @@ export class AutoBackupService {
         version: '3.0.0',
       };
 
-      // 1. Store full snapshot in memory cache
       snapshotDataCache.set(snapshotId, fullSnapshot);
 
-      // 2. Asynchronously save full snapshot to IndexedDB (virtually unlimited capacity)
       if (indexedDBService && typeof indexedDBService.setItem === 'function') {
         indexedDBService.setItem(`gmao_snap_${snapshotId}`, fullSnapshot).catch((idbErr) => {
           Logger.warn('[AutoBackupService] IndexedDB snapshot persistence warning', idbErr);
         });
       }
 
-      // 3. Store ONLY lightweight metadata in localStorage to guarantee ZERO quota exhaustion
       const metadata = {
         id: snapshotId,
         timestamp,
@@ -222,7 +312,6 @@ export class AutoBackupService {
       };
 
       const history = this.listSnapshots();
-      // Remove any existing snapshot with same id
       const filtered = history.filter((s) => s.id !== snapshotId);
       filtered.unshift(metadata);
 
@@ -258,15 +347,13 @@ export class AutoBackupService {
   /**
    * Get a specific snapshot (with data payload) by ID
    * @param {string} snapshotId 
-   * @returns {Promise<object|null>|object|null}
+   * @returns {Promise<object|null>}
    */
   static async getSnapshotAsync(snapshotId) {
-    // 1. Check memory cache
     if (snapshotDataCache.has(snapshotId)) {
       return snapshotDataCache.get(snapshotId);
     }
 
-    // 2. Check IndexedDB
     try {
       if (indexedDBService && typeof indexedDBService.getItem === 'function') {
         const fromIDB = await indexedDBService.getItem(`gmao_snap_${snapshotId}`);
@@ -279,7 +366,6 @@ export class AutoBackupService {
       Logger.warn(`[AutoBackupService] IDB read failed for ${snapshotId}`, e);
     }
 
-    // 3. Fallback: check localStorage for legacy embedded data
     const list = this.listSnapshots();
     const found = list.find((s) => s.id === snapshotId);
     if (found && found.data) {
@@ -320,10 +406,8 @@ export class AutoBackupService {
         throw new Error(`Snapshot ${snapshotId} not found or has no restorable data`);
       }
 
-      // Create a safety recovery snapshot before applying restore
       this.createSnapshot('Sauvegarde de sécurité avant restauration', false);
 
-      // Apply snapshot data to localStorage
       for (const [key, value] of Object.entries(snapshot.data)) {
         if (value !== undefined && value !== null) {
           try {
@@ -334,7 +418,6 @@ export class AutoBackupService {
         }
       }
 
-      // Also persist to IndexedDB
       try {
         if (indexedDBService && typeof indexedDBService.setItemsBatch === 'function') {
           await indexedDBService.setItemsBatch(snapshot.data);
@@ -387,7 +470,7 @@ export class AutoBackupService {
   }
 
   /**
-   * Export specific partition (master referential, operations history, or full)
+   * Export specific partition
    * @param {'master'|'operations'|'full'} partitionType
    */
   static exportPartitionJSON(partitionType = 'full') {
@@ -420,20 +503,12 @@ export class AutoBackupService {
       data,
     };
 
-    const jsonStr = JSON.stringify(payload, null, 2);
-    const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `CIOB_GMAO_${label}_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const fileName = `CIOB_GMAO_${label}_${new Date().toISOString().split('T')[0]}.json`;
+    this.exportBackupToFileSystem(payload, fileName);
   }
 
   /**
-   * Import data from a JSON backup file (Full or Partition)
+   * Import data from a JSON backup file
    * @param {string} jsonText 
    * @returns {boolean}
    */
@@ -443,7 +518,6 @@ export class AutoBackupService {
       const data = parsed.data || parsed;
       const partition = parsed.partition || 'full';
 
-      // Safety snapshot before import
       this.createSnapshot(`Sauvegarde avant import ${partition}`, false);
 
       for (const [key, value] of Object.entries(data)) {
@@ -452,7 +526,6 @@ export class AutoBackupService {
         }
       }
 
-      // Also batch persist to IndexedDB
       indexedDBService.setItemsBatch(data).catch(() => {});
 
       if (typeof window !== 'undefined') {
@@ -468,12 +541,11 @@ export class AutoBackupService {
   }
 
   /**
-   * Safely purge operations history partition (DIs, BTs, logs) while preserving 100% of Master Referential
+   * Safely purge operations history partition while preserving 100% of Master Referential
    * @returns {boolean}
    */
   static resetOperationsHistory() {
     try {
-      // Safety snapshot before clearing operations
       this.createSnapshot('Sauvegarde avant réinitialisation des opérations', false);
 
       for (const key of OPERATIONS_HISTORY_KEYS) {
@@ -508,10 +580,10 @@ export class AutoBackupService {
   }
 }
 
-// Automatically trigger sanitization on startup
+// Automatically trigger persistent storage & sanitization on startup
 if (typeof window !== 'undefined') {
   setTimeout(() => {
     AutoBackupService.sanitizeLegacyStorage();
+    AutoBackupService.requestPersistentStorage();
   }, 100);
 }
-

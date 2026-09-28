@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Responsive Mobile Card Component with elevation and touch feedback.
  */
