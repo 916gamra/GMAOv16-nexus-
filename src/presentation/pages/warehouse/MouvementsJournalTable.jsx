@@ -1731,7 +1731,7 @@ export default function MouvementsJournalTable({
                   const realIndex = startIndex + idx;
                   if (m.__isEmptyPlaceholder) {
                     return (
-                      <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+                      <tr key={`empty-mvt-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
                         <td className="py-2 px-3 text-center font-mono text-[10.5px] text-slate-300">
                           {realIndex + 1}
                         </td>
@@ -1751,7 +1751,7 @@ export default function MouvementsJournalTable({
 
                   return (
                     <tr
-                      key={`mvt-row-${m.id ?? ''}-${m.code_bon ?? ''}-${realIndex}`}
+                      key={`mvt-row-${m.id || 'm'}-${m.code_bon || 'bon'}-${realIndex}`}
                       className="even:bg-slate-50/70 odd:bg-white hover:bg-indigo-50/40 transition-colors border-b border-slate-100"
                     >
                       <td className="py-2 px-3 text-center font-mono text-[10.5px] font-bold text-slate-400">

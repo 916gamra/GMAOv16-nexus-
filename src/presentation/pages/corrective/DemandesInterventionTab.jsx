@@ -1202,7 +1202,7 @@ export default function DemandesInterventionTab({
                   const realIndex = startIndex + idx;
                   if (di.__isEmptyPlaceholder) {
                     return (
-                      <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+                      <tr key={`empty-di-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
                         <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
                           {realIndex + 1}
                         </td>
@@ -1221,7 +1221,7 @@ export default function DemandesInterventionTab({
 
                   return (
                     <tr
-                      key={di.id || idx}
+                      key={`di-row-${di.id || 'di'}-${di.id_intervention || ''}-${realIndex}`}
                       className="even:bg-slate-50/70 odd:bg-white hover:bg-amber-50/40 border-b border-slate-200/70 transition-colors"
                     >
                       {/* Row N° */}

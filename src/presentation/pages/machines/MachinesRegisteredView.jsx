@@ -1053,7 +1053,7 @@ export default function MachinesRegisteredView({
                   const realIndex = startIndex + idx;
                   if (m.__isEmptyPlaceholder) {
                     return (
-                      <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+                      <tr key={`empty-mch-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
                         <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
                           {realIndex + 1}
                         </td>
@@ -1078,7 +1078,7 @@ export default function MachinesRegisteredView({
 
                   return (
                     <tr
-                      key={m.id_machine_registered}
+                      key={m.id_machine_registered || `mch-row-${realIndex}`}
                       className="even:bg-slate-50/70 odd:bg-white hover:bg-emerald-50/40 border-b border-slate-200/70 transition-colors"
                     >
                       {/* Row N° Column */}

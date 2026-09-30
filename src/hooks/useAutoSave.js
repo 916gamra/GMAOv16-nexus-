@@ -114,7 +114,7 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
 
       // Save unified state to LocalStorage
       storageService.setItem('gmao_full_state_v1', fullState);
-      if (users) storageService.setItem('gmao_users_v2', users);
+      if (users) storageService.setItem('gmao_personnel_users_v2', users);
       storageService.setItem('gmao_blueprints_v1', blueprints);
       storageService.setItem('gmao_comp_groups_v1', compGroups);
       storageService.setItem('gmao_comp_families_v1', compFamilies);

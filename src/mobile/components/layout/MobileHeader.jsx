@@ -1,119 +1,99 @@
-import { Menu, Save, Monitor, Smartphone } from 'lucide-react';
-import LanguageSwitcher from '../../../presentation/components/common/LanguageSwitcher';
-import { useTranslation } from '../../../i18n/I18nContext';
+import { Menu, Save, ShieldCheck, Smartphone, Monitor } from 'lucide-react';
 
 export function MobileHeader({
   currentTab = 'dashboard',
-  setMobileMenuOpen,
-  linkedFileName,
-  onDirectSave,
+  setMobileMenuOpen = () => {},
+  linkedFileName = '',
+  onDirectSave = () => {},
   mobileViewMode = 'compact',
-  setMobileViewMode,
-  currentUser,
+  setMobileViewMode = () => {},
+  currentUser = null,
 }) {
-  const { t } = useTranslation();
-
-  const getSectionTitle = () => {
-    switch (currentTab) {
+  const getTabTitle = (tab) => {
+    switch (tab) {
       case 'dashboard':
-        return t('nav.dashboard') || 'Accueil';
+        return 'Tableau de bord';
       case 'stock':
-      case 'articles':
-      case 'pdr':
-        return t('nav.stock') || 'Stock PDR';
+        return 'Stock Pièces';
+      case 'warehouse':
+        return 'Entrepôt';
       case 'machines':
-        return t('nav.machines') || 'Machines';
+        return 'Parc Machines';
       case 'preventive':
-        return t('nav.preventive') || 'Préventif';
-      case 'mouvements':
-      case 'sortie':
-        return t('nav.mouvements') || 'Mouvements';
-      case 'zones':
-        return t('nav.zones') || 'Zones';
-      case 'nexus':
-        return 'Nexus Matrix';
+        return 'Maintenance Préventive';
+      case 'corrective':
+      case 'corrective_di':
+      case 'corrective_bt':
+      case 'corrective_live':
+      case 'corrective_cloture':
+      case 'corrective_analyse':
+        return 'Maintenance Corrective';
+      case 'sorties_externes':
+        return 'Sorties Externes';
+      case 'users':
+        return 'Utilisateurs & Équipe';
       case 'settings':
-        return t('nav.settings') || 'Paramètres';
+        return 'Paramètres';
       default:
-        return 'GMAO Light';
+        return 'GMAO Light Twin';
     }
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-zinc-200/90 h-[52px] px-3 flex items-center justify-between shadow-2xs">
-      {/* Left: Menu Drawer Toggle + Excel Brand Icon + Current Section */}
-      <div className="flex items-center gap-2 min-w-0">
+    <header className="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 py-2 flex items-center justify-between select-none shadow-md lg:hidden">
+      <div className="flex items-center gap-2">
         <button
-          onClick={() => setMobileMenuOpen?.(true)}
-          className="w-8 h-8 rounded-xl bg-zinc-100 border border-zinc-200/80 flex items-center justify-center text-zinc-700 active:scale-95 transition shrink-0 cursor-pointer"
-          aria-label="Ouvrir le menu complet"
+          onClick={() => setMobileMenuOpen(true)}
+          aria-label="Ouvrir le menu"
+          className="p-1.5 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 transition active:scale-95"
         >
-          <Menu size={16} />
+          <Menu className="w-5 h-5" />
         </button>
 
-        {/* Brand Icon */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <div className="w-7 h-7 rounded-lg bg-linear-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white shadow-2xs font-black text-xs">
-            XLS
-          </div>
-          <span className="font-extrabold text-xs tracking-tight text-zinc-900 hidden xs:inline">
-            Ciob PDR
+        <div className="flex flex-col">
+          <span className="text-xs font-black tracking-wider text-emerald-400 font-mono">
+            CIOB GMAO
           </span>
-        </div>
-
-        {/* Active Section Pill */}
-        <div className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold truncate max-w-[120px]">
-          {getSectionTitle()}
+          <span className="text-sm font-bold text-white leading-tight truncate max-w-[150px] sm:max-w-[200px]">
+            {getTabTitle(currentTab)}
+          </span>
         </div>
       </div>
 
-      {/* Right: Excel Save Status, Mode Toggle, Language & User */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        {/* Direct Excel Save Icon (if file linked) */}
-        {linkedFileName && onDirectSave && (
+      <div className="flex items-center gap-1.5">
+        {/* Toggle Mode: Field Companion vs Desktop View on Mobile */}
+        <button
+          onClick={() => setMobileViewMode(mobileViewMode === 'compact' ? 'full' : 'compact')}
+          title={mobileViewMode === 'compact' ? 'Passer en vue Bureau' : 'Passer en vue Terrain'}
+          className="px-2 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-emerald-400 text-xs font-semibold flex items-center gap-1 active:scale-95 transition"
+        >
+          {mobileViewMode === 'compact' ? (
+            <>
+              <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-[11px]">Terrain</span>
+            </>
+          ) : (
+            <>
+              <Monitor className="w-3.5 h-3.5 text-blue-400" />
+              <span className="text-[11px]">Bureau</span>
+            </>
+          )}
+        </button>
+
+        {linkedFileName && (
           <button
             onClick={onDirectSave}
-            className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-xs active:scale-95 transition cursor-pointer"
-            title={`Sauvegarder dans ${linkedFileName}`}
-            aria-label="Sauvegarder directement dans Excel"
+            title="Enregistrer les modifications"
+            className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition active:scale-95"
           >
-            <Save size={15} />
+            <Save className="w-4 h-4" />
           </button>
         )}
 
-        {/* Toggle between Compact Mobile Mode & Full Desktop View on mobile */}
-        {setMobileViewMode && (
-          <button
-            onClick={() =>
-              setMobileViewMode((prev) => (prev === 'compact' ? 'full' : 'compact'))
-            }
-            className={`w-8 h-8 rounded-xl border flex items-center justify-center transition cursor-pointer ${
-              mobileViewMode === 'full'
-                ? 'bg-zinc-900 text-white border-zinc-800'
-                : 'bg-zinc-100 text-zinc-600 border-zinc-200 hover:text-zinc-900'
-            }`}
-            title={
-              mobileViewMode === 'compact'
-                ? 'Basculer en Mode Bureau Complet'
-                : 'Basculer en Mode Mobile Simplifié'
-            }
-            aria-label="Changer le mode d'affichage"
-          >
-            {mobileViewMode === 'compact' ? <Monitor size={15} /> : <Smartphone size={15} />}
-          </button>
-        )}
-
-        {/* Language Switcher */}
-        <LanguageSwitcher className="inline-flex scale-90 -mr-1" />
-
-        {/* User Avatar Mini */}
-        {currentUser && (
-          <div
-            className="w-7 h-7 rounded-lg bg-emerald-700 text-white font-extrabold text-[10px] flex items-center justify-center shadow-2xs shrink-0"
-            title={currentUser.name}
-          >
-            {currentUser.avatar || 'RM'}
-          </div>
+        {currentUser?.role === 'ADMIN' && (
+          <span className="p-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30" title="Admin">
+            <ShieldCheck className="w-4 h-4" />
+          </span>
         )}
       </div>
     </header>

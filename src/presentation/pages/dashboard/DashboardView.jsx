@@ -487,7 +487,7 @@ export default function DashboardView({
       </div>
 
       {/* Referential Integrity Quick Health Banner */}
-      {!referentialAudit.summary.isFullyAligned && (
+      {referentialAudit?.summary && !referentialAudit.summary.isFullyAligned && (
         <div className="p-4 sm:p-5 rounded-3xl bg-amber-500/10 border border-amber-300/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-amber-950 shadow-xs animate-fade-in">
           <div className="flex items-start sm:items-center gap-3.5">
             <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
@@ -495,9 +495,9 @@ export default function DashboardView({
             </div>
             <div>
               <div className="font-black text-sm text-slate-900 flex items-center gap-2 flex-wrap">
-                <span>Écarts Référentiels Détectés ({referentialAudit.summary.totalOrphanErrors} orphelin{referentialAudit.summary.totalOrphanErrors > 1 ? 's' : ''})</span>
+                <span>Écarts Référentiels Détectés ({referentialAudit.summary.totalOrphanErrors || 0} orphelin{(referentialAudit.summary.totalOrphanErrors || 0) > 1 ? 's' : ''})</span>
                 <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 font-mono text-[10.5px] font-extrabold border border-amber-300">
-                  Santé {referentialAudit.healthScore}% · Grade {referentialAudit.statusGrade}
+                  Santé {referentialAudit.healthScore ?? 100}% · Grade {referentialAudit.statusGrade || 'A+'}
                 </span>
               </div>
               <p className="text-slate-600 text-[11px] mt-0.5 max-w-2xl leading-relaxed">

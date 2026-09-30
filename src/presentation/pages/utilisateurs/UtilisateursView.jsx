@@ -716,9 +716,9 @@ export default function UtilisateursView({
                 }
                 options={[
                   { value: 'ALL', label: 'Toutes les Zones (E)' },
-                  ...zones.map((z) => ({
-                    value: z.id_zone,
-                    label: `[E] ${z.libelle} (${z.id_zone})`,
+                  ...zones.map((z, zIdx) => ({
+                    value: z.id_zone || `zone-${zIdx}`,
+                    label: `[E] ${z.libelle || z.id_zone || ''} (${z.id_zone || zIdx})`,
                   })),
                 ]}
                 value={zoneFilter}
@@ -1012,7 +1012,7 @@ export default function UtilisateursView({
                     const realIndex = startIndex + idx;
                     if (user.__isEmptyPlaceholder) {
                       return (
-                        <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+                        <tr key={`empty-row-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
                           <td className="py-2.5 px-3 text-center font-mono text-[10.5px] text-slate-300 bg-slate-100/30 border-r border-slate-200/60 shrink-0">
                             {realIndex + 1}
                           </td>
@@ -1032,7 +1032,7 @@ export default function UtilisateursView({
 
                     return (
                       <tr
-                        key={`user-row-${user.id ?? ''}-${user.type ?? ''}-${realIndex}`}
+                        key={`user-row-${user.id || 'usr'}-${user.type || 'typ'}-${realIndex}`}
                         className="even:bg-slate-50/70 odd:bg-white hover:bg-indigo-50/40 transition-colors border-b border-slate-100"
                       >
                         {/* Row N° Column */}
@@ -1089,11 +1089,11 @@ export default function UtilisateursView({
                             </span>
                           ) : isResp ? (
                             <div className="flex flex-wrap gap-1 items-center max-w-sm">
-                              {tpls.map((tpl) => (
+                              {tpls.map((tpl, tplIdx) => (
                                 <span
-                                  key={tpl.id}
-                                  className={`inline-flex items-center gap-1 text-[10.5px] font-bold border px-2.5 py-0.5 rounded-full shadow-2xs ${tpl.badgeClass}`}
-                                  title={`${tpl.label} - ${tpl.description}`}
+                                  key={`tpl-${user.id || realIndex}-${tpl.id || tplIdx}`}
+                                  className={`inline-flex items-center gap-1 text-[10.5px] font-bold border px-2.5 py-0.5 rounded-full shadow-2xs ${tpl.badgeClass || ''}`}
+                                  title={`${tpl.label || ''} - ${tpl.description || ''}`}
                                 >
                                   <Crown className="w-2.5 h-2.5 shrink-0 opacity-80" />
                                   <span>[{tpl.id}] {tpl.label}</span>
@@ -1118,11 +1118,11 @@ export default function UtilisateursView({
                           ) : (
                             <div className="flex flex-wrap gap-1 items-center max-w-xs">
                               {(user.zones && user.zones.length > 0 ? user.zones : [user.id_zone]).map(
-                                (zid) => {
+                                (zid, zIdx) => {
                                   const zObj = zones.find((z) => z.id_zone === zid);
                                   return (
                                     <span
-                                      key={zid}
+                                      key={`zone-tag-${user.id || realIndex}-${zid || 'na'}-${zIdx}`}
                                       className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 shadow-2xs"
                                     >
                                       <MapPin className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
@@ -1231,7 +1231,7 @@ export default function UtilisateursView({
             <div className="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/80">
               {[20, 50, 100, 200, 0].map((size) => (
                 <button
-                  key={size}
+                  key={`page-size-btn-${size}`}
                   onClick={() => {
                     setPageSize(size);
                     setCurrentPage(1);
@@ -1339,9 +1339,9 @@ export default function UtilisateursView({
                       { key: 'TECHNICIEN', label: 'Technicien', sub: '(TECH)' },
                       { key: 'OPERATEUR', label: 'Opérateur', sub: '(OP)' },
                       { key: 'RESPONSABLE', label: 'Responsable', sub: '(RESP)' },
-                    ].map((item) => (
+                    ].map((item, itmIdx) => (
                       <button
-                        key={item.key}
+                        key={`profile-tab-${item.key || itmIdx}`}
                         type="button"
                         disabled={!!userToEdit}
                         onClick={() =>
@@ -1401,11 +1401,11 @@ export default function UtilisateursView({
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      {RESPONSABLE_TEMPLATES.map((tpl) => {
+                      {RESPONSABLE_TEMPLATES.map((tpl, tplIdx) => {
                         const isSelected = (form.templates || []).includes(tpl.id);
                         return (
                           <button
-                            key={tpl.id}
+                            key={`resp-template-opt-${tpl.id || tplIdx}`}
                             type="button"
                             onClick={() => {
                               const current = form.templates || [];
@@ -1519,11 +1519,11 @@ export default function UtilisateursView({
 
                     {!(form.zones || []).includes('ALL') && (
                       <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-xl">
-                        {zones.map((z) => {
+                        {zones.map((z, zIdx) => {
                           const isChecked = (form.zones || []).includes(z.id_zone);
                           return (
                             <label
-                              key={z.id_zone}
+                              key={`zone-chk-${z.id_zone || zIdx}`}
                               className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer p-1.5 rounded-lg hover:bg-white transition"
                             >
                               <input
@@ -1568,8 +1568,8 @@ export default function UtilisateursView({
                       onChange={(e) => setForm({ ...form, id_zone: e.target.value })}
                       className="w-full h-10 px-3 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:bg-white transition"
                     >
-                      {zones.map((z) => (
-                        <option key={z.id_zone} value={z.id_zone}>
+                      {zones.map((z, zIdx) => (
+                        <option key={`zone-opt-${z.id_zone || zIdx}`} value={z.id_zone}>
                           {z.libelle} ({z.id_zone})
                         </option>
                       ))}

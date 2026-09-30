@@ -1048,7 +1048,7 @@ export default function ClotureRapportsTab({
                   const realIndex = startIndex + idx;
                   if (item.__isEmptyPlaceholder) {
                     return (
-                      <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+                      <tr key={`empty-cr-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
                         <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
                           {realIndex + 1}
                         </td>
@@ -1063,7 +1063,7 @@ export default function ClotureRapportsTab({
 
                   return (
                     <tr
-                      key={item.id || idx}
+                      key={`cr-row-${item.id || 'cr'}-${item.id_intervention || ''}-${realIndex}`}
                       className="even:bg-slate-50/70 odd:bg-white hover:bg-emerald-50/40 border-b border-slate-200/70 transition-colors"
                     >
                       {/* Row N° */}

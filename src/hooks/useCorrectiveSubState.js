@@ -10,7 +10,7 @@ import { CorrectiveIntervention } from '../domain/corrective/entities/Corrective
 import { CorrectiveCalculationService } from '../domain/corrective/services/CorrectiveCalculationService';
 import { movementRepository } from '../application/MovementRepository';
 
-const STORAGE_KEY = 'gmao_corrective_interventions_v800';
+const STORAGE_KEY = 'gmao_corrective_interventions';
 const ACTIVE_LIVE_KEY = 'gmao_corrective_active_live';
 const STORAGE_KEY_ACTIONS_BY_PANNE = 'gmao_corrective_actions_by_panne_v4';
 const STORAGE_KEY_PANNE_CATEGORIES = 'gmao_corrective_panne_categories_v4';
@@ -59,28 +59,26 @@ export function useCorrectiveSubState(groupedState = {}) {
   // 1. Interventions State (persisted in storage, guaranteed 800 records baseline)
   const [interventions, setInterventions] = useState(() => {
     try {
-      const storedV800 = storageService.getItem(STORAGE_KEY);
+      const stored = storageService.getItem(STORAGE_KEY);
       if (
-        Array.isArray(storedV800) &&
-        storedV800.length >= initialInterventions.length &&
-        storedV800.some((i) => i?.id?.startsWith('CORR-0'))
+        Array.isArray(stored) &&
+        stored.length >= initialInterventions.length &&
+        stored.some((i) => i?.id?.startsWith('CORR-0'))
       ) {
-        return storedV800;
+        return stored;
       }
 
       const existingData =
-        storedV800 ||
+        stored ||
         (Array.isArray(groupedState.correctiveInterventions) && groupedState.correctiveInterventions.length > 0
           ? groupedState.correctiveInterventions
           : null) ||
         storageService.getItem('gmao_corrective_interventions_v3') ||
-        storageService.getItem('gmao_corrective_interventions') ||
+        storageService.getItem('gmao_corrective_interventions_v800') ||
         [];
 
       const resolved = resolveInitialInterventions(existingData, initialInterventions);
       storageService.setItem(STORAGE_KEY, resolved);
-      storageService.setItem('gmao_corrective_interventions', resolved);
-      storageService.setItem('gmao_corrective_interventions_v3', resolved);
       storageService.setItem(STORAGE_KEY_CORRECTIVE_INIT, 'true');
       return resolved;
     } catch {
@@ -179,8 +177,6 @@ export function useCorrectiveSubState(groupedState = {}) {
       setInterventions((prev) => {
         const resolved = resolveInitialInterventions(existingInStorage || prev, initialInterventions);
         storageService.setItem(STORAGE_KEY, resolved);
-        storageService.setItem('gmao_corrective_interventions', resolved);
-        storageService.setItem('gmao_corrective_interventions_v3', resolved);
         storageService.setItem(STORAGE_KEY_CORRECTIVE_INIT, 'true');
         return resolved;
       });
@@ -508,8 +504,6 @@ export function useCorrectiveSubState(groupedState = {}) {
 
     setInterventions(baseline.interventions || []);
     storageService.setItem(STORAGE_KEY, baseline.interventions || []);
-    storageService.setItem('gmao_corrective_interventions', baseline.interventions || []);
-    storageService.setItem('gmao_corrective_interventions_v3', baseline.interventions || []);
     await resetCorrectiveActionsToSeed();
 
     return {
@@ -526,8 +520,6 @@ export function useCorrectiveSubState(groupedState = {}) {
   useEffect(() => {
     try {
       storageService.setItem(STORAGE_KEY, interventions);
-      storageService.setItem('gmao_corrective_interventions', interventions);
-      storageService.setItem('gmao_corrective_interventions_v3', interventions);
     } catch (e) {
       console.error('Failed to save corrective interventions:', e);
     }
@@ -742,8 +734,6 @@ export function useCorrectiveSubState(groupedState = {}) {
     setInterventions(finalItems);
     setActiveLiveId(null);
     storageService.setItem(STORAGE_KEY, finalItems);
-    storageService.setItem('gmao_corrective_interventions', finalItems);
-    storageService.setItem('gmao_corrective_interventions_v3', finalItems);
     await resetCorrectiveActionsToSeed();
   }, [resetCorrectiveActionsToSeed]);
 

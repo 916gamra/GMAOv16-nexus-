@@ -4,28 +4,58 @@ import seedUsers from '../data/users/seedUsers.json';
 import initialTechnicians from '../data/users/seedTechnicians.json';
 import initialOperations from '../data/users/seedOperations.json';
 
+const PERSONNEL_STORAGE_KEY = 'gmao_personnel_users_v2';
+
+function isRealPersonnelUser(u) {
+  if (!u || typeof u !== 'object') return false;
+  if (u.passwordHash) return false;
+  const idStr = String(u.id || u.id_technician || u.id_operation || '').trim().toUpperCase();
+  const usernameStr = String(u.username || '').trim().toLowerCase();
+  // Filter out system login accounts that might have leaked into users storage
+  if (['ADMIN', 'MAGASINIER', 'VIEWER'].includes(idStr) || ['admin', 'magasinier', 'viewer'].includes(usernameStr)) {
+    return false;
+  }
+  if (idStr === 'TECH' && (!u.nom || u.nom === 'Technicien Maintenance')) {
+    return false;
+  }
+  return true;
+}
+
+function sanitizePersonnelList(list) {
+  if (!Array.isArray(list)) return [];
+  return list.filter(isRealPersonnelUser);
+}
+
 /**
  * 🏛️ GMAO User Sub-State & Single Source of Truth
  * Conforme à la Constitution GMAO :
- * Le tableau `users` (Utilisateurs) est le SEUL et UNIQUE conteneur maître (Single Source of Truth).
- * Les vues `technicians` et `operations` sont des sélections dérivées dynamiques :
- * - Techniciens : FILTER(users, role === 'Technicien')
- * - Opérations / Chefs : FILTER(users, role !== 'Technicien')
+ * Le tableau `users` (Utilisateurs / Personnel) est le SEUL et UNIQUE conteneur maître (Single Source of Truth) pour les techniciens, opérateurs et responsables d'usine.
+ * Les comptes système/connexion (Auth) sont isolés dans AuthService et le coffre-fort.
  */
 export function useUserSubState(groupedState = {}) {
-  // 1. Initialisation de la table unique des utilisateurs (Master Users Table)
+  // 1. Initialisation de la table unique des utilisateurs (Master Personnel Table)
   const [users, setUsers] = useState(() => {
-    // Si fourni dans groupedState
+    // Si fourni dans groupedState avec du personnel réel
     if (Array.isArray(groupedState.users) && groupedState.users.length > 0) {
-      return groupedState.users;
-    }
-    // Si sauvegardé dans LocalStorage sous la clé maîtresse
-    const rawUsers = storageService.getItem('gmao_users_v2') || storageService.getItem('gmao_users');
-    if (Array.isArray(rawUsers) && rawUsers.length > 0) {
-      return rawUsers;
+      const sanitized = sanitizePersonnelList(groupedState.users);
+      if (sanitized.length > 0) return sanitized;
     }
 
-    // Migration transparente depuis les anciennes clés séparées si existantes
+    // Si sauvegardé dans LocalStorage sous la clé dédiée au personnel
+    const rawPersonnel = storageService.getItem(PERSONNEL_STORAGE_KEY);
+    if (Array.isArray(rawPersonnel)) {
+      const sanitized = sanitizePersonnelList(rawPersonnel);
+      if (sanitized.length > 0) return sanitized;
+    }
+
+    // Vérification de l'ancienne clé avec assainissement strict
+    const legacyUsers = storageService.getItem('gmao_users_v2') || storageService.getItem('gmao_users');
+    if (Array.isArray(legacyUsers)) {
+      const sanitized = sanitizePersonnelList(legacyUsers);
+      if (sanitized.length > 0) return sanitized;
+    }
+
+    // Migration transparente depuis les clés techniciens et opérations si existantes
     const rawTechs =
       (groupedState.technicians && Array.isArray(groupedState.technicians) && groupedState.technicians.length > 0)
         ? groupedState.technicians
@@ -36,8 +66,11 @@ export function useUserSubState(groupedState = {}) {
         ? groupedState.operations
         : storageService.getItem('gmao_operations_v2') || storageService.getItem('gmao_operations');
 
-    if ((Array.isArray(rawTechs) && rawTechs.length > 0) || (Array.isArray(rawOps) && rawOps.length > 0)) {
-      const mergedTechs = (Array.isArray(rawTechs) ? rawTechs : initialTechnicians).map((t) => ({
+    const sanitizedTechs = sanitizePersonnelList(rawTechs);
+    const sanitizedOps = sanitizePersonnelList(rawOps);
+
+    if (sanitizedTechs.length > 0 || sanitizedOps.length > 0) {
+      const mergedTechs = (sanitizedTechs.length > 0 ? sanitizedTechs : initialTechnicians).map((t) => ({
         id: t.id_technician || t.id,
         id_technician: t.id_technician || t.id,
         nom: t.nom,
@@ -48,7 +81,7 @@ export function useUserSubState(groupedState = {}) {
         specialite: t.specialite || 'Maintenance Générale',
       }));
 
-      const mergedOps = (Array.isArray(rawOps) ? rawOps : initialOperations).map((o) => ({
+      const mergedOps = (sanitizedOps.length > 0 ? sanitizedOps : initialOperations).map((o) => ({
         id: o.id_operation || o.id,
         id_operation: o.id_operation || o.id,
         nom: o.nom,
@@ -73,7 +106,7 @@ export function useUserSubState(groupedState = {}) {
   const technicians = useMemo(() => {
     return users
       .filter((u) => {
-        if (!u) return false;
+        if (!u || !isRealPersonnelUser(u)) return false;
         const roleStr = String(u.role || u.type_profil || '').toLowerCase();
         const idStr = String(u.id || u.id_technician || '').toUpperCase();
         return roleStr.includes('tech') || idStr.startsWith('TECH');
@@ -88,7 +121,7 @@ export function useUserSubState(groupedState = {}) {
   const operations = useMemo(() => {
     return users
       .filter((u) => {
-        if (!u) return false;
+        if (!u || !isRealPersonnelUser(u)) return false;
         const roleStr = String(u.role || u.type_profil || '').toLowerCase();
         const idStr = String(u.id || u.id_technician || '').toUpperCase();
         return !roleStr.includes('tech') && !idStr.startsWith('TECH');
@@ -103,13 +136,13 @@ export function useUserSubState(groupedState = {}) {
   const setTechnicians = useCallback((updater) => {
     setUsers((prevUsers) => {
       const currentTechs = prevUsers.filter((u) => {
-        if (!u) return false;
+        if (!u || !isRealPersonnelUser(u)) return false;
         const roleStr = String(u.role || u.type_profil || '').toLowerCase();
         const idStr = String(u.id || u.id_technician || '').toUpperCase();
         return roleStr.includes('tech') || idStr.startsWith('TECH');
       });
       const nonTechs = prevUsers.filter((u) => {
-        if (!u) return false;
+        if (!u || !isRealPersonnelUser(u)) return false;
         const roleStr = String(u.role || u.type_profil || '').toLowerCase();
         const idStr = String(u.id || u.id_technician || '').toUpperCase();
         return !roleStr.includes('tech') && !idStr.startsWith('TECH');
@@ -131,13 +164,13 @@ export function useUserSubState(groupedState = {}) {
   const setOperations = useCallback((updater) => {
     setUsers((prevUsers) => {
       const currentOps = prevUsers.filter((u) => {
-        if (!u) return false;
+        if (!u || !isRealPersonnelUser(u)) return false;
         const roleStr = String(u.role || u.type_profil || '').toLowerCase();
         const idStr = String(u.id || u.id_operation || '').toUpperCase();
         return !roleStr.includes('tech') && !idStr.startsWith('TECH');
       });
       const techs = prevUsers.filter((u) => {
-        if (!u) return false;
+        if (!u || !isRealPersonnelUser(u)) return false;
         const roleStr = String(u.role || u.type_profil || '').toLowerCase();
         const idStr = String(u.id || u.id_technician || '').toUpperCase();
         return roleStr.includes('tech') || idStr.startsWith('TECH');
@@ -156,9 +189,10 @@ export function useUserSubState(groupedState = {}) {
     });
   }, []);
 
-  // 5. Sauvegarde automatique de la table unique
+  // 5. Sauvegarde automatique de la table du personnel
   useEffect(() => {
-    storageService.setItem('gmao_users_v2', users);
+    const sanitized = sanitizePersonnelList(users);
+    storageService.setItem(PERSONNEL_STORAGE_KEY, sanitized);
     storageService.setItem('gmao_technicians_v2', technicians);
     storageService.setItem('gmao_operations_v2', operations);
   }, [users, technicians, operations]);

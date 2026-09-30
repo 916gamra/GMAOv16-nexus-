@@ -360,6 +360,62 @@ class DataIntegrityService {
   }
 
   /**
+   * Diagnostic d'intégrité relationnelle rapide avec résumé et score de santé pour le tableau de bord
+   */
+  scanReferentialIntegrity(params = {}) {
+    const rawStock = params.rawStock || params.stock || [];
+    const mouvements = params.mouvements || params.movements || [];
+    const machines = params.machines || [];
+    const zones = params.zones || [];
+    const technicians = params.technicians || [];
+    const operations = params.operations || [];
+    const preventiveTasks = params.preventiveTasks || [];
+    const correctiveInterventions = params.correctiveInterventions || [];
+
+    const refValidation = this.validateReferentialIntegrity({
+      rawStock,
+      mouvements,
+      machines,
+      zones,
+      technicians,
+      operations,
+      preventiveTasks,
+      correctiveInterventions,
+    });
+
+    const totalErrors = refValidation.errors.length;
+    const totalWarnings = refValidation.warnings.length;
+    const totalIssues = totalErrors + totalWarnings;
+    const checkedCount = Math.max(1, refValidation.checkedCount || 1);
+
+    // Score de conformité (0 à 100%)
+    const penalty = totalErrors * 10 + totalWarnings * 2;
+    const healthScore = Math.max(0, Math.min(100, Math.round(100 - (penalty / (Math.max(10, checkedCount * 0.05))))));
+
+    let statusGrade = 'A+';
+    if (healthScore < 50) statusGrade = 'D';
+    else if (healthScore < 70) statusGrade = 'C';
+    else if (healthScore < 85) statusGrade = 'B';
+    else if (healthScore < 98) statusGrade = 'A';
+
+    return {
+      valid: totalErrors === 0,
+      healthScore,
+      statusGrade,
+      summary: {
+        isFullyAligned: totalErrors === 0,
+        totalOrphanErrors: totalErrors,
+        totalWarnings,
+        totalIssues,
+        checkedCount,
+      },
+      errors: refValidation.errors,
+      warnings: refValidation.warnings,
+      details: refValidation,
+    };
+  }
+
+  /**
    * Routine d'auto-guérison avancée (Self-Healing & Auto-Repair)
    * 1. Recalcule le stock actuel selon la formule jumelle exacte
    * 2. Assainit les stocks initiaux et seuils négatifs ou corrompus

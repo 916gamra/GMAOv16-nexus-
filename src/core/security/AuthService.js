@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import CryptoJS from 'crypto-js';
 import { storageService } from '../../utils/storageService';
 
-const USERS_KEY = 'gmao_users_v2';
+const USERS_KEY = 'gmao_auth_accounts_v2';
 const SESSION_KEY = 'gmao_session_v2';
 
 export class AuthService {

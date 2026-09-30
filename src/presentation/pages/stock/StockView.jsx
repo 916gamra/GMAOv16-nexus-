@@ -1057,7 +1057,7 @@ export default function StockView({
                   const rowNum = startIndex + idx + 1;
                   if (item.__isEmptyPlaceholder) {
                     return (
-                      <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+                      <tr key={`empty-stock-${rowNum}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
                         <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
                           {rowNum}
                         </td>
@@ -1075,7 +1075,7 @@ export default function StockView({
 
                   return (
                     <tr
-                      key={`stock-row-${item.id ?? ''}-${item.ref ?? ''}-${rowNum}`}
+                      key={`stock-row-${item.id || item.ref || 'stk'}-${rowNum}`}
                       onContextMenu={(e) => handleRowContextMenu(e, item)}
                       className="even:bg-slate-50/70 odd:bg-white hover:bg-cyan-50/40 border-b border-slate-200/70 transition-colors"
                     >

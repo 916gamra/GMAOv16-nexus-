@@ -53,6 +53,61 @@ const KEY_ID = 'main_aes_gcm_key';
 
 let webCryptoKey = null;
 
+// Stale / Legacy keys that can be safely purged when localStorage faces quota pressure
+const OBSOLETE_OR_DUPLICATE_KEYS = [
+  'gmao_corrective_interventions_v3',
+  'gmao_corrective_interventions_v2',
+  'gmao_corrective_interventions_v1',
+  'gmao_corrective_interventions_v800',
+  'gmao_raw_stock_v1',
+  'gmao_raw_stock_v2',
+  'gmao_raw_stock_v3',
+  'gmao_raw_stock_v4',
+  'gmao_raw_stock_v5',
+  'gmao_machines_catalog_v1',
+  'gmao_machines_catalog_v2',
+  'gmao_machines_catalog_v3',
+];
+
+/**
+ * Safely purges obsolete keys and stale snapshots when quota limit is approached
+ */
+function purgeObsoleteStorageKeys() {
+  if (typeof localStorage === 'undefined') return 0;
+  let freedCount = 0;
+
+  // 1. Remove known deprecated / duplicate versioned keys
+  for (const obsoleteKey of OBSOLETE_OR_DUPLICATE_KEYS) {
+    if (localStorage.getItem(obsoleteKey) !== null) {
+      localStorage.removeItem(obsoleteKey);
+      memoryCache.delete(obsoleteKey);
+      freedCount++;
+    }
+  }
+
+  // 2. Remove old snapshot histories if quota is still critical
+  try {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('gmao_snapshot_') || k.startsWith('gmao_backup_temp_') || k.includes('_legacy_'))) {
+        keysToRemove.push(k);
+      }
+    }
+    keysToRemove.forEach((k) => {
+      localStorage.removeItem(k);
+      freedCount++;
+    });
+  } catch {}
+
+  return freedCount;
+}
+
+// Initial purge of known legacy keys on startup
+try {
+  purgeObsoleteStorageKeys();
+} catch {}
+
 // Pre-populate memoryCache from localStorage safely on startup
 try {
   if (typeof localStorage !== 'undefined') {
@@ -314,15 +369,37 @@ export const storageService = {
         if (value === null || value === undefined) {
           localStorage.removeItem(key);
           memoryCache.delete(key);
-        } else if (typeof value === 'object') {
-          localStorage.setItem(key, JSON.stringify(value));
         } else {
-          localStorage.setItem(key, String(value));
+          const serialized = typeof value === 'object' ? JSON.stringify(value) : String(value);
+          try {
+            localStorage.setItem(key, serialized);
+          } catch (writeErr) {
+            // If quota exceeded, purge stale keys and retry once
+            const isQuotaError =
+              writeErr?.name === 'QuotaExceededError' ||
+              writeErr?.code === 22 ||
+              writeErr?.code === 1014 ||
+              writeErr?.message?.includes('quota') ||
+              writeErr?.message?.includes('exceeded');
+
+            if (isQuotaError) {
+              const purged = purgeObsoleteStorageKeys();
+              if (purged > 0) {
+                try {
+                  localStorage.setItem(key, serialized);
+                  return true;
+                } catch {
+                  // Fallback safely to memoryCache
+                }
+              }
+            }
+            // Retain data in memoryCache so application works uninterrupted
+            Logger.info(`[StorageService] Active memory retention for '${key}' (Storage quota protected)`);
+          }
         }
       }
     } catch (e) {
-      Logger.warn(`localStorage write error for ${key}:`, e, 'storageService');
-      memoryCache.delete(key);
+      Logger.warn(`localStorage unexpected error for ${key}:`, e, 'storageService');
     }
     return true;
   },

@@ -1,120 +1,68 @@
-import { LayoutDashboard, Package, Factory, Calendar, Wrench, Menu } from 'lucide-react';
-import { useTranslation } from '../../../i18n/I18nContext';
-import { getParentModuleForTab } from '../../../presentation/components/layout/navConfig';
+import { 
+  LayoutDashboard, 
+  Package, 
+  Wrench, 
+  Calendar, 
+  Layers, 
+  Menu 
+} from 'lucide-react';
 
-/**
- * Enterprise Mobile Bottom Navigation Bar
- * Ergonomic, industrial design with auto-active parent module detection and real badges.
- */
 export function BottomNavigation({
   activeTab = 'dashboard',
-  onTabChange,
-  onOpenMenu,
+  isMobile = false,
+  onTabChange = () => {},
+  onOpenMenu = () => {},
   counts = {},
-  className = '',
 }) {
-  const { t } = useTranslation();
-  const parentModule = getParentModuleForTab(activeTab);
-  const activeParentId = parentModule?.id || activeTab;
+  if (!isMobile) return null;
 
-  const navItems = [
-    {
-      id: 'dashboard',
-      label: t('nav.dashboard') || 'Dashboard',
-      icon: LayoutDashboard,
-      active: activeParentId === 'dashboard',
-      onClick: () => onTabChange?.('dashboard'),
-    },
-    {
-      id: 'stock',
-      label: t('nav.stock') || 'Stock PDR',
-      icon: Package,
-      badge: counts.stock ? (counts.stock > 999 ? '999+' : counts.stock) : null,
-      active: activeParentId === 'stock',
-      onClick: () => onTabChange?.('stock'),
-    },
-    {
-      id: 'machines',
-      label: t('nav.machines') || 'Machines',
-      icon: Factory,
-      badge: counts.machines ? counts.machines : null,
-      active: activeParentId === 'machines',
-      onClick: () => onTabChange?.('machines'),
-    },
-    {
-      id: 'preventive',
-      label: t('nav.preventive') || 'Préventif',
-      icon: Calendar,
-      badge: counts.preventive ? counts.preventive : null,
-      active: activeParentId === 'preventive',
-      onClick: () => onTabChange?.('preventive'),
-    },
-    {
-      id: 'corrective',
-      label: t('nav.corrective') || 'Correctif',
-      icon: Wrench,
-      badge: counts.corrective ? counts.corrective : null,
-      active: activeParentId === 'corrective',
-      onClick: () => onTabChange?.('corrective'),
-    },
-    {
-      id: 'menu',
-      label: t('common.menu') || 'Menu',
-      icon: Menu,
-      active: ['entrepot', 'zones', 'utilisateurs', 'operations', 'comp_groups', 'comp_families', 'comp_templates', 'part_types', 'part_designations'].includes(activeParentId),
-      onClick: () => onOpenMenu?.(),
-    },
+  const tabs = [
+    { id: 'dashboard', label: 'Tableau', icon: LayoutDashboard },
+    { id: 'stock', label: 'Stock', icon: Package, badge: counts?.ruptureCount || 0 },
+    { id: 'corrective', label: 'Correctif', icon: Wrench, badge: counts?.openBtCount || 0 },
+    { id: 'preventive', label: 'Préventif', icon: Calendar, badge: counts?.pendingTasksCount || 0 },
+    { id: 'machines', label: 'Parc', icon: Layers },
   ];
 
   return (
     <nav
-      role="navigation"
-      aria-label="Navigation principale mobile"
-      className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-zinc-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.07)] px-2 py-1 flex items-center justify-around select-none safe-area-pb ${className}`}
+      aria-label="Navigation Mobile"
+      className="fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-2 py-1.5 flex items-center justify-around select-none safe-area-bottom shadow-2xl lg:hidden"
     >
-      {navItems.map((item) => {
-        const Icon = item.icon;
-        const isActive = item.active;
+      {tabs.map((tab) => {
+        const Icon = tab.icon;
+        const isActive = activeTab === tab.id || (tab.id === 'corrective' && activeTab?.startsWith('corrective_'));
 
         return (
           <button
-            key={item.id}
-            type="button"
-            onClick={item.onClick}
-            aria-current={isActive ? 'page' : undefined}
-            className={`flex-1 py-1.5 px-1 flex flex-col items-center justify-center transition-all duration-150 min-h-[50px] rounded-xl cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 active:scale-95 ${
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={`flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all relative cursor-pointer active:scale-90 ${
               isActive
-                ? 'text-emerald-700 font-bold'
-                : 'text-zinc-500 hover:text-zinc-800 active:bg-zinc-100/80'
+                ? 'text-emerald-400 font-bold bg-slate-800/80 shadow-inner'
+                : 'text-slate-400 hover:text-slate-200 font-medium'
             }`}
           >
             <div className="relative">
-              <div
-                className={`p-1 rounded-full transition-all ${
-                  isActive
-                    ? 'bg-emerald-50 text-emerald-700 shadow-xs ring-1 ring-emerald-200'
-                    : 'text-zinc-500'
-                }`}
-              >
-                <Icon
-                  size={20}
-                  className={`transition-transform ${isActive ? 'stroke-[2.25px]' : 'stroke-[1.75px]'}`}
-                  aria-hidden="true"
-                />
-              </div>
-
-              {item.badge != null && (
-                <span className="absolute -top-1 -right-2.5 bg-emerald-600 text-white text-[9px] font-extrabold px-1.5 py-0.2 min-w-[16px] text-center rounded-full shadow-xs border border-white">
-                  {item.badge}
+              <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+              {tab.badge > 0 && (
+                <span className="absolute -top-1.5 -right-2.5 px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[9px] font-bold font-mono animate-pulse">
+                  {tab.badge > 99 ? '99+' : tab.badge}
                 </span>
               )}
             </div>
-            <span className={`text-[10px] mt-0.5 tracking-tight truncate max-w-[68px] ${isActive ? 'font-bold text-emerald-800' : 'font-medium'}`}>
-              {item.label}
-            </span>
+            <span className="text-[10px] tracking-tight mt-0.5">{tab.label}</span>
           </button>
         );
       })}
+
+      <button
+        onClick={onOpenMenu}
+        className="flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl text-slate-400 hover:text-slate-200 transition-all cursor-pointer active:scale-90"
+      >
+        <Menu className="w-5 h-5 stroke-2" />
+        <span className="text-[10px] tracking-tight mt-0.5">Plus</span>
+      </button>
     </nav>
   );
 }
