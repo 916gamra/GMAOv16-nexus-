@@ -147,6 +147,17 @@ export function useAppEntityActions({ gmaoState, showToast, setCurrentTab }) {
 
   return {
     ...complexHandlers,
+    setMachines,
+    setZones,
+    setTechnicians,
+    setOperations,
+    setRawStock,
+    setMouvements,
+    setTypes,
+    setFamilies,
+    setTemplates,
+    setPreventiveTasks: gmaoState.setPreventiveTasks,
+    setCorrectiveInterventions: gmaoState.setCorrectiveInterventions,
     handleAddCompGroup,
     handleAddCompFamily,
     handleAddCompTemplate,

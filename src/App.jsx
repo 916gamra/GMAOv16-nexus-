@@ -259,6 +259,7 @@ export default function App() {
   const {
     linkedFileName,
     handleExportExcel,
+    handleDownloadBlankTemplate,
     handleImportFile,
     handleDirectFileLink,
     handleDirectSave,
@@ -316,6 +317,8 @@ export default function App() {
     modals,
     handlers: {
       ...entityActions,
+      handleExportExcel,
+      handleDownloadBlankTemplate,
       handleUpdateTask,
       handleDeleteTask,
       handleUpdateTaskCounter,
@@ -357,6 +360,8 @@ export default function App() {
       handleResetCorrectiveActions,
       handleForceSyncCorrectiveSeed,
     },
+    setters: gmaoState,
+    showToast,
   });
 
   if (showSplash) {

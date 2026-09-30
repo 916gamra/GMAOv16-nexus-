@@ -40,6 +40,8 @@ import {
   Save,
   Wrench,
   Palette,
+  Link2,
+  Package,
 } from 'lucide-react';
 
 import initialStock from '../../../data/stock/seedStockItems.json';
@@ -93,10 +95,13 @@ export default function SettingsView({
   warehouseItems = [],
   sortiesExterne = [],
   preventiveTasks = [],
+  setPreventiveTasks,
   correctiveInterventions = [],
+  setCorrectiveInterventions,
   onResetCorrective,
   onBulkImportCorrective,
   onExportExcel,
+  onDownloadBlankTemplate,
   showToast,
   linkedFileHandle,
   linkedFileName,
@@ -185,7 +190,7 @@ export default function SettingsView({
 
   const [tempPin, setTempPin] = useState('');
 
-  const [auditTarget, setAuditTarget] = useState('machines'); // machines, zones, utilisateurs
+  const [auditTarget, setAuditTarget] = useState('machines'); // machines, articles, zones, utilisateurs, correctif, preventif
   const [showAuditUserModal, setShowAuditUserModal] = useState(false);
   const [auditUserForm, setAuditUserForm] = useState({
     type: 'TECHNICIEN',
@@ -195,6 +200,22 @@ export default function SettingsView({
   });
   const [showAuditZoneModal, setShowAuditZoneModal] = useState(false);
   const [auditZoneForm, setAuditZoneForm] = useState({ libelle: '' });
+  const [showAuditArticleModal, setShowAuditArticleModal] = useState(false);
+  const [auditArticleForm, setAuditArticleForm] = useState({
+    ref: '',
+    designation: '',
+    type: '',
+    emplacement: 'Magasin PDR',
+    stockInitial: 0,
+    seuil: 5,
+  });
+  const [showRelinkModal, setShowRelinkModal] = useState(false);
+  const [relinkData, setRelinkData] = useState({
+    entityType: 'machine',
+    oldKey: '',
+    targetKey: '',
+    occurrencesCount: 0,
+  });
 
   // Sequential ID Generator Helpers for audit manual registration
   const getNextUserId = (type) => {
@@ -242,119 +263,165 @@ export default function SettingsView({
     return `ZONE-${String(max + 1).padStart(2, '0')}`;
   };
 
-  // AUDIT & VERIFICATION ENGINE
+  // AUDIT & VERIFICATION ENGINE (Multi-Entity Strict Relational Matching)
   const discoveredItems = useMemo(() => {
     const candidates = {};
 
     if (auditTarget === 'machines') {
       const registeredIds = new Set(
-        machines.map((m) =>
-          String(m.id_machine_registered || '')
-            .toLowerCase()
-            .trim()
-        )
+        (machines || []).map((m) =>
+          String(m.id_machine_registered || '').toLowerCase().trim()
+        ).filter(Boolean)
       );
 
-      mouvements.forEach((m) => {
+      // 1. Strict FK from Mouvements
+      (mouvements || []).forEach((m, idx) => {
         const code = String(m.id_machine_registered || '').trim();
         if (code && !registeredIds.has(code.toLowerCase())) {
-          candidates[code] = (candidates[code] || 0) + 1;
+          if (!candidates[code]) {
+            candidates[code] = { count: 0, sources: new Set(), sample: `Mouvement #${idx + 1}` };
+          }
+          candidates[code].count += 1;
+          candidates[code].sources.add('Mouvements');
         }
       });
 
+      // 2. Strict FK from Corrective Interventions
+      (correctiveInterventions || []).forEach((ci) => {
+        const code = String(ci.id_machine || ci.machine_id || '').trim();
+        if (code && !registeredIds.has(code.toLowerCase())) {
+          if (!candidates[code]) {
+            candidates[code] = { count: 0, sources: new Set(), sample: `Correctif (${ci.id || ci.code_bon || 'BT'})` };
+          }
+          candidates[code].count += 1;
+          candidates[code].sources.add('Correctif Hub');
+        }
+      });
+
+      // 3. Strict FK from Preventive Tasks
+      (preventiveTasks || []).forEach((pt) => {
+        const code = String(pt.machine_id || pt.id_machine || '').trim();
+        if (code && !registeredIds.has(code.toLowerCase())) {
+          if (!candidates[code]) {
+            candidates[code] = { count: 0, sources: new Set(), sample: `Préventif (${pt.id || pt.code || 'Tâche'})` };
+          }
+          candidates[code].count += 1;
+          candidates[code].sources.add('Planning Préventif');
+        }
+      });
+
+      // 4. Secondary Regex Text Scanning in comments
       const mchRegex = /\b([A-Z]{2,4}-\d{2,3}|[A-Z]{2,4}-\d{1,2})\b/gi;
-      const scanTexts = (texts) => {
+      const scanTexts = (text, sourceLabel) => {
+        if (!text) return;
         let match;
         mchRegex.lastIndex = 0;
-        while ((match = mchRegex.exec(texts)) !== null) {
+        while ((match = mchRegex.exec(text)) !== null) {
           const code = match[1].toUpperCase();
-          if (
-            [
-              'B1',
-              'R1',
-              'R2',
-              'R3',
-              'R4',
-              'R5',
-              'R6',
-              'A1',
-              'A2',
-              'A3',
-              'A4',
-              'A5',
-              'A6',
-              'REF',
-              'TPL',
-              'FAM',
-              'ZONE',
-              'TECH',
-              'CHEF',
-              'OP',
-              'MCH',
-            ].includes(code)
-          )
-            continue;
+          if ([
+            'B1', 'R1', 'R2', 'R3', 'R4', 'R5', 'R6',
+            'A1', 'A2', 'A3', 'A4', 'A5', 'A6',
+            'REF', 'TPL', 'FAM', 'ZONE', 'TECH', 'CHEF', 'OP', 'MCH', 'PDR', 'STOCK',
+          ].includes(code)) continue;
+
           if (!registeredIds.has(code.toLowerCase())) {
-            candidates[code] = (candidates[code] || 0) + 1;
+            if (!candidates[code]) {
+              candidates[code] = { count: 0, sources: new Set(), sample: sourceLabel };
+            }
+            candidates[code].count += 1;
+            candidates[code].sources.add(sourceLabel);
           }
         }
       };
 
-      mouvements.forEach((m) => scanTexts([m.commentaire, m.demandeur, m.ref].join(' ')));
-      rawStock.forEach((s) => scanTexts([s.emplacement, s.designation, s.ref].join(' ')));
+      (mouvements || []).forEach((m, idx) => {
+        scanTexts(m.commentaire, `Commentaire Mvt #${idx + 1}`);
+      });
 
       return Object.entries(candidates)
-        .map(([code, count]) => ({ code, count }))
+        .map(([code, meta]) => ({
+          code,
+          count: meta.count,
+          sourceList: Array.from(meta.sources).join(', '),
+          sample: meta.sample,
+          entityType: 'machine',
+        }))
         .sort((a, b) => b.count - a.count);
+
+    } else if (auditTarget === 'articles') {
+      const registeredRefs = new Set(
+        (rawStock || []).map((s) => String(s.ref || '').toUpperCase().trim()).filter(Boolean)
+      );
+
+      (mouvements || []).forEach((m, idx) => {
+        const ref = String(m.ref || '').trim();
+        if (ref && !registeredRefs.has(ref.toUpperCase())) {
+          if (!candidates[ref]) {
+            candidates[ref] = { count: 0, sources: new Set(), sample: `Mvt #${idx + 1} (${m.type || 'Mvt'} ${m.quantite || 1})` };
+          }
+          candidates[ref].count += 1;
+          candidates[ref].sources.add('Journal Mouvements');
+        }
+      });
+
+      return Object.entries(candidates)
+        .map(([code, meta]) => ({
+          code,
+          count: meta.count,
+          sourceList: Array.from(meta.sources).join(', '),
+          sample: meta.sample,
+          entityType: 'article',
+        }))
+        .sort((a, b) => b.count - a.count);
+
     } else if (auditTarget === 'zones') {
       const registeredZones = new Set([
-        ...zones.map((z) =>
-          String(z.id_zone || '')
-            .toLowerCase()
-            .trim()
-        ),
-        ...zones.map((z) =>
-          String(z.libelle || '')
-            .toLowerCase()
-            .trim()
-        ),
-        ...zones.map((z) =>
-          String(z.nom || '')
-            .toLowerCase()
-            .trim()
-        ),
-      ]);
+        ...(zones || []).map((z) => String(z.id_zone || '').toLowerCase().trim()),
+        ...(zones || []).map((z) => String(z.libelle || '').toLowerCase().trim()),
+        ...(zones || []).map((z) => String(z.nom || '').toLowerCase().trim()),
+      ].filter(Boolean));
 
-      mouvements.forEach((m) => {
+      (mouvements || []).forEach((m, idx) => {
         const code = String(m.id_zone || '').trim();
-        if (code && !registeredZones.has(code.toLowerCase()))
-          candidates[code] = (candidates[code] || 0) + 1;
+        if (code && !registeredZones.has(code.toLowerCase())) {
+          if (!candidates[code]) {
+            candidates[code] = { count: 0, sources: new Set(), sample: `Mouvement #${idx + 1}` };
+          }
+          candidates[code].count += 1;
+          candidates[code].sources.add('Mouvements');
+        }
       });
-      machines.forEach((m) => {
-        const code = String(m.id_zone_default || '').trim();
-        if (code && !registeredZones.has(code.toLowerCase()))
-          candidates[code] = (candidates[code] || 0) + 1;
+
+      (machines || []).forEach((m) => {
+        const code = String(m.id_zone_default || m.id_zone || '').trim();
+        if (code && !registeredZones.has(code.toLowerCase())) {
+          if (!candidates[code]) {
+            candidates[code] = { count: 0, sources: new Set(), sample: `Machine ${m.id_machine_registered}` };
+          }
+          candidates[code].count += 1;
+          candidates[code].sources.add('Parc Machines');
+        }
       });
 
       return Object.entries(candidates)
-        .map(([code, count]) => ({ code, count }))
+        .map(([code, meta]) => ({
+          code,
+          count: meta.count,
+          sourceList: Array.from(meta.sources).join(', '),
+          sample: meta.sample,
+          entityType: 'zone',
+        }))
         .sort((a, b) => b.count - a.count);
+
     } else if (auditTarget === 'utilisateurs') {
       const registeredNames = new Set([
-        ...technicians.map((t) =>
-          String(t.nom || '')
-            .toLowerCase()
-            .trim()
-        ),
-        ...operations.map((o) =>
-          String(o.nom || '')
-            .toLowerCase()
-            .trim()
-        ),
-      ]);
+        ...(technicians || []).map((t) => String(t.nom || '').toLowerCase().trim()),
+        ...(technicians || []).map((t) => String(t.id_technician || '').toLowerCase().trim()),
+        ...(operations || []).map((o) => String(o.nom || '').toLowerCase().trim()),
+        ...(operations || []).map((o) => String(o.id_operation || '').toLowerCase().trim()),
+      ].filter(Boolean));
 
       const userMap = {};
-
       const addCandidate = (rawName, sourceField) => {
         if (!rawName) return;
         const name = rawName.trim();
@@ -378,13 +445,18 @@ export default function SettingsView({
         if (sourceField === 'Demandeur') userMap[name].demandeurCount += 1;
       };
 
-      mouvements.forEach((m) => {
+      (mouvements || []).forEach((m) => {
         if (m.technicien) addCandidate(m.technicien, 'Technicien');
         if (m.operation) addCandidate(m.operation, 'Opération/Chef');
         if (m.demandeur) addCandidate(m.demandeur, 'Demandeur');
       });
 
-      machines.forEach((m) => {
+      (correctiveInterventions || []).forEach((ci) => {
+        if (ci.technicien_id || ci.technicien) addCandidate(ci.technicien_id || ci.technicien, 'Technicien');
+        if (ci.demandeur) addCandidate(ci.demandeur, 'Demandeur');
+      });
+
+      (machines || []).forEach((m) => {
         if (m.technician) addCandidate(m.technician, 'Parc Machine');
       });
 
@@ -398,21 +470,68 @@ export default function SettingsView({
           } else {
             inferredRole = 'TECHNICIEN';
           }
-
           const sourceList = Array.from(meta.sources).join(', ');
-
           return {
             code: name,
             count: meta.count,
             inferredRole,
             sourceList,
+            entityType: 'user',
           };
         })
+        .sort((a, b) => b.count - a.count);
+
+    } else if (auditTarget === 'correctif') {
+      const registeredMachines = new Set(
+        (machines || []).map((m) => String(m.id_machine_registered || '').toUpperCase().trim()).filter(Boolean)
+      );
+      (correctiveInterventions || []).forEach((ci) => {
+        const mKey = String(ci.id_machine || ci.machine_id || '').trim();
+        if (mKey && !registeredMachines.has(mKey.toUpperCase())) {
+          if (!candidates[mKey]) {
+            candidates[mKey] = { count: 0, sources: new Set(), sample: `Intervention ${ci.id || ci.code_bon || 'Sans ID'}` };
+          }
+          candidates[mKey].count += 1;
+          candidates[mKey].sources.add('Bons de Travail');
+        }
+      });
+      return Object.entries(candidates)
+        .map(([code, meta]) => ({
+          code,
+          count: meta.count,
+          sourceList: Array.from(meta.sources).join(', '),
+          sample: meta.sample,
+          entityType: 'machine',
+        }))
+        .sort((a, b) => b.count - a.count);
+
+    } else if (auditTarget === 'preventif') {
+      const registeredMachines = new Set(
+        (machines || []).map((m) => String(m.id_machine_registered || '').toUpperCase().trim()).filter(Boolean)
+      );
+      (preventiveTasks || []).forEach((pt) => {
+        const mKey = String(pt.machine_id || pt.id_machine || '').trim();
+        if (mKey && !registeredMachines.has(mKey.toUpperCase())) {
+          if (!candidates[mKey]) {
+            candidates[mKey] = { count: 0, sources: new Set(), sample: `Tâche ${pt.id || pt.code || 'Sans ID'}` };
+          }
+          candidates[mKey].count += 1;
+          candidates[mKey].sources.add('Tâches Préventives');
+        }
+      });
+      return Object.entries(candidates)
+        .map(([code, meta]) => ({
+          code,
+          count: meta.count,
+          sourceList: Array.from(meta.sources).join(', '),
+          sample: meta.sample,
+          entityType: 'machine',
+        }))
         .sort((a, b) => b.count - a.count);
     }
 
     return [];
-  }, [auditTarget, mouvements, rawStock, machines, zones, technicians, operations]);
+  }, [auditTarget, mouvements, rawStock, machines, zones, technicians, operations, correctiveInterventions, preventiveTasks]);
 
   const [auditCurrentPage, setAuditCurrentPage] = useState(1);
   const [auditPageSize, setAuditPageSize] = useState(25);
@@ -778,11 +897,59 @@ export default function SettingsView({
         `${discoveredItems.length} utilisateur(s) enregistrés automatiquement (${regTech} Techs, ${regChef} Chefs, ${regOp} Opérateurs) avec identifiants séquentiels uniques.`,
         'success'
       );
+    } else if (auditTarget === 'articles') {
+      const defaultType = types[0]?.id_type || 'MECANIQUE';
+      const newArticles = discoveredItems.map((item) => ({
+        ref: item.code,
+        designation: `Pièce PDR ${item.code}`,
+        type: defaultType,
+        stockInitial: 0,
+        stockActuel: 0,
+        seuil: 5,
+        emplacement: 'Magasin PDR',
+      }));
+      if (setRawStock) {
+        setRawStock((prev) => [...prev, ...newArticles]);
+      }
+      storageService.saveArticles([...rawStock, ...newArticles]);
+      showToast(`${newArticles.length} article(s) de stock enregistrés avec succès.`, 'success');
     } else {
       showToast(
-        'Veuillez enregistrer les zones manuellement pour attribuer leurs libellés.',
+        'Veuillez enregistrer les éléments manuellement pour attribuer leurs libellés ou utilisez le bouton Rattacher.',
         'info'
       );
+    }
+  };
+
+  const handleExecuteRelink = () => {
+    if (!relinkData.oldKey || !relinkData.targetKey) {
+      showToast?.('Veuillez sélectionner un élément cible valide.', 'error');
+      return;
+    }
+    const result = dataIntegrityService.relinkForeignKey({
+      entityType: relinkData.entityType,
+      oldKey: relinkData.oldKey,
+      newKey: relinkData.targetKey,
+      datasets: {
+        mouvements,
+        correctiveInterventions,
+        preventiveTasks,
+        machines,
+      },
+    });
+
+    if (result.success) {
+      if (setMouvements && result.nextMouvements) setMouvements(result.nextMouvements);
+      if (setCorrectiveInterventions && result.nextInterventions) setCorrectiveInterventions(result.nextInterventions);
+      if (setPreventiveTasks && result.nextPreventiveTasks) setPreventiveTasks(result.nextPreventiveTasks);
+      if (setMachines && result.nextMachines) setMachines(result.nextMachines);
+
+      showToast?.(
+        `${result.affectedCount} occurrence(s) rattachée(s) et corrigée(s) vers "${relinkData.targetKey}".`,
+        'success'
+      );
+      setShowRelinkModal(false);
+      setRelinkData({ entityType: 'machine', oldKey: '', targetKey: '', occurrencesCount: 0 });
     }
   };
 
@@ -848,8 +1015,24 @@ export default function SettingsView({
     setCheckingIntegrity(true);
     setTimeout(() => {
       try {
-        const rep = dataIntegrityService.getIntegrityReport(rawStock, mouvements);
-        const cs = dataIntegrityService.calculateChecksum({ rawStock, mouvements, machines, families });
+        const rep = dataIntegrityService.getIntegrityReport({
+          stock: rawStock,
+          movements: mouvements,
+          machines,
+          zones,
+          technicians,
+          operations,
+          preventiveTasks,
+          correctiveInterventions,
+        });
+        const cs = dataIntegrityService.calculateChecksum({
+          rawStock,
+          mouvements,
+          machines,
+          families,
+          zones,
+          technicians,
+        });
         setIntegrityReport(rep);
         setCurrentChecksum(cs);
       } catch (err) {
@@ -861,12 +1044,14 @@ export default function SettingsView({
   };
 
   const handleRepairData = () => {
-    if (!window.confirm('Voulez-vous corriger automatiquement les anomalies de stocks négatifs et valeurs manquantes ?')) return;
-    const repairedStock = rawStock.map((item) => dataIntegrityService.repairData(item));
-    setRawStock(repairedStock);
+    if (!window.confirm('Voulez-vous corriger automatiquement les anomalies de stocks négatifs, décalages de calculs Excel et valeurs manquantes ?')) return;
+    const { repairedStock, fixedCount } = dataIntegrityService.autoHealData({ rawStock, mouvements });
+    if (setRawStock) {
+      setRawStock(repairedStock);
+    }
     storageService.saveArticles(repairedStock);
     runIntegrityCheck();
-    showToast('Données assainies et réparées avec succès.', 'success');
+    showToast?.(`${fixedCount} correction(s) et alignement(s) de formules appliqués avec succès.`, 'success');
   };
 
   const runPerformanceBenchmark = async () => {
@@ -976,12 +1161,18 @@ export default function SettingsView({
     switch (auditTarget) {
       case 'machines':
         return 'Machines';
+      case 'articles':
+        return 'Articles PDR';
       case 'zones':
         return 'Zones';
       case 'utilisateurs':
         return 'Utilisateurs';
+      case 'correctif':
+        return 'Liaisons Correctif';
+      case 'preventif':
+        return 'Liaisons Préventif';
       default:
-        return 'Eléments';
+        return 'Éléments';
     }
   };
 
@@ -1281,20 +1472,38 @@ export default function SettingsView({
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (typeof onExportExcel === 'function') {
-                      onExportExcel();
-                    } else {
-                      showToast?.("Export Excel déclenché avec succès !", "success");
-                    }
-                  }}
-                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white text-xs font-black rounded-xl shadow-md shadow-emerald-600/20 hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Exporter Tout le Modèle Excel</span>
-                </button>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof onDownloadBlankTemplate === 'function') {
+                        onDownloadBlankTemplate();
+                      } else {
+                        showToast?.("Téléchargement du gabarit vierge déclenché !", "success");
+                      }
+                    }}
+                    className="px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    title="Télécharger un modèle Excel vierge prêt pour la saisie usine avec formules intactes"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    <span>Gabarit Vierge (Template .XLSX)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof onExportExcel === 'function') {
+                        onExportExcel();
+                      } else {
+                        showToast?.("Export Excel déclenché avec succès !", "success");
+                      }
+                    }}
+                    className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white text-xs font-black rounded-xl shadow-md shadow-emerald-600/20 hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Exporter Tout le Modèle Excel</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 pt-2 border-t border-emerald-100/80 text-center">
@@ -1635,6 +1844,21 @@ export default function SettingsView({
               </div>
               <div className="flex flex-col sm:flex-row gap-2 w-full xl:w-auto">
                 <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof onDownloadBlankTemplate === 'function') {
+                      onDownloadBlankTemplate();
+                    } else {
+                      showToast?.("Téléchargement du gabarit vierge déclenché !", "success");
+                    }
+                  }}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-slate-100 text-slate-800 border border-slate-300 hover:bg-slate-200 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  title="Télécharger le modèle Excel vierge pour préparer vos données réelles"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                  Gabarit Vierge (.XLSX)
+                </button>
+                <button
                   onClick={handleSaveSettings}
                   className="w-full sm:w-auto px-4 py-2 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl transition cursor-pointer text-center"
                 >
@@ -1777,12 +2001,15 @@ export default function SettingsView({
                     className="appearance-none bg-white border border-slate-300 rounded-xl pl-4 pr-10 py-2 text-xs font-bold text-slate-700 shadow-sm focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition"
                   >
                     <option value="machines">Machines (Parc)</option>
+                    <option value="articles">Articles & PDR (Stock)</option>
                     <option value="zones">Zones (Emplacements)</option>
-                    <option value="utilisateurs">Utilisateurs (Membres)</option>
+                    <option value="utilisateurs">Utilisateurs (Membres & Techs)</option>
+                    <option value="correctif">Liaisons Correctif (Interventions)</option>
+                    <option value="preventif">Liaisons Préventif (Tâches)</option>
                   </select>
                   <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-2.5 pointer-events-none" />
                 </div>
-                {(auditTarget === 'machines' || auditTarget === 'utilisateurs') &&
+                {(auditTarget === 'machines' || auditTarget === 'articles' || auditTarget === 'utilisateurs') &&
                   discoveredItems.length > 0 && (
                     <button
                       onClick={handleRegisterDiscovered}
@@ -1814,11 +2041,11 @@ export default function SettingsView({
                     <span className="font-bold">Écart de base détecté :</span> Certains éléments de
                     type "{getAuditLabel()}" apparaissent dans vos mouvements mais ne figurent pas
                     dans la liste officielle.
-                    {auditTarget === 'machines' || auditTarget === 'utilisateurs'
+                    {auditTarget === 'machines' || auditTarget === 'articles' || auditTarget === 'utilisateurs'
                       ? " Cliquez sur 'Enregistrer les " +
                         getAuditLabel() +
-                        "' pour une inscription automatique ou enregistrez manuellement chaque élément."
-                      : " Cliquez sur Enregistrer à côté d'un élément pour ouvrir la fiche d'inscription manuelle et générer son identifiant séquentiel unique."}
+                        "' pour une inscription automatique, ou utilisez 'Rattacher' pour corriger une clé erronée."
+                      : " Cliquez sur Rattacher pour relier ces occurrences à un élément officiel existant, ou sur Enregistrer pour créer la fiche."}
                   </div>
                 </div>
 
@@ -1884,6 +2111,16 @@ export default function SettingsView({
                                       {dm.inferredRole}
                                     </span>
                                   )}
+                                  {auditTarget === 'articles' && (
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold border bg-teal-50 text-teal-800 border-teal-200">
+                                      PDR Stock
+                                    </span>
+                                  )}
+                                  {(auditTarget === 'correctif' || auditTarget === 'preventif') && (
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold border bg-rose-50 text-rose-800 border-rose-200">
+                                      Liaison orpheline
+                                    </span>
+                                  )}
                                 </div>
                               </td>
                               <td className="p-3 text-slate-600 font-mono">
@@ -1908,45 +2145,88 @@ export default function SettingsView({
                                 )}
                               </td>
                               <td className="p-3 text-right">
-                                <button
-                                  onClick={() => {
-                                    if (auditTarget === 'machines') {
-                                      setMachines((prev) => [
-                                        ...prev,
-                                        {
-                                          id_machine_registered: dm.code,
-                                          designation: `Machine Auto-Detectee ${dm.code}`,
-                                          id_family: families[0]?.id_family || 'FAM-EMB',
-                                          id_templates: templates[0]?.id_templates || 'TPL-RCF100',
-                                          id_zone_default: zones[0]?.id_zone || 'ZONE-DET',
-                                          technician: technicians[0]?.nom || 'Technicien',
-                                          status: 'En service',
-                                        },
-                                      ]);
-                                      showToast(
-                                        `Machine "${dm.code}" ajoutée avec succès.`,
-                                        'success'
-                                      );
-                                    } else if (auditTarget === 'zones') {
-                                      setAuditZoneForm({ libelle: dm.code });
-                                      setShowAuditZoneModal(true);
-                                    } else if (auditTarget === 'utilisateurs') {
-                                      setAuditUserForm({
-                                        type: dm.inferredRole || 'TECHNICIEN',
-                                        nom: dm.code,
-                                        id_zone: zones[0]?.id_zone || '',
-                                        specialite:
-                                          dm.inferredRole === 'TECHNICIEN'
-                                            ? 'GMAO & Maintenance'
-                                            : '',
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    onClick={() => {
+                                      setRelinkData({
+                                        entityType:
+                                          dm.entityType ||
+                                          (auditTarget === 'utilisateurs'
+                                            ? 'user'
+                                            : auditTarget === 'articles'
+                                              ? 'article'
+                                              : auditTarget === 'zones'
+                                                ? 'zone'
+                                                : 'machine'),
+                                        oldKey: dm.code,
+                                        targetKey: '',
+                                        occurrencesCount: dm.count,
                                       });
-                                      setShowAuditUserModal(true);
-                                    }
-                                  }}
-                                  className="px-3 py-1 text-[11px] font-extrabold text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg transition cursor-pointer"
-                                >
-                                  Enregistrer
-                                </button>
+                                      setShowRelinkModal(true);
+                                    }}
+                                    className="px-2.5 py-1 text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition cursor-pointer flex items-center gap-1 shrink-0"
+                                    title="Rattacher et corriger les occurrences vers un élément existant"
+                                  >
+                                    <Link2 className="w-3 h-3" />
+                                    <span>Rattacher</span>
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      if (
+                                        auditTarget === 'machines' ||
+                                        auditTarget === 'correctif' ||
+                                        auditTarget === 'preventif'
+                                      ) {
+                                        if (setMachines) {
+                                          setMachines((prev) => [
+                                            ...prev,
+                                            {
+                                              id_machine_registered: dm.code,
+                                              designation: `Machine Auto-Detectee ${dm.code}`,
+                                              id_family: families[0]?.id_family || 'FAM-EMB',
+                                              id_templates:
+                                                templates[0]?.id_templates || 'TPL-RCF100',
+                                              id_zone_default: zones[0]?.id_zone || 'ZONE-DET',
+                                              technician: technicians[0]?.nom || 'Technicien',
+                                              status: 'En service',
+                                            },
+                                          ]);
+                                        }
+                                        showToast?.(
+                                          `Machine "${dm.code}" ajoutée avec succès.`,
+                                          'success'
+                                        );
+                                      } else if (auditTarget === 'articles') {
+                                        setAuditArticleForm({
+                                          ref: dm.code,
+                                          designation: `Pièce PDR ${dm.code}`,
+                                          type: types[0]?.id_type || 'MECANIQUE',
+                                          emplacement: 'Magasin PDR',
+                                          stockInitial: 0,
+                                          seuil: 5,
+                                        });
+                                        setShowAuditArticleModal(true);
+                                      } else if (auditTarget === 'zones') {
+                                        setAuditZoneForm({ libelle: dm.code });
+                                        setShowAuditZoneModal(true);
+                                      } else if (auditTarget === 'utilisateurs') {
+                                        setAuditUserForm({
+                                          type: dm.inferredRole || 'TECHNICIEN',
+                                          nom: dm.code,
+                                          id_zone: zones[0]?.id_zone || '',
+                                          specialite:
+                                            dm.inferredRole === 'TECHNICIEN'
+                                              ? 'GMAO & Maintenance'
+                                              : '',
+                                        });
+                                        setShowAuditUserModal(true);
+                                      }
+                                    }}
+                                    className="px-3 py-1 text-[11px] font-extrabold text-cyan-700 bg-cyan-50 hover:bg-cyan-100 rounded-lg transition cursor-pointer shrink-0"
+                                  >
+                                    Enregistrer
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -2254,6 +2534,288 @@ export default function SettingsView({
                       className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-lg shadow-xs transition cursor-pointer"
                     >
                       Enregistrer
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* AUDIT ARTICLE REGISTRATION MODAL */}
+            {showAuditArticleModal && (
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center font-bold">
+                        <Package className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900">
+                          Fiche d'enregistrement Pièce PDR
+                        </h3>
+                        <p className="text-[11px] text-slate-500">
+                          Inscription officielle au Référentiel Stock Articles
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowAuditArticleModal(false)}
+                      className="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Référence PDR (Code Article)
+                      </label>
+                      <input
+                        type="text"
+                        value={auditArticleForm.ref}
+                        onChange={(e) =>
+                          setAuditArticleForm((p) => ({ ...p, ref: e.target.value }))
+                        }
+                        className="w-full text-xs font-mono font-bold border border-slate-300 rounded-lg p-2 text-slate-800 bg-slate-50"
+                        readOnly
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Désignation de la pièce
+                      </label>
+                      <input
+                        type="text"
+                        value={auditArticleForm.designation}
+                        onChange={(e) =>
+                          setAuditArticleForm((p) => ({ ...p, designation: e.target.value }))
+                        }
+                        className="w-full text-xs font-semibold border border-slate-300 rounded-lg p-2 text-slate-800"
+                        placeholder="ex: Roulement à billes 6204-2RS"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Famille / Type
+                        </label>
+                        <select
+                          value={auditArticleForm.type}
+                          onChange={(e) =>
+                            setAuditArticleForm((p) => ({ ...p, type: e.target.value }))
+                          }
+                          className="w-full text-xs font-semibold border border-slate-300 rounded-lg p-2 bg-white text-slate-800"
+                        >
+                          {(types || []).map((t) => (
+                            <option key={t.id_type || t} value={t.id_type || t}>
+                              {t.libelle || t.nom || t.id_type || t}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Emplacement
+                        </label>
+                        <input
+                          type="text"
+                          value={auditArticleForm.emplacement}
+                          onChange={(e) =>
+                            setAuditArticleForm((p) => ({ ...p, emplacement: e.target.value }))
+                          }
+                          className="w-full text-xs font-medium border border-slate-300 rounded-lg p-2 text-slate-800"
+                          placeholder="ex: Magasin PDR"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Stock Initial
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={auditArticleForm.stockInitial}
+                          onChange={(e) =>
+                            setAuditArticleForm((p) => ({
+                              ...p,
+                              stockInitial: Number(e.target.value) || 0,
+                            }))
+                          }
+                          className="w-full text-xs font-mono font-medium border border-slate-300 rounded-lg p-2 text-slate-800"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Seuil d'Alerte
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={auditArticleForm.seuil}
+                          onChange={(e) =>
+                            setAuditArticleForm((p) => ({
+                              ...p,
+                              seuil: Number(e.target.value) || 0,
+                            }))
+                          }
+                          className="w-full text-xs font-mono font-medium border border-slate-300 rounded-lg p-2 text-slate-800"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowAuditArticleModal(false)}
+                      className="px-3.5 py-1.5 text-xs text-slate-600 hover:text-slate-800 font-semibold cursor-pointer"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!auditArticleForm.ref.trim() || !auditArticleForm.designation.trim()) {
+                          showToast?.('Veuillez renseigner la référence et la désignation.', 'error');
+                          return;
+                        }
+                        const newArticle = {
+                          ref: auditArticleForm.ref.trim(),
+                          designation: auditArticleForm.designation.trim(),
+                          type: auditArticleForm.type || types[0]?.id_type || 'MECANIQUE',
+                          emplacement: auditArticleForm.emplacement || 'Magasin PDR',
+                          stockInitial: Number(auditArticleForm.stockInitial) || 0,
+                          stockActuel: Number(auditArticleForm.stockInitial) || 0,
+                          seuil: Number(auditArticleForm.seuil) || 5,
+                        };
+                        if (setRawStock) {
+                          setRawStock((prev) => [...prev, newArticle]);
+                        }
+                        storageService.saveArticles([...rawStock, newArticle]);
+                        showToast?.(`Article "${newArticle.ref}" enregistré avec succès.`, 'success');
+                        setShowAuditArticleModal(false);
+                      }}
+                      className="px-4 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-lg shadow-xs transition cursor-pointer"
+                    >
+                      Enregistrer
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* AUDIT RELINK & CASCADE REPAIR MODAL */}
+            {showRelinkModal && (
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center font-bold">
+                        <Link2 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900">
+                          Rattachement & Correction de Clé
+                        </h3>
+                        <p className="text-[11px] text-slate-500">
+                          Correction en cascade de la clé étrangère
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowRelinkModal(false)}
+                      className="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 space-y-1.5 text-xs text-indigo-950">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-slate-600">Élément à corriger :</span>
+                      <span className="font-mono font-bold px-2 py-0.5 bg-white text-indigo-900 rounded border border-indigo-200">
+                        {relinkData.oldKey}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-indigo-800 leading-relaxed">
+                      Ce code apparaît dans <b>{relinkData.occurrencesCount}</b> écriture(s). Choisissez l'élément officiel ci-dessous pour rediriger et corriger toutes ces références automatiquement.
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-bold text-slate-700">
+                      Rattacher vers l'élément officiel :
+                    </label>
+                    <select
+                      value={relinkData.targetKey}
+                      onChange={(e) =>
+                        setRelinkData((prev) => ({ ...prev, targetKey: e.target.value }))
+                      }
+                      className="w-full text-xs font-semibold border border-slate-300 rounded-lg p-2.5 bg-white text-slate-800 focus:outline-none focus:border-indigo-500"
+                    >
+                      <option value="">Sélectionner un élément valide...</option>
+                      {relinkData.entityType === 'machine' &&
+                        machines.map((m) => (
+                          <option key={m.id_machine_registered} value={m.id_machine_registered}>
+                            {m.id_machine_registered} — {m.designation || 'Machine'}
+                          </option>
+                        ))}
+                      {relinkData.entityType === 'article' &&
+                        rawStock.map((s) => (
+                          <option key={s.ref} value={s.ref}>
+                            {s.ref} — {s.designation || 'Article'}
+                          </option>
+                        ))}
+                      {relinkData.entityType === 'zone' &&
+                        zones.map((z) => (
+                          <option key={z.id_zone} value={z.id_zone}>
+                            {z.id_zone} — {z.libelle || z.nom || 'Zone'}
+                          </option>
+                        ))}
+                      {relinkData.entityType === 'user' && (
+                        <>
+                          <optgroup label="Techniciens">
+                            {technicians.map((t) => (
+                              <option key={t.id_technician || t.nom} value={t.nom}>
+                                {t.nom} ({t.id_technician || 'TECH'})
+                              </option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Opérateurs & Chefs">
+                            {operations.map((o) => (
+                              <option key={o.id_operation || o.nom} value={o.nom}>
+                                {o.nom} ({o.type_profil || 'OP'})
+                              </option>
+                            ))}
+                          </optgroup>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowRelinkModal(false)}
+                      className="px-3.5 py-1.5 text-xs text-slate-600 hover:text-slate-800 font-semibold cursor-pointer"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleExecuteRelink}
+                      disabled={!relinkData.targetKey}
+                      className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs rounded-lg shadow-xs transition cursor-pointer"
+                    >
+                      Appliquer ({relinkData.occurrencesCount} écritures)
                     </button>
                   </div>
                 </div>
@@ -2827,12 +3389,39 @@ export default function SettingsView({
                           </div>
                         </div>
                       ))}
-                      {integrityReport.movements.errors.map((err, i) => (
+                      {integrityReport.movements?.errors?.map((err, i) => (
                         <div key={`me-${i}`} className="p-3 bg-rose-50/50 flex items-start gap-2.5">
                           <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                           <div className="min-w-0 flex-1">
                             <span className="font-bold text-rose-900 font-mono">[MVT_{err.type}]</span>
                             <span className="ml-2 text-rose-800">{err.message}</span>
+                          </div>
+                        </div>
+                      ))}
+                      {integrityReport.movements?.warnings?.map((warn, i) => (
+                        <div key={`mw-${i}`} className="p-3 bg-amber-50/40 flex items-start gap-2.5">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                          <div className="min-w-0 flex-1">
+                            <span className="font-bold text-amber-900 font-mono">[MVT_{warn.type}]</span>
+                            <span className="ml-2 text-amber-800">{warn.message}</span>
+                          </div>
+                        </div>
+                      ))}
+                      {integrityReport.referential?.errors?.map((err, i) => (
+                        <div key={`re-${i}`} className="p-3 bg-rose-50/50 flex items-start gap-2.5">
+                          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                          <div className="min-w-0 flex-1">
+                            <span className="font-bold text-rose-900 font-mono">[REF_{err.type}]</span>
+                            <span className="ml-2 text-rose-800">{err.message}</span>
+                          </div>
+                        </div>
+                      ))}
+                      {integrityReport.referential?.warnings?.map((warn, i) => (
+                        <div key={`rw-${i}`} className="p-3 bg-amber-50/40 flex items-start gap-2.5">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                          <div className="min-w-0 flex-1">
+                            <span className="font-bold text-amber-900 font-mono">[REF_{warn.type}]</span>
+                            <span className="ml-2 text-amber-800">{warn.message}</span>
                           </div>
                         </div>
                       ))}

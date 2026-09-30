@@ -34,7 +34,9 @@ import {
   Calculator,
   Wrench,
   X,
+  ShieldAlert,
 } from 'lucide-react';
+import { dataIntegrityService } from '../../../services/dataIntegrityService';
 
 export default function DashboardView({
   stockItems = [],
@@ -276,6 +278,21 @@ export default function DashboardView({
     };
   }, [machines, mouvements]);
 
+  // Real-time Master Excel Referential Integrity Health Check
+  const referentialAudit = useMemo(() => {
+    return dataIntegrityService.scanReferentialIntegrity({
+      machines,
+      zones: _zones,
+      technicians,
+      operations,
+      rawStock: stockItems,
+      warehouseItems: _warehouseItems,
+      preventiveTasks: [],
+      correctiveInterventions,
+      mouvements,
+    });
+  }, [machines, _zones, technicians, operations, stockItems, _warehouseItems, correctiveInterventions, mouvements]);
+
   const { isDataReady: isWatchlistReady } = useSmartTableLoader(alertAndRuptureItems);
 
   // Open Order modal for specific article
@@ -468,6 +485,37 @@ export default function DashboardView({
           )}
         </div>
       </div>
+
+      {/* Referential Integrity Quick Health Banner */}
+      {!referentialAudit.summary.isFullyAligned && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-amber-500/10 border border-amber-300/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs text-amber-950 shadow-xs animate-fade-in">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="font-black text-sm text-slate-900 flex items-center gap-2 flex-wrap">
+                <span>Écarts Référentiels Détectés ({referentialAudit.summary.totalOrphanErrors} orphelin{referentialAudit.summary.totalOrphanErrors > 1 ? 's' : ''})</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 font-mono text-[10.5px] font-extrabold border border-amber-300">
+                  Santé {referentialAudit.healthScore}% · Grade {referentialAudit.statusGrade}
+                </span>
+              </div>
+              <p className="text-slate-600 text-[11px] mt-0.5 max-w-2xl leading-relaxed">
+                Des mouvements ou interventions font référence à des machines ou techniciens non enregistrés dans les listes maîtresses.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigateToSettings?.('matching')}
+            className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md shadow-amber-600/20 hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 active:scale-95"
+          >
+            <Zap className="w-4 h-4" />
+            <span>Vérifier & Appairer (1 Clic)</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* 2. Top Primary KPI Metrics Grid */}
       <DashboardKPIs

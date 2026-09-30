@@ -4,6 +4,7 @@ import { validateImportedData } from '../utils/validation';
 import { sanitizeObject } from '../utils/sanitize';
 import { storageService } from '../utils/storageService';
 import { Logger } from '../core/logger/LoggerService';
+import { excelEngineService } from '../services/excelEngineService';
 
 /**
  * Hook to handle Excel Export, Import, Direct File System Linking and Save, with automatic versioned backups
@@ -45,6 +46,9 @@ export function useAppExcelOperations({
     setPartTypes,
     partDesignations,
     setPartDesignations,
+    setSortiesExterne,
+    setPreventiveTasks,
+    setCorrectiveInterventions,
   } = state;
 
   const [linkedFileHandle, setLinkedFileHandle] = useState(null);
@@ -291,12 +295,56 @@ export function useAppExcelOperations({
     state.preventiveTasks,
   ]);
 
-  // EXCEL EXPORT HANDLER
-  const handleExportExcel = useCallback(() => {
-    const wb = buildWorkbook();
-    XLSX.writeFile(wb, `GMAO_Light_Export_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    showToast('Export Excel généré et téléchargé avec succès !', 'success');
-  }, [buildWorkbook, showToast]);
+  // Full dataset provider for live Excel Engine
+  const getFullDataset = useCallback(() => ({
+    stockItems,
+    rawStock,
+    mouvements,
+    machines,
+    warehouseItems,
+    zones,
+    technicians,
+    operations,
+    types,
+    diagnostics,
+    families,
+    templates,
+    sortiesExterne: state.sortiesExterne,
+    demandes: state.demandes,
+    bonsTravail: state.bonsTravail,
+    preventiveTasks: state.preventiveTasks,
+  }), [
+    stockItems,
+    rawStock,
+    mouvements,
+    machines,
+    warehouseItems,
+    zones,
+    technicians,
+    operations,
+    types,
+    diagnostics,
+    families,
+    templates,
+    state.sortiesExterne,
+    state.demandes,
+    state.bonsTravail,
+    state.preventiveTasks,
+  ]);
+
+  // EXCEL EXPORT HANDLER WITH LIVE FORMULAS & FALLBACK
+  const handleExportExcel = useCallback(async () => {
+    try {
+      showToast('Génération du classeur Excel avec formules vivantes...', 'info');
+      await excelEngineService.downloadGmaoExcel(getFullDataset(), 'GMAO_Master_Live');
+      showToast('Export Excel interactif (Formules & Styles) téléchargé avec succès !', 'success');
+    } catch (err) {
+      Logger.warn('[ExcelOperations] ExcelJS export fallback to XLSX:', err);
+      const wb = buildWorkbook();
+      XLSX.writeFile(wb, `GMAO_Light_Export_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      showToast('Export Excel standard généré et téléchargé.', 'success');
+    }
+  }, [buildWorkbook, getFullDataset, showToast]);
 
   // FILE IMPORT HANDLER WITH AUTOMATIC DATED BACKUP
   const handleImportFile = useCallback(
@@ -335,51 +383,41 @@ export function useAppExcelOperations({
           if (file.name.endsWith('.json')) {
             importedData = JSON.parse(evt.target.result);
           } else {
-            const data = new Uint8Array(evt.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
+            try {
+              importedData = await excelEngineService.parseWorkbookFile(file);
+            } catch (engineErr) {
+              Logger.warn('[ExcelOperations] ExcelJS parse error, falling back to XLSX:', engineErr);
+              const data = new Uint8Array(evt.target.result);
+              const workbook = XLSX.read(data, { type: 'array' });
 
-            if (workbook.SheetNames.includes('Stock_Actuel')) {
-              importedData.Stock_Actuel = XLSX.utils.sheet_to_json(workbook.Sheets['Stock_Actuel']);
-            }
-            if (workbook.SheetNames.includes('Mouvements')) {
-              importedData.Mouvement = XLSX.utils.sheet_to_json(workbook.Sheets['Mouvements']);
-            }
-            if (workbook.SheetNames.includes('Machines_Registered')) {
-              importedData.Machines_Registered = XLSX.utils.sheet_to_json(
-                workbook.Sheets['Machines_Registered']
-              );
-            }
-            if (workbook.SheetNames.includes('Warehouse_Items')) {
-              importedData.Warehouse_Items = XLSX.utils.sheet_to_json(
-                workbook.Sheets['Warehouse_Items']
-              );
-            } else if (workbook.SheetNames.includes('Entrepot')) {
-              importedData.Warehouse_Items = XLSX.utils.sheet_to_json(workbook.Sheets['Entrepot']);
-            }
-            if (workbook.SheetNames.includes('Comp_Families')) {
-              importedData.Comp_Families = XLSX.utils.sheet_to_json(workbook.Sheets['Comp_Families']);
-            }
-            if (workbook.SheetNames.includes('Comp_Templates')) {
-              importedData.Comp_Templates = XLSX.utils.sheet_to_json(
-                workbook.Sheets['Comp_Templates']
-              );
-            }
-            if (workbook.SheetNames.includes('Part_Types')) {
-              importedData.Part_Types = XLSX.utils.sheet_to_json(workbook.Sheets['Part_Types']);
-            }
-            if (workbook.SheetNames.includes('Part_Designations')) {
-              importedData.Part_Designations = XLSX.utils.sheet_to_json(
-                workbook.Sheets['Part_Designations']
-              );
-            }
-            if (workbook.SheetNames.includes('Blueprints')) {
-              importedData.Blueprints = XLSX.utils.sheet_to_json(
-                workbook.Sheets['Blueprints']
-              );
+              if (workbook.SheetNames.includes('Stock_Actuel')) {
+                importedData.Stock_Actuel = XLSX.utils.sheet_to_json(workbook.Sheets['Stock_Actuel']);
+              }
+              if (workbook.SheetNames.includes('Mouvements')) {
+                importedData.Mouvements = XLSX.utils.sheet_to_json(workbook.Sheets['Mouvements']);
+              }
+              if (workbook.SheetNames.includes('Machines_Registered')) {
+                importedData.Machines_Registered = XLSX.utils.sheet_to_json(
+                  workbook.Sheets['Machines_Registered']
+                );
+              }
+              if (workbook.SheetNames.includes('Warehouse_Items')) {
+                importedData.Warehouse_Items = XLSX.utils.sheet_to_json(
+                  workbook.Sheets['Warehouse_Items']
+                );
+              } else if (workbook.SheetNames.includes('Entrepot')) {
+                importedData.Warehouse_Items = XLSX.utils.sheet_to_json(workbook.Sheets['Entrepot']);
+              }
             }
           }
 
-          const validation = validateImportedData(importedData);
+          const rawMouvements = importedData.Mouvements || importedData.Mouvement || [];
+
+          const validation = validateImportedData({
+            ...importedData,
+            Mouvement: rawMouvements,
+          });
+
           if (!validation.valid) {
             const errorMsgs = [];
             if (validation.errors.stock.length > 0)
@@ -395,8 +433,8 @@ export function useAppExcelOperations({
 
           if (importedData.Stock_Actuel && importedData.Stock_Actuel.length > 0)
             setRawStock(sanitizeObject(importedData.Stock_Actuel));
-          if (importedData.Mouvement && importedData.Mouvement.length > 0)
-            setMouvements(sanitizeObject(importedData.Mouvement));
+          if (rawMouvements && rawMouvements.length > 0)
+            setMouvements(sanitizeObject(rawMouvements));
           if (importedData.Machines_Registered && importedData.Machines_Registered.length > 0)
             setMachines(sanitizeObject(importedData.Machines_Registered));
           if (importedData.Warehouse_Items && importedData.Warehouse_Items.length > 0)
@@ -422,8 +460,25 @@ export function useAppExcelOperations({
           if (importedData.Part_Designations && importedData.Part_Designations.length > 0)
             setPartDesignations(sanitizeObject(importedData.Part_Designations));
 
-          showToast('Import réussi ! (Backup daté du ' + backupDate + ')', 'success');
-          Logger.info('[ExcelOperations] File imported successfully', { file: file.name });
+          // Entités opérationnelles avancées (Sorties Ext., Préventif, Correctif)
+          if (importedData.Sortie_Externe && importedData.Sortie_Externe.length > 0 && typeof setSortiesExterne === 'function') {
+            setSortiesExterne(sanitizeObject(importedData.Sortie_Externe));
+          }
+          if (importedData.Preventive_S1_S52 && importedData.Preventive_S1_S52.length > 0 && typeof setPreventiveTasks === 'function') {
+            setPreventiveTasks(sanitizeObject(importedData.Preventive_S1_S52));
+          }
+          if ((importedData.Bons_Travail?.length > 0 || importedData.Demandes_Intervention?.length > 0) && typeof setCorrectiveInterventions === 'function') {
+            const mergedCorrectif = [
+              ...(importedData.Demandes_Intervention || []),
+              ...(importedData.Bons_Travail || []),
+            ];
+            if (mergedCorrectif.length > 0) {
+              setCorrectiveInterventions(sanitizeObject(mergedCorrectif));
+            }
+          }
+
+          showToast('Import réussi avec extraction intelligente ! (Backup daté du ' + backupDate + ')', 'success');
+          Logger.info('[ExcelOperations] File imported successfully with smart parser', { file: file.name });
         } catch (err) {
       if (err.name === "AbortError") return;
       if (err.name === "SecurityError" || err.name === "NotAllowedError" || (err.message && err.message.toLowerCase().includes("cross origin"))) {
@@ -544,7 +599,7 @@ export function useAppExcelOperations({
     }
   }, [createAutomaticBackup, fileInputRef, setMachines, setMouvements, setRawStock, showToast]);
 
-  // DIRECT FILE SYSTEM SAVE HANDLER
+  // DIRECT FILE SYSTEM SAVE HANDLER WITH LIVE FORMULAS
   const handleDirectSave = useCallback(async () => {
     if (!linkedFileHandle) {
       handleExportExcel();
@@ -552,14 +607,21 @@ export function useAppExcelOperations({
     }
 
     try {
-      const wb = buildWorkbook();
-      const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      let buffer;
+      try {
+        const workbook = await excelEngineService.buildGmaoWorkbook(getFullDataset());
+        buffer = await workbook.xlsx.writeBuffer();
+      } catch (eEngineErr) {
+        Logger.warn('[ExcelOperations] ExcelJS save fallback to XLSX:', eEngineErr);
+        const wb = buildWorkbook();
+        buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      }
 
       const writable = await linkedFileHandle.createWritable();
-      await writable.write(wbOut);
+      await writable.write(buffer);
       await writable.close();
 
-      showToast(`💾 Écriture directe réussie dans "${linkedFileName}" !`, 'success');
+      showToast(`💾 Écriture directe avec formules vivantes réussie dans "${linkedFileName}" !`, 'success');
     } catch (err) {
       if (err.name === "AbortError") return;
       if (err.name === "SecurityError" || err.name === "NotAllowedError" || (err.message && err.message.toLowerCase().includes("cross origin"))) {
@@ -571,13 +633,26 @@ export function useAppExcelOperations({
       showToast('Écriture directe impossible. Exportation standard...', 'info');
       handleExportExcel();
     }
-  }, [buildWorkbook, handleExportExcel, linkedFileHandle, linkedFileName, showToast]);
+  }, [buildWorkbook, getFullDataset, handleExportExcel, linkedFileHandle, linkedFileName, showToast]);
+
+  // BLANK MASTER TEMPLATE EXPORT HANDLER
+  const handleDownloadBlankTemplate = useCallback(async () => {
+    try {
+      showToast('Génération du gabarit Excel vierge...', 'info');
+      await excelEngineService.downloadGmaoBlankTemplate();
+      showToast('Gabarit Excel vierge (.xlsx) téléchargé avec succès !', 'success');
+    } catch (err) {
+      Logger.error('[ExcelOperations] Blank template download error:', err);
+      showToast('Erreur lors du téléchargement du gabarit vierge.', 'error');
+    }
+  }, [showToast]);
 
   return {
     linkedFileHandle,
     linkedFileName,
     buildWorkbook,
     handleExportExcel,
+    handleDownloadBlankTemplate,
     handleImportFile,
     handleDirectFileLink,
     handleDirectSave,
