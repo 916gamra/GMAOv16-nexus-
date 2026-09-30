@@ -6,10 +6,14 @@
  */
 import { HyperFormula } from 'hyperformula';
 import { Logger } from '../core/logger/LoggerService.js';
+import { safeNum, calculateStockStatus } from '../utils/formulaEngine.js';
+import { INITIAL_STOCK_LOOKUP } from '../utils/baselineStock.js';
+import { stockIndexStore } from '../application/StockIndexStore.js';
 
 class ReactiveCalculationEngine {
   constructor() {
     this.hf = null;
+    this.stockSheetId = null;
     this.initEngine();
   }
 
@@ -34,8 +38,11 @@ class ReactiveCalculationEngine {
 
   /**
    * Recalcule réactivement l'ensemble des stocks et alertes à partir du stock brut et des mouvements.
-   * Utilise le moteur HyperFormula pour garantir que les valeurs correspondent rigoureusement
-   * aux formules =SUMIFS() et =IF() d'Excel.
+   * Utilise le moteur réactif en miroir strict des formules Excel :
+   * - Entrées: =SUMIFS(Mouvements!C:C, Mouvements!B:B, ref, Mouvements!D:D, "Entrée")
+   * - Sorties: =SUMIFS(Mouvements!C:C, Mouvements!B:B, ref, Mouvements!D:D, "Sortie")
+   * - Stock Actuel: =StockInitial + Entrées - Sorties
+   * - Alerte: =IF(StockActuel <= 0, "RUPTURE", IF(StockActuel <= Seuil, "ALERTE", "OK"))
    */
   recalculateStockReactive(rawStock = [], mouvements = []) {
     if (!Array.isArray(rawStock) || rawStock.length === 0) {
@@ -43,59 +50,156 @@ class ReactiveCalculationEngine {
     }
 
     try {
-      // Pré-agrégation rapide par Map (O(N) performance) pour alimentar HyperFormula ou servir de base
-      const mvtsByRef = new Map();
-      (mouvements || []).forEach((m) => {
-        if (!m) return;
-        const ref = String(m.ref || m.Ref || '').trim().toUpperCase();
-        if (!ref) return;
+      const hasHydratedStore =
+        stockIndexStore &&
+        typeof stockIndexStore.isHydrated === 'function' &&
+        stockIndexStore.isHydrated();
 
-        const qte = Number(m.quantite ?? m.Quantite ?? m.qte ?? 0) || 0;
-        const type = String(m.type ?? m.Type ?? '').trim().toLowerCase();
+      const computedItems = rawStock.map((item, idx) => {
+        if (!item) return null;
+        const itemRef = String(item.ref || item.Ref || `ART-${idx + 1}`).trim();
+        const itemRefKey = itemRef.toLowerCase();
+        const itemDesigKey = String(item.designation || item.Designation || '')
+          .trim()
+          .toLowerCase();
 
-        if (!mvtsByRef.has(ref)) {
-          mvtsByRef.set(ref, { entrees: 0, sorties: 0 });
+        // Direct O(1) indexed lookups
+        let totals = { entrees: 0, sorties: 0, commandes: 0 };
+        if (hasHydratedStore) {
+          totals = stockIndexStore.index.getTotals(itemRef);
+        } else if (Array.isArray(mouvements)) {
+          let ent = 0;
+          let sor = 0;
+          for (let i = 0; i < mouvements.length; i++) {
+            const m = mouvements[i];
+            if (!m) continue;
+            const mRef = String(m.ref || m.Ref || m['Référence'] || '').trim().toLowerCase();
+            if (mRef === itemRefKey) {
+              const qte = safeNum(m.quantite != null ? m.quantite : m['Quantité'], 0);
+              const type = String(m.type || m['Type (Entrée/Sortie)'] || '').trim().toLowerCase();
+              if (type.includes('entr') || type === 'in') {
+                ent += qte;
+              } else {
+                sor += qte;
+              }
+            }
+          }
+          totals = { entrees: ent, sorties: sor, commandes: 0 };
         }
-        const record = mvtsByRef.get(ref);
-        if (type.includes('entr') || type === 'in') {
-          record.entrees += qte;
+
+        let stockInitial = 0;
+        if (
+          item.stockInitial !== undefined &&
+          item.stockInitial !== null &&
+          item.stockInitial !== '' &&
+          !isNaN(Number(item.stockInitial))
+        ) {
+          stockInitial = Number(item.stockInitial);
         } else {
-          // Sortie par défaut
-          record.sorties += qte;
+          const baseline =
+            INITIAL_STOCK_LOOKUP.get(itemRefKey) ||
+            (itemDesigKey ? INITIAL_STOCK_LOOKUP.get(itemDesigKey) : null);
+          if (baseline && baseline.qty > 0) {
+            stockInitial = baseline.qty;
+          }
         }
-      });
 
-      // Construction des fiches de stock certifiées par le moteur
-      return rawStock.map((s, idx) => {
-        if (!s) return null;
-        const ref = String(s.ref || s.Ref || `ART-${idx + 1}`).trim().toUpperCase();
-        const stockInitial = Number(s.stockInitial ?? s['Stock Initial']) || 0;
-        const seuil = Number(s.seuil ?? s.Seuil) || 0;
-
-        const mvtData = mvtsByRef.get(ref) || { entrees: 0, sorties: 0 };
-        const entrees = mvtData.entrees;
-        const sorties = mvtData.sorties;
-
-        // Équation jumelle stricte Excel : =E{row} + F{row} - G{row}
-        const stockActuel = Math.max(0, stockInitial + entrees - sorties);
-        const alerte = stockActuel <= seuil ? 'ALERTE' : 'OK';
+        const seuil = safeNum(item.seuil, 3);
+        const { stockActuel, alerte } = calculateStockStatus(
+          stockInitial,
+          totals.entrees,
+          totals.sorties,
+          seuil
+        );
 
         return {
-          ...s,
-          ref,
+          ...item,
+          ref: itemRef,
           stockInitial,
-          entrees,
-          sorties,
+          entrees: totals.entrees,
+          sorties: totals.sorties,
+          commandes: totals.commandes,
           stockActuel,
-          seuil,
           alerte,
-          emplacement: s.emplacement || s.Emplacement || 'Magasin PDR',
         };
       }).filter(Boolean);
+
+      // Async or opportunistic sync to HyperFormula in-memory workbook
+      this.syncHyperFormulaStock(computedItems);
+
+      return computedItems;
     } catch (err) {
       Logger.error('[ReactiveEngine] Calculation error, fallback to safe conversion:', err, 'reactiveCalculationEngine');
       return rawStock;
     }
+  }
+
+  /**
+   * Synchronise l'instance HyperFormula avec le modèle réactif
+   */
+  syncHyperFormulaStock(stockItems = []) {
+    if (!this.hf) return;
+    try {
+      const sheetName = 'Stock_Reactive';
+      if (this.hf.doesSheetExist(sheetName)) {
+        this.stockSheetId = this.hf.getSheetId(sheetName);
+        this.hf.clearSheet(this.stockSheetId);
+      } else {
+        this.hf.addSheet(sheetName);
+        this.stockSheetId = this.hf.getSheetId(sheetName);
+      }
+
+      // Construit la table miroir avec les formules Excel
+      const headers = ['Ref', 'StockInitial', 'Entrees', 'Sorties', 'StockActuel', 'Seuil', 'Alerte'];
+      const rows = [headers];
+
+      stockItems.slice(0, 500).forEach((s, idx) => {
+        const rowNum = idx + 2;
+        rows.push([
+          s.ref,
+          s.stockInitial,
+          s.entrees,
+          s.sorties,
+          `=B${rowNum}+C${rowNum}-D${rowNum}`,
+          s.seuil,
+          `=IF(E${rowNum}<=0, "RUPTURE", IF(E${rowNum}<=F${rowNum}, "ALERTE", "OK"))`,
+        ]);
+      });
+
+      this.hf.setCellContents({ sheet: this.stockSheetId, col: 0, row: 0 }, rows);
+    } catch (syncErr) {
+      Logger.warn('[ReactiveEngine] HyperFormula sheet sync warning:', syncErr, 'reactiveCalculationEngine');
+    }
+  }
+
+  /**
+   * Calcule les métriques globales de stock (KPIs) avec détection des alertes et ruptures
+   */
+  computeStockKPIs(stockItems = []) {
+    let totalEntrees = 0;
+    let totalSorties = 0;
+    let totalStockActuel = 0;
+    let ruptures = 0;
+    let alertes = 0;
+
+    for (let i = 0; i < stockItems.length; i++) {
+      const s = stockItems[i];
+      if (!s) continue;
+      totalEntrees += s.entrees || 0;
+      totalSorties += s.sorties || 0;
+      totalStockActuel += s.stockActuel || 0;
+      if (s.alerte === 'RUPTURE') ruptures++;
+      else if (s.alerte === 'ALERTE') alertes++;
+    }
+
+    return {
+      totalArticles: stockItems.length,
+      totalEntrees,
+      totalSorties,
+      totalStockActuel,
+      ruptures,
+      alertes,
+    };
   }
 
   /**
@@ -130,7 +234,7 @@ class ReactiveCalculationEngine {
    */
   computeExecutiveKpis({ stockItems = [], mouvements = [], machines = [], bonsTravail = [] } = {}) {
     const totalArticles = stockItems.length;
-    const articlesEnAlerte = stockItems.filter((s) => s.alerte === 'ALERTE').length;
+    const articlesEnAlerte = stockItems.filter((s) => s.alerte === 'ALERTE' || s.alerte === 'RUPTURE').length;
     const totalQuantiteStock = stockItems.reduce((acc, s) => acc + (Number(s.stockActuel) || 0), 0);
     const totalEntrees = stockItems.reduce((acc, s) => acc + (Number(s.entrees) || 0), 0);
     const totalSorties = stockItems.reduce((acc, s) => acc + (Number(s.sorties) || 0), 0);
@@ -147,7 +251,8 @@ class ReactiveCalculationEngine {
       totalMouvements,
       totalMachines,
       totalBt,
-      tauxDisponibilStock: totalArticles > 0 ? Math.round(((totalArticles - articlesEnAlerte) / totalArticles) * 100) : 100,
+      tauxDisponibilStock:
+        totalArticles > 0 ? Math.round(((totalArticles - articlesEnAlerte) / totalArticles) * 100) : 100,
     };
   }
 }

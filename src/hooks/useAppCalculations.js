@@ -1,8 +1,8 @@
 import { useMemo, useSyncExternalStore, useEffect, useRef } from 'react';
-import { safeNum, calculateStockStatus } from '../utils/formulaEngine';
-import { INITIAL_STOCK_LOOKUP } from '../utils/baselineStock';
+import { safeNum } from '../utils/formulaEngine';
 import { INITIAL_FAMILIES, INITIAL_TEMPLATES } from '../data/seedData';
 import { stockIndexStore } from '../application/StockIndexStore';
+import { reactiveCalculationEngine } from '../services/reactiveCalculationEngine';
 
 /**
  * High-Performance Hook to compute real-time stock calculations, warehouse stock, KPIs, and fallback lists.
@@ -49,54 +49,10 @@ export function useAppCalculations({
     () => 0
   );
 
-  // Compute Full Stock with Dynamic O(1) Lookups (Formula F, G, H, J)
+  // Compute Full Stock with Dynamic O(1) Lookups & Reactive Engine
   const stockItems = useMemo(() => {
-    return rawStock.map((item) => {
-      const itemRef = String(item.ref || '').trim();
-      const itemRefKey = itemRef.toLowerCase();
-      const itemDesigKey = String(item.designation || '')
-        .trim()
-        .toLowerCase();
-
-      // Direct O(1) lookup from stockIndexStore without linear scanning
-      const totals = stockIndexStore.index.getTotals(itemRef);
-
-      let stockInitial = 0;
-      if (
-        item.stockInitial !== undefined &&
-        item.stockInitial !== null &&
-        item.stockInitial !== '' &&
-        !isNaN(Number(item.stockInitial))
-      ) {
-        stockInitial = Number(item.stockInitial);
-      } else {
-        const baseline =
-          INITIAL_STOCK_LOOKUP.get(itemRefKey) ||
-          (itemDesigKey ? INITIAL_STOCK_LOOKUP.get(itemDesigKey) : null);
-        if (baseline && baseline.qty > 0) {
-          stockInitial = baseline.qty;
-        }
-      }
-
-      const seuil = safeNum(item.seuil, 3);
-      const { stockActuel, alerte } = calculateStockStatus(
-        stockInitial,
-        totals.entrees,
-        totals.sorties,
-        seuil
-      );
-
-      return {
-        ...item,
-        stockInitial,
-        entrees: totals.entrees,
-        sorties: totals.sorties,
-        commandes: totals.commandes,
-        stockActuel,
-        alerte,
-      };
-    });
-  }, [rawStock, globalVersion]);
+    return reactiveCalculationEngine.recalculateStockReactive(rawStock, mouvements);
+  }, [rawStock, mouvements, globalVersion]);
 
   const effectiveDesignations = useMemo(() => {
     if (
@@ -174,31 +130,9 @@ export function useAppCalculations({
     });
   }, [warehouseItems, globalVersion]);
 
-  // Stock KPIs computed efficiently
+  // Stock KPIs computed efficiently via Reactive Engine
   const stockKPIs = useMemo(() => {
-    let totalEntrees = 0;
-    let totalSorties = 0;
-    let totalStockActuel = 0;
-    let ruptures = 0;
-    let alertes = 0;
-
-    for (let i = 0; i < stockItems.length; i++) {
-      const s = stockItems[i];
-      totalEntrees += s.entrees;
-      totalSorties += s.sorties;
-      totalStockActuel += s.stockActuel;
-      if (s.alerte === 'RUPTURE') ruptures++;
-      else if (s.alerte === 'ALERTE') alertes++;
-    }
-
-    return {
-      totalArticles: stockItems.length,
-      totalEntrees,
-      totalSorties,
-      totalStockActuel,
-      ruptures,
-      alertes,
-    };
+    return reactiveCalculationEngine.computeStockKPIs(stockItems);
   }, [stockItems]);
 
   return {
@@ -209,5 +143,6 @@ export function useAppCalculations({
     diagnostics,
     warehouseItemsComputed,
     stockKPIs,
+    reactiveEngine: reactiveCalculationEngine,
   };
 }

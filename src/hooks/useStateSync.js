@@ -10,7 +10,7 @@ const REALTIME_CHANNEL_NAME = 'gmao_realtime_sync_channel';
  * Leverages BroadcastChannel API for zero-latency instant messaging across open browser windows
  * and integrates ConflictResolutionService for deterministic Last Write Wins conflict resolution.
  */
-export function useStateSync(setters, validators) {
+export function useStateSync(setters = {}, validators = {}) {
   const {
     setTypes,
     setDesignations,
@@ -24,6 +24,7 @@ export function useStateSync(setters, validators) {
     setMachines,
     setWarehouseItems,
     setZones,
+    setUsers,
     setTechnicians,
     setOperations,
     setMouvements,
@@ -33,7 +34,7 @@ export function useStateSync(setters, validators) {
     setPreventiveGuides,
     setPreventivePlans,
     setSortiesExterne,
-  } = setters;
+  } = setters || {};
 
   const { isValidMachineFamilies, isValidMachineTemplates } = validators || {};
   const channelRef = useRef(null);
@@ -44,28 +45,29 @@ export function useStateSync(setters, validators) {
       if (!fresh) return;
 
       try {
-        if (fresh.types && setTypes) setTypes(fresh.types);
-        if (fresh.designations && setDesignations) setDesignations(fresh.designations);
-        if (fresh.families && setFamilies && (!isValidMachineFamilies || isValidMachineFamilies(fresh.families))) {
+        if (fresh.types && typeof setTypes === 'function') setTypes(fresh.types);
+        if (fresh.designations && typeof setDesignations === 'function') setDesignations(fresh.designations);
+        if (fresh.families && typeof setFamilies === 'function' && (!isValidMachineFamilies || isValidMachineFamilies(fresh.families))) {
           setFamilies(fresh.families);
         }
-        if (fresh.templates && setTemplates && (!isValidMachineTemplates || isValidMachineTemplates(fresh.templates))) {
+        if (fresh.templates && typeof setTemplates === 'function' && (!isValidMachineTemplates || isValidMachineTemplates(fresh.templates))) {
           setTemplates(fresh.templates);
         }
-        if (fresh.blueprints && Array.isArray(fresh.blueprints) && setBlueprints) setBlueprints(fresh.blueprints);
-        if (fresh.compFamilies && setCompFamilies) setCompFamilies(fresh.compFamilies);
-        if (fresh.compTemplates && setCompTemplates) setCompTemplates(fresh.compTemplates);
-        if (fresh.partTypes && setPartTypes) setPartTypes(fresh.partTypes);
-        if (fresh.partDesignations && setPartDesignations) setPartDesignations(fresh.partDesignations);
+        if (fresh.blueprints && Array.isArray(fresh.blueprints) && typeof setBlueprints === 'function') setBlueprints(fresh.blueprints);
+        if (fresh.compFamilies && typeof setCompFamilies === 'function') setCompFamilies(fresh.compFamilies);
+        if (fresh.compTemplates && typeof setCompTemplates === 'function') setCompTemplates(fresh.compTemplates);
+        if (fresh.partTypes && typeof setPartTypes === 'function') setPartTypes(fresh.partTypes);
+        if (fresh.partDesignations && typeof setPartDesignations === 'function') setPartDesignations(fresh.partDesignations);
 
         // Apply conflict resolution for transactional collections if broadcast conflict occurs
-        if (fresh.machines && setMachines) setMachines(fresh.machines);
-        if (fresh.warehouseItems && setWarehouseItems) setWarehouseItems(fresh.warehouseItems);
-        if (fresh.zones && setZones) setZones(fresh.zones);
-        if (fresh.technicians && setTechnicians) setTechnicians(fresh.technicians);
-        if (fresh.operations && setOperations) setOperations(fresh.operations);
+        if (fresh.machines && typeof setMachines === 'function') setMachines(fresh.machines);
+        if (fresh.warehouseItems && typeof setWarehouseItems === 'function') setWarehouseItems(fresh.warehouseItems);
+        if (fresh.zones && typeof setZones === 'function') setZones(fresh.zones);
+        if (fresh.users && typeof setUsers === 'function') setUsers(fresh.users);
+        if (fresh.technicians && typeof setTechnicians === 'function') setTechnicians(fresh.technicians);
+        if (fresh.operations && typeof setOperations === 'function') setOperations(fresh.operations);
 
-        if (fresh.mouvements && setMouvements) {
+        if (fresh.mouvements && typeof setMouvements === 'function') {
           if (isBroadcast) {
             setMouvements((prevMouvementList) => {
               if (!Array.isArray(prevMouvementList) || prevMouvementList.length === 0) return fresh.mouvements;
@@ -80,12 +82,12 @@ export function useStateSync(setters, validators) {
           }
         }
 
-        if (fresh.rawStock && setRawStock) setRawStock(fresh.rawStock);
-        if (fresh.preventiveTasks && setPreventiveTasks) setPreventiveTasks(fresh.preventiveTasks);
-        if (fresh.preventiveActions && setPreventiveActions) setPreventiveActions(fresh.preventiveActions);
-        if (fresh.preventiveGuides && setPreventiveGuides) setPreventiveGuides(fresh.preventiveGuides);
-        if (fresh.preventivePlans && setPreventivePlans) setPreventivePlans(fresh.preventivePlans);
-        if (fresh.sortiesExterne && setSortiesExterne) setSortiesExterne(fresh.sortiesExterne);
+        if (fresh.rawStock && typeof setRawStock === 'function') setRawStock(fresh.rawStock);
+        if (fresh.preventiveTasks && typeof setPreventiveTasks === 'function') setPreventiveTasks(fresh.preventiveTasks);
+        if (fresh.preventiveActions && typeof setPreventiveActions === 'function') setPreventiveActions(fresh.preventiveActions);
+        if (fresh.preventiveGuides && typeof setPreventiveGuides === 'function') setPreventiveGuides(fresh.preventiveGuides);
+        if (fresh.preventivePlans && typeof setPreventivePlans === 'function') setPreventivePlans(fresh.preventivePlans);
+        if (fresh.sortiesExterne && typeof setSortiesExterne === 'function') setSortiesExterne(fresh.sortiesExterne);
 
         Logger.info(`[useStateSync] State synchronized across tabs via ${isBroadcast ? 'BroadcastChannel' : 'StorageEvent'}`);
       } catch (err) {
@@ -148,6 +150,7 @@ export function useStateSync(setters, validators) {
     setMachines,
     setWarehouseItems,
     setZones,
+    setUsers,
     setTechnicians,
     setOperations,
     setMouvements,

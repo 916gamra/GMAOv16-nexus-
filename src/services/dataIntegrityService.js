@@ -287,16 +287,38 @@ class DataIntegrityService {
       }
     });
 
-    // 3. Contrôle des machines orphelines dans les interventions correctives
+    // 3. Contrôle des machines, techniciens et PDR orphelins dans les interventions correctives
     (correctiveInterventions || []).forEach((interv) => {
-      const mch = String(interv.id_machine || interv.machine_id || '').trim();
+      const mch = String(interv.code_machine || interv.id_machine || interv.machine_id || '').trim();
       if (mch && !registeredMachines.has(mch.toUpperCase())) {
         warnings.push({
           type: 'ORPHAN_MACHINE_IN_CORRECTIVE',
           entity: 'Correctif',
           key: mch,
-          id: interv.id || interv.code_bon,
-          message: `Intervention ${interv.id || interv.code_bon || 'Sans ID'}: Machine associée "${mch}" non répertoriée.`,
+          id: interv.id || interv.num_bt || interv.code_bon,
+          message: `Intervention ${interv.id || interv.num_bt || interv.code_bon || 'Sans ID'}: Machine associée "${mch}" non répertoriée.`,
+        });
+      }
+
+      const techKey = String(interv.technicien_matricule || interv.intervenant || '').trim();
+      if (techKey && !registeredUsers.has(techKey.toUpperCase())) {
+        warnings.push({
+          type: 'ORPHAN_TECHNICIAN_IN_CORRECTIVE',
+          entity: 'Correctif',
+          key: techKey,
+          id: interv.id || interv.num_bt || interv.code_bon,
+          message: `Intervention ${interv.id || interv.num_bt || interv.code_bon || 'Sans ID'}: Technicien associé "${techKey}" non répertorié.`,
+        });
+      }
+
+      const pdr = String(interv.pdr_ref || interv.pdr || '').trim();
+      if (pdr && !registeredRefs.has(pdr.toUpperCase())) {
+        warnings.push({
+          type: 'ORPHAN_PDR_IN_CORRECTIVE',
+          entity: 'Correctif',
+          key: pdr,
+          id: interv.id || interv.num_bt || interv.code_bon,
+          message: `Intervention ${interv.id || interv.num_bt || interv.code_bon || 'Sans ID'}: Pièce PDR "${pdr}" non répertoriée.`,
         });
       }
     });

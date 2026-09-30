@@ -32,9 +32,29 @@ export default function ClotureRapportsTab({
   interventions = [],
   machines: registeredMachines = [],
   stockItems = [],
+  technicians = [],
   onUpdateIntervention: _onUpdateIntervention,
   showToast,
 }) {
+  const resolveTechNom = (item) => {
+    if (item.technicien_matricule) {
+      const found = (technicians || []).find(
+        (t) => (t.id_technician || t.id) === item.technicien_matricule
+      );
+      if (found) return found.nom;
+    }
+    return item.intervenant || 'm_hammed';
+  };
+
+  const resolvePdrDisplay = (item) => {
+    const ref = item.pdr_ref || item.pdr;
+    if (!ref) return null;
+    const stockFound = (stockItems || []).find((s) => s.ref === ref || s.code_article === ref);
+    return {
+      ref,
+      designation: stockFound ? (stockFound.designation || stockFound.nom) : (item.pdr_designation || ref),
+    };
+  };
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMachine, setSelectedMachine] = useState('ALL');
   const [selectedTech, setSelectedTech] = useState('ALL');
@@ -1072,7 +1092,7 @@ export default function ClotureRapportsTab({
                       <td className="py-3 px-3.5 text-slate-700 font-medium whitespace-nowrap min-w-[150px]">
                         <div className="flex items-center gap-1.5">
                           <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="font-semibold text-slate-800">{item.intervenant || 'm_hammed'}</span>
+                          <span className="font-semibold text-slate-800">{resolveTechNom(item)}</span>
                         </div>
                       </td>
 
@@ -1121,11 +1141,14 @@ export default function ClotureRapportsTab({
 
                       {/* PDR */}
                       <td className="py-3 px-3.5 text-slate-600 max-w-xs truncate min-w-[160px]">
-                        {item.pdr || item.pdr_ref ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-50 text-cyan-800 border border-cyan-200 text-xs font-mono font-bold shadow-2xs">
+                        {resolvePdrDisplay(item) ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-50 text-cyan-800 border border-cyan-200 text-xs font-mono font-bold shadow-2xs"
+                            title={resolvePdrDisplay(item).designation}
+                          >
                             <Package className="w-3 h-3 text-cyan-600 shrink-0" />
                             <span className="truncate">
-                              {item.pdr || item.pdr_ref} {item.marque ? `(${item.marque})` : ''}
+                              {resolvePdrDisplay(item).ref} {item.marque ? `(${item.marque})` : ''}
                             </span>
                           </span>
                         ) : (

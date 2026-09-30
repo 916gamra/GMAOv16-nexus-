@@ -401,6 +401,7 @@ export default function CorrectiveView({
               machines={machines}
               stockItems={stockItems}
               warehouseItems={warehouseItems}
+              technicians={technicians}
               onUpdateIntervention={onUpdateIntervention}
               showToast={showToast}
             />

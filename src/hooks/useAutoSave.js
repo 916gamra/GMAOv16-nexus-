@@ -25,6 +25,7 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
     machines,
     warehouseItems,
     zones,
+    users,
     technicians,
     operations,
     mouvements,
@@ -83,6 +84,7 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
       machines,
       warehouseItems,
       zones,
+      users,
       technicians,
       operations,
       mouvements,
@@ -112,6 +114,7 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
 
       // Save unified state to LocalStorage
       storageService.setItem('gmao_full_state_v1', fullState);
+      if (users) storageService.setItem('gmao_users_v2', users);
       storageService.setItem('gmao_blueprints_v1', blueprints);
       storageService.setItem('gmao_comp_groups_v1', compGroups);
       storageService.setItem('gmao_comp_families_v1', compFamilies);
@@ -132,6 +135,7 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
       // High performance single-transaction batch save to IndexedDB
       indexedDBService.setItemsBatch({
         gmao_full_state_v1: fullState,
+        gmao_users_v2: users || [],
         gmao_blueprints_v1: blueprints,
         gmao_warehouse_items_v1: warehouseItems,
         gmao_mouvements: mouvements,
@@ -179,6 +183,7 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
     machines,
     warehouseItems,
     zones,
+    users,
     technicians,
     operations,
     mouvements,

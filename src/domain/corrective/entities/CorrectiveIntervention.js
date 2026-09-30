@@ -8,7 +8,11 @@ export class CorrectiveIntervention {
     this.demande_date = data.demande_date || new Date().toISOString().split('T')[0];
     this.demande_heure = data.demande_heure || new Date().toTimeString().slice(0, 5);
     this.demandeur = data.demandeur || 'Production';
+
+    // Foreign key to Users / Technicians (SSOT)
+    this.technicien_matricule = data.technicien_matricule || data.technicien_id || data.id_technician || '';
     this.intervenant = data.intervenant || '';
+
     this.date_debut = data.date_debut || '';
     this.heure_debut = data.heure_debut || '';
     this.date_fin = data.date_fin || '';
@@ -39,8 +43,8 @@ export class CorrectiveIntervention {
     this.travail_a_faire = data.travail_a_faire || '';
     this.action_realisee = data.action_realisee || '';
 
-    // PDR Link
-    this.pdr_ref = data.pdr_ref || '';
+    // Foreign key to Stock (PDR Ref)
+    this.pdr_ref = data.pdr_ref || data.pdr || '';
     this.pdr_designation = data.pdr_designation || '';
     this.pdr_quantite = Number(data.pdr_quantite) || 0;
     this.marque = data.marque || '';
@@ -50,6 +54,51 @@ export class CorrectiveIntervention {
     this.priorite = data.priorite || 'MOYENNE';
     this.created_at = data.created_at || new Date().toISOString();
     this.updated_at = data.updated_at || new Date().toISOString();
+  }
+
+  /**
+   * Dynamic Relational Resolver for Technician
+   */
+  resolveTechnicien(usersOrTechs = []) {
+    if (!Array.isArray(usersOrTechs) || usersOrTechs.length === 0) return null;
+    if (this.technicien_matricule) {
+      const found = usersOrTechs.find(
+        (u) => (u.id_technician || u.id) === this.technicien_matricule
+      );
+      if (found) return found;
+    }
+    if (this.intervenant) {
+      const lower = this.intervenant.toLowerCase().trim();
+      const found = usersOrTechs.find(
+        (u) => String(u.nom || '').toLowerCase().trim() === lower
+      );
+      if (found) return found;
+    }
+    return null;
+  }
+
+  getTechnicienNom(usersOrTechs = []) {
+    const resolved = this.resolveTechnicien(usersOrTechs);
+    if (resolved) return resolved.nom;
+    return this.intervenant || 'Non assigné';
+  }
+
+  /**
+   * Dynamic Relational Resolver for Spare Part (PDR)
+   */
+  resolvePdr(stockItems = []) {
+    if (!this.pdr_ref || !Array.isArray(stockItems)) return null;
+    const refKey = String(this.pdr_ref).trim().toUpperCase();
+    return stockItems.find(
+      (s) => String(s.ref || s.code_article || '').trim().toUpperCase() === refKey
+    ) || null;
+  }
+
+  getPdrDesignation(stockItems = []) {
+    if (!this.pdr_ref) return 'Aucune PDR';
+    const resolved = this.resolvePdr(stockItems);
+    if (resolved) return resolved.designation || resolved.nom || this.pdr_ref;
+    return this.pdr_designation || this.pdr_ref;
   }
 
   static fromJSON(json) {
@@ -64,6 +113,7 @@ export class CorrectiveIntervention {
       demande_date: this.demande_date,
       demande_heure: this.demande_heure,
       demandeur: this.demandeur,
+      technicien_matricule: this.technicien_matricule,
       intervenant: this.intervenant,
       date_debut: this.date_debut,
       heure_debut: this.heure_debut,
@@ -91,3 +141,4 @@ export class CorrectiveIntervention {
     };
   }
 }
+export default CorrectiveIntervention;

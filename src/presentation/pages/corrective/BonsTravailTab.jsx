@@ -30,7 +30,7 @@ export default function BonsTravailTab({
   onStartLive,
   onUpdateIntervention: _onUpdateIntervention,
   onNavigateToTab,
-  stockItems: _stockItems = [],
+  stockItems = [],
   technicians = [],
   intervenants = [],
   panneCategories: _panneCategories = {},
@@ -38,6 +38,25 @@ export default function BonsTravailTab({
   travauxAFaire: _travauxAFaire = [],
   showToast,
 }) {
+  const resolveTechNom = (bt) => {
+    if (bt.technicien_matricule) {
+      const found = (technicians || []).find(
+        (t) => (t.id_technician || t.id) === bt.technicien_matricule
+      );
+      if (found) return found.nom;
+    }
+    return bt.intervenant || 'Non assigné';
+  };
+
+  const resolvePdrDisplay = (bt) => {
+    const ref = bt.pdr_ref || bt.pdr;
+    if (!ref) return null;
+    const item = (stockItems || []).find((s) => s.ref === ref || s.code_article === ref);
+    return {
+      ref,
+      designation: item ? (item.designation || item.nom) : (bt.pdr_designation || ref),
+    };
+  };
   const [filterStatus, setFilterStatus] = useState('EN_COURS'); // 'ALL', 'EN_COURS', 'CLOTURE', 'WITH_PDR'
   const [filterTech, setFilterTech] = useState('ALL');
   const [filterMachine, setFilterMachine] = useState('ALL');
@@ -1037,7 +1056,7 @@ export default function BonsTravailTab({
                       <td className="py-3 px-3.5 text-slate-700 font-medium whitespace-nowrap min-w-[160px]">
                         <div className="flex items-center gap-1.5">
                           <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="font-semibold text-slate-800">{bt.intervenant || 'Non assigné'}</span>
+                          <span className="font-semibold text-slate-800">{resolveTechNom(bt)}</span>
                         </div>
                       </td>
 
@@ -1060,10 +1079,13 @@ export default function BonsTravailTab({
 
                       {/* PDR */}
                       <td className="py-3 px-3.5 text-slate-600 max-w-xs truncate min-w-[160px]">
-                        {bt.pdr || bt.pdr_ref ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-50 text-cyan-800 border border-cyan-200 text-xs font-mono font-bold shadow-2xs">
+                        {resolvePdrDisplay(bt) ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-50 text-cyan-800 border border-cyan-200 text-xs font-mono font-bold shadow-2xs"
+                            title={resolvePdrDisplay(bt).designation}
+                          >
                             <Package className="w-3 h-3 text-cyan-600 shrink-0" />
-                            <span className="truncate">{bt.pdr || bt.pdr_ref}</span>
+                            <span className="truncate">{resolvePdrDisplay(bt).ref}</span>
                           </span>
                         ) : (
                           <span className="text-slate-300 font-mono text-[11px]">—</span>
