@@ -2,6 +2,8 @@ import {  useState, useRef, useMemo, useEffect  } from 'react';
 import AnimatedPage from '../../components/common/AnimatedPage';
 import Action3DButton from '../../components/common/Action3DButton';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
+import TablePaginationCard from '../../components/common/TablePaginationCard';
+import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import CustomSelect from '../../components/common/CustomSelect';
 import PartInfoIcon from '../../components/common/icons/PartInfoIcon';
 import { LayersIcon } from '../../components/common/icons/LayersIcon';
@@ -12,8 +14,6 @@ import {
   Trash2,
   Edit2,
   Warehouse,
-  ChevronLeft,
-  ChevronRight,
   SlidersHorizontal,
   ArrowUpDown,
   ArrowUp,
@@ -184,6 +184,220 @@ export default function PartDesignationView({
     });
     setShowAddModal(false);
   };
+
+  const partDesignationColumns = useMemo(
+    () => [
+      {
+        key: 'ref',
+        label: 'REF / CODE',
+        colLetter: 'A',
+        icon: Tag,
+        sortable: true,
+        render: (item) => (
+          <span className="px-2 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-200 font-mono font-bold text-xs">
+            {item.ref || item.id_part}
+          </span>
+        ),
+      },
+      {
+        key: 'designation',
+        label: 'DÉSIGNATION DE LA PIÈCE',
+        colLetter: 'B',
+        icon: PartInfoIcon,
+        sortable: true,
+        render: (item) => (
+          <div className="flex items-center gap-2">
+            <PartInfoIcon className="w-4 h-4 text-blue-600 shrink-0 animate-pulse-slow" />
+            <span className="font-semibold text-slate-800 text-[13px]">{item.designation}</span>
+          </div>
+        ),
+      },
+      {
+        key: 'id_type',
+        label: 'TYPE DE PART PARENT',
+        colLetter: 'C',
+        icon: LayersIcon,
+        sortable: true,
+        render: (item) => {
+          const typeObj = partTypes.find((t) => t.id_type === item.id_type);
+          return (
+            <button
+              type="button"
+              onClick={() =>
+                onNavigateToPartTypes && onNavigateToPartTypes(item.id_type)
+              }
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-semibold transition cursor-pointer"
+              title="Voir le type de part parent"
+            >
+              <LayersIcon className="w-3 h-3 text-emerald-600" />
+              <span className="font-mono">{item.id_type}</span>
+              {typeObj && <span className="text-slate-500 font-normal"> ({typeObj.libelle})</span>}
+            </button>
+          );
+        },
+      },
+      {
+        key: 'seuil',
+        label: "SEUIL D'ALERTE",
+        colLetter: 'D',
+        icon: AlertTriangle,
+        render: (item) => (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-xs font-mono font-bold">
+            <AlertTriangle className="w-3 h-3 text-amber-600" />
+            {item.seuil ?? 3}
+          </span>
+        ),
+      },
+      {
+        key: 'emplacement',
+        label: 'EMPLACEMENT',
+        colLetter: 'E',
+        icon: MapPin,
+        render: (item) => (
+          <span className="inline-flex items-center gap-1 text-slate-600 text-xs font-mono font-medium">
+            <MapPin className="w-3 h-3 text-slate-400" />
+            {item.emplacement || 'Non assigné'}
+          </span>
+        ),
+      },
+      {
+        key: 'warehouse_parts',
+        label: 'PARTS EN ENTREPÔT',
+        colLetter: 'F',
+        icon: Warehouse,
+        render: (item) => {
+          const pCount = warehouseItems.filter(
+            (w) =>
+              (w.nature === 'PART' || w.nature === 'COMPOSANT') &&
+              (w.id_warehouse_item === item.ref ||
+                w.ref === item.ref ||
+                w.designation === item.designation)
+          ).length;
+          return (
+            <button
+              type="button"
+              onClick={() =>
+                onNavigateToEntrepotByPart &&
+                onNavigateToEntrepotByPart(item.ref || item.id_part, item.id_type)
+              }
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
+              title="Filtrer Entrepôt sur cette désignation de part"
+            >
+              <Warehouse className="w-3.5 h-3.5 text-emerald-600" />
+              <span>{pCount} parts</span>
+              <ArrowRight className="w-3 h-3 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          );
+        },
+      },
+      {
+        key: 'actions',
+        label: '•••',
+        colLetter: '',
+        align: 'center',
+        render: (item) => {
+          const rowKey = item.ref || item.id_part || '';
+          const pCount = warehouseItems.filter(
+            (w) =>
+              (w.nature === 'PART' || w.nature === 'COMPOSANT') &&
+              (w.id_warehouse_item === item.ref ||
+                w.ref === item.ref ||
+                w.designation === item.designation)
+          ).length;
+          return (
+            <div className="relative inline-flex items-center justify-center action-menu-container">
+              <div className="inline-flex rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onNavigateToEntrepotByPart) {
+                      onNavigateToEntrepotByPart(item.ref || item.id_part, item.id_type);
+                    }
+                  }}
+                  className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
+                  title="Filtrer l'entrepôt sur cette désignation"
+                >
+                  <Warehouse className="w-3.5 h-3.5 text-slate-900" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveActionMenuId(activeActionMenuId === rowKey ? null : rowKey);
+                  }}
+                  className={`p-1.5 hover:bg-slate-100 transition cursor-pointer ${
+                    activeActionMenuId === rowKey
+                      ? 'bg-slate-100 text-emerald-700 font-bold'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                  title="Actions et options"
+                >
+                  <MoreVertical className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {activeActionMenuId === rowKey && (
+                <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-200/90 z-50 p-1.5 animate-in fade-in zoom-in-95 duration-150 text-left space-y-0.5">
+                  <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Actions Désignation Part
+                    </span>
+                    <span className="text-xs font-mono font-bold text-emerald-700 truncate block mt-0.5">
+                      {rowKey}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveActionMenuId(null);
+                      if (onNavigateToEntrepotByPart) {
+                        onNavigateToEntrepotByPart(item.ref || item.id_part, item.id_type);
+                      }
+                    }}
+                    className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer group"
+                  >
+                    <Warehouse className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
+                    <span>Filtrer l'Entrepôt ({pCount})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveActionMenuId(null);
+                      setToEdit({ ...item });
+                      setForm({
+                        id_part: item.id_part || '',
+                        ref: item.ref || '',
+                        designation: item.designation || '',
+                        id_type: item.id_type || '',
+                        seuil: item.seuil || 5,
+                        emplacement: item.emplacement || 'E-MAG-RAYON-A01',
+                      });
+                      setShowAddModal(true);
+                    }}
+                    className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer border-t border-slate-100 mt-1 pt-2"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 text-teal-600" />
+                    <span>Modifier la Désignation</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveActionMenuId(null);
+                      setToDelete(item);
+                    }}
+                    className="w-full px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                    <span>Supprimer du Référentiel</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        },
+      },
+    ],
+    [partTypes, warehouseItems, activeActionMenuId, onNavigateToEntrepotByPart, onNavigateToPartTypes]
+  );
 
   return (
     <AnimatedPage className="space-y-4">
@@ -558,342 +772,33 @@ export default function PartDesignationView({
         )}
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out">
-        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-slate-50/50 gap-2">
-          <div className="font-bold text-slate-800 text-[13px] flex items-center gap-2">
-            <PartInfoIcon className="w-4 h-4 text-blue-600" />
-            <span>Tableau Désignations de Parts (Entrepôt)</span>
-          </div>
-          <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-            ref | designation | id_type (part) | seuil | emplacement | warehouse_items
-          </div>
-        </div>
-
-        <div className="max-h-[62vh] overflow-y-auto overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 z-10 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 shadow-2xs select-none">
-              <tr>
-                <th className="py-3 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0">
-                  N°
-                </th>
-
-                {/* RÉFÉRENCE / CODE (A) */}
-                <th
-                  onClick={() => handleSort('ref')}
-                  className="py-3 px-4 cursor-pointer hover:bg-slate-200/80 transition select-none group"
-                  title="Cliquer pour trier par Référence / Code"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>REF / CODE</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(A)</span>
-                    {renderSortIcon('ref')}
-                  </div>
-                </th>
-
-                {/* DÉSIGNATION DE LA PIÈCE (B) */}
-                <th
-                  onClick={() => handleSort('designation')}
-                  className="py-3 px-4 cursor-pointer hover:bg-slate-200/80 transition select-none group"
-                  title="Cliquer pour trier par Désignation"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <PartInfoIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>DÉSIGNATION DE LA PIÈCE</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(B)</span>
-                    {renderSortIcon('designation')}
-                  </div>
-                </th>
-
-                {/* TYPE DE PART PARENT (C) */}
-                <th
-                  onClick={() => handleSort('id_type')}
-                  className="py-3 px-4 cursor-pointer hover:bg-slate-200/80 transition select-none group"
-                  title="Cliquer pour trier par Type"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <LayersIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>TYPE DE PART PARENT</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(C)</span>
-                    {renderSortIcon('id_type')}
-                  </div>
-                </th>
-
-                {/* SEUIL D'ALERTE (D) */}
-                <th className="py-3 px-4">
-                  <div className="flex items-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>SEUIL D&apos;ALERTE</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(D)</span>
-                  </div>
-                </th>
-
-                {/* EMPLACEMENT (E) */}
-                <th className="py-3 px-4">
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>EMPLACEMENT</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(E)</span>
-                  </div>
-                </th>
-
-                {/* PARTS EN ENTREPÔT (F) */}
-                <th className="py-3 px-4">
-                  <div className="flex items-center gap-1.5">
-                    <Warehouse className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>PARTS EN ENTREPÔT</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(F)</span>
-                  </div>
-                </th>
-
-                <th className="py-3 px-4 text-center select-none font-bold text-slate-400 tracking-widest" title="Actions (Voir Entrepôt, Modifier, Supprimer)">
-                  •••
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200/80">
-              {displayedData.map((d, idx) => {
-                  const rowNum = startIndex + idx + 1;
-                  if (d.__isEmptyPlaceholder) {
-                    return (
-                      <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                        <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
-                          {rowNum}
-                        </td>
-                        <td colSpan={7} className="py-3 px-4 text-center text-slate-300 font-mono text-[11px]">
-                          —
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  const typeObj = partTypes.find((t) => t.id_type === d.id_type);
-                  const pCount = warehouseItems.filter(
-                    (w) =>
-                      (w.nature === 'PART' || w.nature === 'COMPOSANT') &&
-                      (w.id_warehouse_item === d.ref ||
-                        w.ref === d.ref ||
-                        w.designation === d.designation)
-                  ).length;
-
-                  return (
-                    <tr
-                      key={`part-desig-row-${d.ref || d.id_part || idx}-${idx}`}
-                      className="even:bg-slate-50/80 odd:bg-white hover:bg-slate-100/70 border-b border-slate-200/70 transition-colors"
-                    >
-                      <td className="py-3 px-3 text-center font-mono text-[11px] font-bold text-slate-400 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
-                        {rowNum}
-                      </td>
-                      <td className="py-3 px-4 font-mono font-bold text-slate-900">
-                        <span className="px-2 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-200">
-                          {d.ref || d.id_part}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 font-semibold text-slate-800 text-[13px]">
-                        <div className="flex items-center gap-2">
-                          <PartInfoIcon className="w-4 h-4 text-blue-600 shrink-0" />
-                          <span>{d.designation}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <button
-                          onClick={() =>
-                            onNavigateToPartTypes && onNavigateToPartTypes(d.id_type)
-                          }
-                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-semibold transition cursor-pointer"
-                          title="Voir le type de part parent"
-                        >
-                          <LayersIcon className="w-3 h-3 text-emerald-600" />
-                          <span className="font-mono">{d.id_type}</span>
-                          {typeObj && (
-                            <span className="text-slate-500 font-normal">({typeObj.libelle})</span>
-            )}
-                        </button>
-
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-xs font-mono font-bold">
-                          <AlertTriangle className="w-3 h-3 text-amber-600" />
-                          {d.seuil ?? 3}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="inline-flex items-center gap-1 text-slate-600 text-xs font-mono font-medium">
-                          <MapPin className="w-3 h-3 text-slate-400" />
-                          {d.emplacement || 'Non assigné'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <button
-                          onClick={() =>
-                            onNavigateToEntrepotByPart &&
-                            onNavigateToEntrepotByPart(d.ref || d.id_part, d.id_type)
-                          }
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
-                          title="Filtrer Entrepôt sur cette désignation de part"
-                        >
-                          <Warehouse className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>{pCount} parts</span>
-                          <ArrowRight className="w-3 h-3 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
-                        </button>
-
-                      </td>
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <div className="relative inline-flex items-center justify-center action-menu-container">
-                          <div className="inline-flex rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-                            {/* Quick Action: Filtrer l'entrepôt */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (onNavigateToEntrepotByPart) {
-                                  onNavigateToEntrepotByPart(d.ref || d.id_part, d.id_type);
-                                }
-                                setActiveActionMenuId(null);
-                              }}
-                              className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
-                              title="Filtrer l'entrepôt sur cette désignation"
-                            >
-                              <Warehouse className="w-3.5 h-3.5 text-slate-900" />
-                            </button>
-
-                            {/* 3-dots Toggle Button */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const rowKey = d.ref || d.id_part || `desig-${idx}`;
-                                setActiveActionMenuId(activeActionMenuId === rowKey ? null : rowKey);
-                              }}
-                              className={`p-1.5 hover:bg-slate-100 transition cursor-pointer ${
-                                activeActionMenuId === (d.ref || d.id_part || `desig-${idx}`)
-                                  ? 'bg-slate-100 text-emerald-700 font-bold'
-                                  : 'text-slate-500 hover:text-slate-800'
-                              }`}
-                              title="Actions et options de la désignation"
-                            >
-                              <MoreVertical className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-
-                          {/* Popover Action Menu */}
-                          {activeActionMenuId === (d.ref || d.id_part || `desig-${idx}`) && (
-                            <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-200/90 z-50 p-1.5 animate-in fade-in zoom-in-95 duration-150 text-left space-y-0.5">
-                              <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                                  Désignation de Part
-                                </span>
-                                <span className="text-xs font-mono font-bold text-emerald-700 truncate block">
-                                  {d.ref || d.id_part} — {d.designation}
-                                </span>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (onNavigateToEntrepotByPart) {
-                                    onNavigateToEntrepotByPart(d.ref || d.id_part, d.id_type);
-                                  }
-                                  setActiveActionMenuId(null);
-                                }}
-                                className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer group"
-                              >
-                                <Warehouse className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
-                                <span>Filtrer l&apos;entrepôt sur cette désignation</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setToEdit({ ...d });
-                                  setActiveActionMenuId(null);
-                                }}
-                                className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
-                              >
-                                <Edit2 className="w-3.5 h-3.5 text-teal-600" />
-                                <span>Modifier cette désignation</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setToDelete(d);
-                                  setActiveActionMenuId(null);
-                                }}
-                                className="w-full px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                                <span>Supprimer cette désignation</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pagination Footer */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-slate-600">Lignes par page :</span>
-          <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-            {[25, 50, 100, 200, 0].map((size) => (
-              <button
-                key={size}
-                onClick={() => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                  pageSize === size
-                    ? 'bg-white text-emerald-800 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out border border-slate-200/50'
-                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                }`}
-              >
-                {size === 0 ? 'Tout' : size}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-xs font-semibold text-slate-500">
-            Affichage <b className="text-slate-900">{totalItems === 0 ? 0 : startIndex + 1}</b> à{' '}
-            <b className="text-slate-900">{Math.min(startIndex + effectivePageSize, totalItems)}</b> sur{' '}
-            <b className="text-slate-900">{totalItems}</b>
-          </div>
-
-          {pageSize !== 0 && totalPages > 1 && (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Précédent
-              </button>
-
-              <span className="px-2 font-mono text-xs font-bold text-slate-600">
-                {currentPage} / {totalPages}
-              </span>
-
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
-              >
-                Suivant
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Unified Industrial Data Grid */}
+      <GmaoIndustrialDataGrid
+        title="Tableau Désignations de Parts (Entrepôt)"
+        icon={<PartInfoIcon className="w-4 h-4 text-blue-600" />}
+        excelMapping="ref (A) | designation (B) | id_type (C) | seuil (D) | emplacement (E) | warehouse_parts (F)"
+        bannerColor="slate"
+        columns={partDesignationColumns}
+        data={displayedData}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        renderSortIcon={renderSortIcon}
+        startIndex={startIndex}
+        showRowNumber={true}
+        emptyIcon={<PartInfoIcon className="w-8 h-8 text-slate-300" />}
+        emptyMessage="Aucune désignation de part trouvée"
+        pagination={{
+          currentPage,
+          setCurrentPage,
+          pageSize,
+          setPageSize,
+          totalItems,
+          pageSizeOptions: [25, 50, 100, 200, 0],
+          color: 'emerald',
+          itemLabel: 'désignations',
+        }}
+      />
 
       {/* Add Modal */}
       {showAddModal && (

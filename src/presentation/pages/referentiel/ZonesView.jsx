@@ -3,6 +3,7 @@ import AnimatedPage from '../../components/common/AnimatedPage';
 import SequentialCodePicker from '../../components/common/SequentialCodePicker';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
 import Action3DButton from '../../components/common/Action3DButton';
+import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import {
   MapPin,
   Search,
@@ -13,8 +14,6 @@ import {
   Trash2,
   Edit2,
   AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
   SlidersHorizontal,
   ArrowUpDown,
   ChevronDown,
@@ -201,6 +200,180 @@ export default function ZonesView({
     setForm({ code_zone: '', id_zone: '', libelle: '', type: 'FINITION', description: '' });
     setShowAddModal(false);
   };
+
+  const zoneColumns = useMemo(
+    () => [
+      {
+        key: 'code_zone',
+        label: 'IDENTIFIANTS (CODE / ID)',
+        colLetter: 'b.1/b.2',
+        icon: Hash,
+        sortable: true,
+        render: (z, idx, rowNum) => {
+          const codeVal = z.code_zone || z.code || z.id_zone || `ZONE-${String(rowNum).padStart(2, '0')}`;
+          const idVal = z.id_zone || z.code_zone || z.code;
+          return (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <Hash className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
+                <span className="font-mono text-[11px] font-bold text-cyan-800 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded shadow-2xs leading-none">
+                  {codeVal}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                <span className="font-mono text-[11px] font-bold text-purple-800 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-2xs leading-none">
+                  {idVal}
+                </span>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        key: 'libelle',
+        label: 'LIBELLÉ SECTEUR / ATELIER',
+        colLetter: 'C',
+        icon: MapPin,
+        sortable: true,
+        render: (z) => (
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-start gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
+              <span className="text-[12px] font-bold text-slate-900 leading-snug break-words">
+                {z.libelle}
+              </span>
+            </div>
+            {z.description && (
+              <div className="flex items-start gap-1.5">
+                <AlignLeft className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                <span className="text-[11px] text-slate-500 font-medium leading-snug line-clamp-2" title={z.description}>
+                  {z.description}
+                </span>
+              </div>
+            )}
+            {z.type && (
+              <div className="flex items-center gap-1.5 mt-0.5 text-[10px] font-semibold tracking-wide uppercase text-indigo-600">
+                <Tag className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                <span className="truncate max-w-[180px]" title={z.type}>{z.type}</span>
+              </div>
+            )}
+          </div>
+        ),
+      },
+      {
+        key: 'utilisateurs',
+        label: 'UTILISATEURS (ÉQUIPE)',
+        colLetter: 'D/E',
+        icon: Users,
+        render: (z) => {
+          const zoneOps = safeOps.filter((op) => op.id_zone === z.id_zone || op.id_zone === z.code_zone);
+          const zoneTechs = safeTechs.filter((t) => t.id_zone === z.id_zone || t.id_zone === z.code_zone);
+          const responsables = zoneOps.filter(op => op.type_profil === 'CHEF' || op.type_profil === 'SUPERVISEUR' || op.type_profil === 'RESPONSABLE');
+          return (
+            <div className="flex flex-col gap-2">
+              {responsables.length > 0 && (
+                <div className="flex flex-col gap-1.5">
+                  {responsables.map((resp, i) => (
+                    <div key={i} className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wide uppercase text-slate-400">
+                        <Shield className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="truncate" title={resp.type_profil || 'RESPONSABLE'}>{resp.type_profil || 'RESPONSABLE'}</span>
+                      </div>
+                      <div className="flex items-start gap-1.5 pl-[1.125rem]">
+                        <User className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
+                        <span className="text-[11.5px] font-bold text-slate-900 leading-snug break-words">
+                          {resp.nom}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {zoneTechs.length > 0 && (
+                <div className="flex flex-col gap-0.5 mt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => onNavigateToTechs && onNavigateToTechs(z.code_zone || z.id_zone)}
+                    className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wide uppercase text-slate-400 hover:text-blue-600 transition text-left cursor-pointer"
+                  >
+                    <Wrench className="w-3 h-3 text-slate-400 shrink-0" />
+                    <span>TECHNICIEN{zoneTechs.length > 1 ? 'S' : ''} ({zoneTechs.length})</span>
+                  </button>
+                  <div className="flex flex-wrap items-center gap-1.5 pl-[1.125rem] mt-0.5">
+                    {zoneTechs.map((tech, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => onNavigateToTechs && onNavigateToTechs(z.code_zone || z.id_zone)}
+                        className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[10px] font-bold text-blue-700 shadow-2xs cursor-pointer transition"
+                      >
+                        {tech.id_technician || tech.code || 'TECH'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        key: 'machines',
+        label: 'MACHINES',
+        colLetter: 'F',
+        icon: Wrench,
+        render: (z) => {
+          const mCount = safeMachines.filter((m) => {
+            const mZ = String(m.id_zone_default || '').trim().toLowerCase();
+            const idZ = String(z.id_zone || '').trim().toLowerCase();
+            const codeZ = String(z.code_zone || z.code || '').trim().toLowerCase();
+            const libZ = String(z.libelle || '').trim().toLowerCase();
+            return mZ && (mZ === idZ || mZ === codeZ || mZ === libZ);
+          }).length;
+          return (
+            <button
+              type="button"
+              onClick={() => onNavigateToMachines && onNavigateToMachines(z.code_zone || z.id_zone)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold transition group cursor-pointer shadow-2xs"
+              title="Voir les machines de cette zone"
+            >
+              <Wrench className="w-3.5 h-3.5 text-emerald-600" />
+              <span>{mCount} machine{mCount > 1 ? 's' : ''}</span>
+              <ArrowRight className="w-3 h-3 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          );
+        },
+      },
+      {
+        key: 'actions',
+        label: 'ACTIONS',
+        align: 'center',
+        headerClassName: 'w-24 text-center font-bold text-slate-400 tracking-widest select-none',
+        render: (z) => (
+          <div className="flex items-center justify-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setToEdit(z)}
+              className="p-1.5 bg-white hover:bg-purple-50 text-slate-600 hover:text-purple-700 rounded-lg border border-slate-200 transition cursor-pointer shadow-2xs"
+              title="Modifier"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setToDelete(z)}
+              className="p-1.5 bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-lg border border-slate-200 transition cursor-pointer shadow-2xs"
+              title="Supprimer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [safeOps, safeTechs, safeMachines, onNavigateToTechs, onNavigateToMachines]
+  );
 
   return (
     <AnimatedPage className="space-y-4">
@@ -413,308 +586,77 @@ export default function ZonesView({
         )}
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out">
-        {/* Top Info Header Bar inside Card */}
-        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-slate-50/50 gap-2">
-          <div className="font-bold text-slate-800 text-[13px] flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-purple-600" />
-            <span>Tableau Zones • Code Système & ID Utilisateur</span>
-          </div>
-          <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-            code_zone (B.1) | id_zone (B.2) | libelle (C) | nb_techniciens (D) | nb_operations (E) | nb_machines (F)
-          </div>
-        </div>
+      {/* Unified Industrial Data Grid */}
+      <GmaoIndustrialDataGrid
+        title="Tableau Zones • Code Système & ID Utilisateur"
+        icon={<MapPin className="w-4 h-4 text-purple-600" />}
+        excelMapping="code_zone (B.1) | id_zone (B.2) | libelle (C) | nb_techniciens (D) | nb_operations (E) | nb_machines (F)"
+        bannerColor="purple"
+        columns={zoneColumns}
+        data={displayedData}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        renderSortIcon={renderSortIcon}
+        startIndex={startIndex}
+        showRowNumber={true}
+        emptyIcon={<MapPin className="w-8 h-8 text-slate-300" />}
+        emptyMessage="Aucune zone trouvée"
+        renderRow={(z, idx, rowNum) => {
+          if (z.__isEmptyPlaceholder) {
+            return (
+              <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+                <td className="py-3 px-3 text-center text-slate-400 font-mono text-[10px] bg-slate-50/40 border-r border-slate-100 shrink-0 select-none">
+                  {rowNum}
+                </td>
+                <td colSpan={zoneColumns.length} className="py-3 px-4 text-center text-slate-300 font-mono text-[11px] h-12">
+                  —
+                </td>
+              </tr>
+            );
+          }
 
-        <div className="max-h-[62vh] overflow-y-auto overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-          <thead className="bg-slate-100 text-[10.5px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">
-            <tr>
-              <th className="py-2.5 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0">
-                N°
-              </th>
-              <th
-                onClick={() => handleSort('code_zone')}
-                className="py-2.5 px-3 min-w-[160px] cursor-pointer select-none hover:bg-slate-200/70 transition group"
-                title="Trier par Code / ID"
-              >
-                <div className="flex items-center gap-1.5">
-                  <span>IDENTIFIANTS (CODE / ID)</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(b.1/b.2)</span>
-                  {renderSortIcon('code_zone')}
-                </div>
-              </th>
-              <th
-                onClick={() => handleSort('libelle')}
-                className="py-2.5 px-4 min-w-[250px] cursor-pointer select-none hover:bg-slate-200/70 transition group"
-                title="Trier par Libellé"
-              >
-                <div className="flex items-center gap-1.5">
-                  <span>LIBELLÉ SECTEUR / ATELIER</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(C)</span>
-                  {renderSortIcon('libelle')}
-                </div>
-              </th>
-              <th className="py-2.5 px-3 min-w-[200px]">
-                <span>UTILISATEURS (ÉQUIPE)</span>{' '}
-                <span className="text-slate-400 font-normal text-[10px]">(D/E)</span>
-              </th>
-              <th className="py-2.5 px-3">
-                <span>MACHINES</span>{' '}
-                <span className="text-slate-400 font-normal text-[10px]">(F)</span>
-              </th>
-              <th className="py-2.5 px-3 text-center">
-                <span>ACTIONS</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200/80">
-            {displayedData.map((z, idx) => {
-              const rowNum = startIndex + idx + 1;
-              if (z.__isEmptyPlaceholder) {
-                return (
-                  <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                    <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
-                      {rowNum}
-                    </td>
-                    <td colSpan={6} className="py-3 px-4 text-center text-slate-300 font-mono text-[11px]">
-                      —
-                    </td>
-                  </tr>
-                );
-              }
-              const codeVal = z.code_zone || z.code || z.id_zone || `ZONE-${String(rowNum).padStart(2, '0')}`;
-              const idVal = z.id_zone || z.code_zone || z.code;
-
-              const mCount = safeMachines.filter((m) => {
-                const mZ = String(m.id_zone_default || '').trim().toLowerCase();
-                const idZ = String(z.id_zone || '').trim().toLowerCase();
-                const codeZ = String(z.code_zone || z.code || '').trim().toLowerCase();
-                const libZ = String(z.libelle || '').trim().toLowerCase();
-                return mZ && (mZ === idZ || mZ === codeZ || mZ === libZ);
-              }).length;
-
-              const zoneOps = safeOps.filter((op) => op.id_zone === z.id_zone || op.id_zone === z.code_zone);
-              const zoneTechs = safeTechs.filter((t) => t.id_zone === z.id_zone || t.id_zone === z.code_zone);
+          return (
+            <tr
+              key={z.code_zone || z.id_zone || idx}
+              className="even:bg-slate-50/80 odd:bg-white hover:bg-slate-100/70 border-b border-slate-200/70 transition-colors"
+            >
+              {/* Row N° Column */}
+              <td className="py-3 px-3 text-center font-mono text-[11px] font-bold text-slate-400 bg-slate-100/40 border-r border-slate-200/80 shrink-0 select-none">
+                {rowNum}
+              </td>
               
-              const responsables = zoneOps.filter(op => op.type_profil === 'CHEF' || op.type_profil === 'SUPERVISEUR' || op.type_profil === 'RESPONSABLE');
-              const operateursCount = zoneOps.filter(op => op.type_profil === 'OPERATEUR' || !op.type_profil).length;
-
-              return (
-                <tr
-                  key={z.code_zone || z.id_zone || idx}
-                  className="even:bg-slate-50/80 odd:bg-white hover:bg-slate-100/70 border-b border-slate-200/70 transition-colors"
+              {/* Cells */}
+              {zoneColumns.map((col) => (
+                <td
+                  key={col.key}
+                  className={`py-3 px-3.5 ${
+                    col.align === 'center'
+                      ? 'text-center'
+                      : col.align === 'right'
+                      ? 'text-right'
+                      : 'text-left'
+                  } ${col.cellClassName || ''}`}
                 >
-                  {/* Row N° Column */}
-                  <td className="py-3 px-3 text-center font-mono text-[11px] font-bold text-slate-400 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
-                    {rowNum}
-                  </td>
-                  {/* IDENTIFIANTS Column */}
-                  <td className="py-2.5 px-3 min-w-[160px]">
-                    <div className="flex flex-col gap-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <Hash className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
-                        <span className="font-mono text-[11px] font-bold text-cyan-800 bg-cyan-50 border border-cyan-200 px-1.5 py-0.5 rounded shadow-2xs leading-none">
-                          {codeVal}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Key className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                        <span className="font-mono text-[11px] font-bold text-purple-800 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded shadow-2xs leading-none">
-                          {idVal}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-2.5 px-3 min-w-[200px]">
-                    <div className="flex flex-col gap-0.5">
-                      {/* Libellé */}
-                      <div className="flex items-start gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
-                        <span className="text-[12px] font-bold text-slate-900 leading-snug break-words">
-                          {z.libelle}
-                        </span>
-                      </div>
-                      
-                      {/* Description */}
-                      {z.description && (
-                        <div className="flex items-start gap-1.5">
-                          <AlignLeft className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                          <span className="text-[11px] text-slate-500 font-medium leading-snug line-clamp-2" title={z.description}>
-                            {z.description}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Type */}
-                      {z.type && (
-                        <div className="flex items-center gap-1.5 mt-0.5 text-[10px] font-semibold tracking-wide uppercase text-indigo-600">
-                          <Tag className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                          <span className="truncate max-w-[180px]" title={z.type}>{z.type}</span>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-2.5 px-3 min-w-[200px]">
-                    <div className="flex flex-col gap-2">
-                      {/* Responsables */}
-                      {responsables.length > 0 && (
-                        <div className="flex flex-col gap-1.5">
-                          {responsables.map((resp, i) => (
-                            <div key={i} className="flex flex-col gap-0.5">
-                              <div className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wide uppercase text-slate-400">
-                                <Shield className="w-3 h-3 text-slate-400 shrink-0" />
-                                <span className="truncate" title={resp.type_profil || 'RESPONSABLE'}>{resp.type_profil || 'RESPONSABLE'}</span>
-                              </div>
-                              <div className="flex items-start gap-1.5 pl-[1.125rem]">
-                                <User className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
-                                <span className="text-[11.5px] font-bold text-slate-900 leading-snug break-words">
-                                  {resp.nom}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Techniciens */}
-                      {zoneTechs.length > 0 && (
-                        <div className="flex flex-col gap-0.5 mt-0.5">
-                          <button
-                            type="button"
-                            onClick={() => onNavigateToTechs && onNavigateToTechs(z.code_zone || z.id_zone)}
-                            className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wide uppercase text-slate-400 hover:text-blue-600 transition text-left cursor-pointer"
-                          >
-                            <Wrench className="w-3 h-3 text-slate-400 shrink-0" />
-                            <span>TECHNICIEN{zoneTechs.length > 1 ? 'S' : ''} ({zoneTechs.length})</span>
-                          </button>
-                          <div className="flex flex-wrap items-center gap-1.5 pl-[1.125rem] mt-0.5">
-                            {zoneTechs.map((tech, i) => (
-                              <button
-                                key={i}
-                                type="button"
-                                onClick={() => onNavigateToTechs && onNavigateToTechs(z.code_zone || z.id_zone)}
-                                className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[10px] font-bold text-blue-700 shadow-2xs cursor-pointer transition"
-                              >
-                                {tech.id_technician || tech.code || 'TECH'}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Opérateurs */}
-                      {operateursCount > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => onNavigateToOps && onNavigateToOps(z.code_zone || z.id_zone)}
-                          className="flex items-center gap-1.5 mt-0.5 text-[10px] font-semibold tracking-wide uppercase text-slate-500 hover:text-indigo-600 transition cursor-pointer"
-                        >
-                          <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span>{operateursCount} OPÉRATEUR{operateursCount > 1 ? 'S' : ''}</span>
-                        </button>
-                      )}
-
-                      {/* Fallback */}
-                      {responsables.length === 0 && zoneTechs.length === 0 && operateursCount === 0 && (
-                        <span className="text-[11px] text-slate-400 italic">Aucun utilisateur</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-3 px-3">
-                    <button
-                      onClick={() => onNavigateToMachines(z.code_zone || z.id_zone)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold transition group shadow-2xs"
-                      title="Voir les machines installées dans cette zone"
-                    >
-                      <Cpu className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{mCount} machines</span>
-                      <ArrowRight className="w-3 h-3 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
-                    </button>
-                  </td>
-                  <td className="py-3 px-3 text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <button
-                        onClick={() => setToEdit(z)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition"
-                        title="Modifier la zone"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => setToDelete(z)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
-                        title="Supprimer la zone"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      </div>
-
-      {/* Add Modal */}
-
-      {/* Pagination Footer */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-slate-600">Lignes par page :</span>
-          <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-            {[25, 50, 100, 200, 0].map((size) => (
-              <button
-                key={size}
-                onClick={() => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
-                  pageSize === size
-                    ? 'bg-white text-cyan-800 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out border border-slate-200/50'
-                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                }`}
-              >
-                {size === 0 ? 'Tout' : size}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-xs font-semibold text-slate-500">
-            Affichage <b className="text-slate-900">{totalItems === 0 ? 0 : startIndex + 1}</b> à{' '}
-            <b className="text-slate-900">{Math.min(startIndex + effectivePageSize, totalItems)}</b>{' '}
-            sur <b className="text-slate-900">{totalItems}</b>
-          </div>
-          {pageSize !== 0 && totalPages > 1 && (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Précédent
-              </button>
-              <span className="px-2 font-mono text-xs font-bold text-slate-600">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition"
-              >
-                Suivant
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+                  {typeof col.render === 'function'
+                    ? col.render(z, idx, rowNum)
+                    : z[col.key]}
+                </td>
+              ))}
+            </tr>
+          );
+        }}
+        pagination={{
+          currentPage,
+          setCurrentPage,
+          pageSize,
+          setPageSize,
+          totalItems,
+          pageSizeOptions: [25, 50, 100, 200, 0],
+          color: 'purple',
+          itemLabel: 'zones',
+        }}
+      />
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback, useDeferredValue } from 'react';
 import AnimatedPage from '../../components/common/AnimatedPage';
 import CustomSelect from '../../components/common/CustomSelect';
+import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import QuickMovementModal from '../warehouse/QuickMovementModal';
 import EditArticleModal from './EditArticleModal';
 import { StockItem } from '../../../core/domain';
@@ -22,8 +23,6 @@ import {
   ArrowDown,
   SlidersHorizontal,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Tag,
   MapPin,
   TrendingDown,
@@ -400,6 +399,92 @@ export default function StockView({
       `Article: ${item.ref}`
     );
   };
+
+  const stockColumns = useMemo(
+    () => [
+      {
+        key: 'ref',
+        label: 'REF',
+        colLetter: 'B',
+        icon: Tag,
+        sortable: true,
+      },
+      {
+        key: 'designation',
+        label: 'DÉSIGNATION',
+        colLetter: 'C',
+        icon: Package,
+        sortable: true,
+        headerClassName: 'min-w-[220px]',
+      },
+      {
+        key: 'type',
+        label: 'TYPE',
+        colLetter: 'D',
+        icon: Boxes,
+        sortable: true,
+      },
+      {
+        key: 'stockInitial',
+        label: 'INITIAL',
+        colLetter: 'E',
+        sortable: true,
+        align: 'right',
+      },
+      {
+        key: 'entrees',
+        label: 'ENTRÉES',
+        colLetter: 'F',
+        icon: TrendingUp,
+        sortable: true,
+        align: 'right',
+      },
+      {
+        key: 'sorties',
+        label: 'SORTIES',
+        colLetter: 'G',
+        icon: TrendingDown,
+        sortable: true,
+        align: 'right',
+      },
+      {
+        key: 'stockActuel',
+        label: 'ACTUEL',
+        colLetter: 'H',
+        sortable: true,
+        align: 'right',
+      },
+      {
+        key: 'seuil',
+        label: 'SEUIL',
+        colLetter: 'I',
+        sortable: true,
+        align: 'right',
+      },
+      {
+        key: 'alerte',
+        label: 'ALERTE',
+        colLetter: 'J',
+        icon: Radio,
+        sortable: true,
+        align: 'center',
+      },
+      {
+        key: 'emplacement',
+        label: 'EMPLACEMENT',
+        colLetter: 'K',
+        icon: MapPin,
+        sortable: true,
+      },
+      {
+        key: 'actions',
+        label: '•••',
+        align: 'center',
+        headerClassName: 'min-w-[130px] font-bold text-slate-400 tracking-widest select-none',
+      },
+    ],
+    []
+  );
 
   return (
     <AnimatedPage className="space-y-5">
@@ -891,182 +976,48 @@ export default function StockView({
         )}
       </div>
 
-      {/* Main Stock Twin Table with Sticky Header, Zebra & Scroll */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out">
-        {/* Top Info Header Bar inside Card */}
-        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-slate-50/50 gap-2">
-          <div className="font-bold text-slate-800 text-[13px] flex items-center gap-2">
-            <Package className="w-4 h-4 text-cyan-600" />
-            <span>Tableau Stock_Actuel • Ordre Excel Row 3 : B → K</span>
-          </div>
-          <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-            N° | Ref (B) | Désignation (C) | Type (D) | Initial (E) | Entrées (F) | Sorties (G) | Actuel (H) | Seuil (I) | Alerte (J) | Emplacement (K)
-          </div>
-        </div>
-
-        <div className="h-[1150px] overflow-y-auto overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse min-w-[1020px]">
-            <thead className="sticky top-0 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 z-10 shadow-2xs select-none">
-              <tr>
-                <th className="py-3 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0">
-                  N°
-                </th>
-
-                {/* REF Column Header (B) */}
-                <th
-                  onClick={() => handleSort('ref')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Référence"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>REF</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(B)</span>
-                    {renderSortIcon('ref')}
-                  </div>
-                </th>
-
-                {/* DÉSIGNATION Column Header (C) */}
-                <th
-                  onClick={() => handleSort('designation')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group min-w-[220px]"
-                  title="Cliquer pour trier par Désignation"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>DÉSIGNATION</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(C)</span>
-                    {renderSortIcon('designation')}
-                  </div>
-                </th>
-
-                {/* TYPE Column Header (D) */}
-                <th
-                  onClick={() => handleSort('type')}
-                  className="py-3 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Type"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Boxes className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>TYPE</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(D)</span>
-                    {renderSortIcon('type')}
-                  </div>
-                </th>
-
-                {/* INITIAL Column Header (E) */}
-                <th
-                  onClick={() => handleSort('stockInitial')}
-                  className="py-3 px-2.5 text-right cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Stock Initial"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    <span>INITIAL</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(E)</span>
-                    {renderSortIcon('stockInitial')}
-                  </div>
-                </th>
-
-                {/* ENTRÉES Column Header (F) */}
-                <th
-                  onClick={() => handleSort('entrees')}
-                  className="py-3 px-2.5 text-right cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Entrées"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>ENTRÉES</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(F)</span>
-                    {renderSortIcon('entrees')}
-                  </div>
-                </th>
-
-                {/* SORTIES Column Header (G) */}
-                <th
-                  onClick={() => handleSort('sorties')}
-                  className="py-3 px-2.5 text-right cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Sorties"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    <TrendingDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>SORTIES</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(G)</span>
-                    {renderSortIcon('sorties')}
-                  </div>
-                </th>
-
-                {/* ACTUEL Column Header (H) */}
-                <th
-                  onClick={() => handleSort('stockActuel')}
-                  className="py-3 px-2.5 text-right cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Stock Actuel"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    <span>ACTUEL</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(H)</span>
-                    {renderSortIcon('stockActuel')}
-                  </div>
-                </th>
-
-                {/* SEUIL Column Header (I) */}
-                <th
-                  onClick={() => handleSort('seuil')}
-                  className="py-3 px-2.5 text-right cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Seuil d'alerte"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    <span>SEUIL</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(I)</span>
-                    {renderSortIcon('seuil')}
-                  </div>
-                </th>
-
-                {/* ALERTE Column Header (J) */}
-                <th
-                  onClick={() => handleSort('alerte')}
-                  className="py-3 px-3 text-center cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Statut d'Alerte"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <Radio className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>ALERTE</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(J)</span>
-                    {renderSortIcon('alerte')}
-                  </div>
-                </th>
-
-                {/* EMPLACEMENT Column Header (K) */}
-                <th
-                  onClick={() => handleSort('emplacement')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Emplacement"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>EMPLACEMENT</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(K)</span>
-                    {renderSortIcon('emplacement')}
-                  </div>
-                </th>
-
-                <th className="py-3 px-3.5 text-center min-w-[130px] font-bold text-slate-400 tracking-widest select-none" title="Actions & Flux">•••</th>
+      {/* Unified Industrial Data Grid */}
+      <GmaoIndustrialDataGrid
+        title="Tableau Stock_Actuel • Ordre Excel Row 3 : B → K"
+        icon={<Package className="w-4 h-4 text-cyan-600" />}
+        excelMapping="N° | Ref (B) | Désignation (C) | Type (D) | Initial (E) | Entrées (F) | Sorties (G) | Actuel (H) | Seuil (I) | Alerte (J) | Emplacement (K)"
+        bannerColor="slate"
+        columns={stockColumns}
+        data={displayedStock}
+        isLoading={false}
+        loadingRowsCount={8}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        renderSortIcon={renderSortIcon}
+        startIndex={startIndex}
+        showRowNumber={true}
+        emptyIcon={<Package className="w-8 h-8 text-slate-300" />}
+        emptyMessage="Aucun article trouvé"
+        pagination={{
+          currentPage,
+          setCurrentPage,
+          pageSize,
+          setPageSize,
+          totalItems,
+          pageSizeOptions: [20, 50, 100, 200, 0],
+          color: 'cyan',
+          itemLabel: 'articles',
+        }}
+        renderRow={(item, idx) => {
+          const rowNum = startIndex + idx + 1;
+          if (item.__isEmptyPlaceholder) {
+            return (
+              <tr key={`empty-stock-${rowNum}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+                <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
+                  {rowNum}
+                </td>
+                <td colSpan={11} className="py-3 px-3 text-center text-slate-300 font-mono text-[11px]">
+                  —
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200/80">
-              {displayedStock.map((item, idx) => {
-                  const rowNum = startIndex + idx + 1;
-                  if (item.__isEmptyPlaceholder) {
-                    return (
-                      <tr key={`empty-stock-${rowNum}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                        <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
-                          {rowNum}
-                        </td>
-                        <td colSpan={11} className="py-3 px-3 text-center text-slate-300 font-mono text-[11px]">
-                          —
-                        </td>
-                      </tr>
-                    );
-                  }
+            );
+          }
                   const domainItem = new StockItem(item);
                   const typeObj = types.find(
                     (t) => t.id_type === item.id_type || t.libelle === item.type
@@ -1292,104 +1243,8 @@ export default function StockView({
                       </td>
                     </tr>
                   );
-                })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pagination Footer */}
-      <div className="bg-white p-3 md:p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-3 mt-4">
-        <div className="text-xs text-slate-600 font-medium">
-          {totalItems > 0 ? (
-            <>
-              Affichage de <b>{startIndex + 1}</b> à <b>{Math.min(startIndex + effectivePageSize, totalItems)}</b> sur <b>{totalItems}</b> articles (Page <b>{currentPage}</b> / <b>{totalPages}</b>)
-            </>
-          ) : (
-            '0 article'
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-slate-400 uppercase font-mono hidden sm:inline">Lignes :</span>
-          <div className="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/80">
-            {[20, 50, 100, 200, 0].map((size) => (
-              <button
-                key={size}
-                onClick={() => {
-                  setPageSize(size);
-                  setCurrentPage(1);
                 }}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold font-mono transition cursor-pointer active:scale-95 ${
-                  pageSize === size
-                    ? 'bg-cyan-600 text-white shadow-2xs font-black'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {size === 0 ? 'Tout' : size}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage <= 1}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1 cursor-pointer active:scale-95 ${
-              currentPage <= 1
-                ? 'opacity-40 border-slate-200 text-slate-400 cursor-not-allowed'
-                : 'border-slate-200/90 bg-slate-50 hover:bg-slate-100 text-slate-700'
-            }`}
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Précédent</span>
-          </button>
-
-          {pageSize !== 0 && totalPages > 1 && (
-            Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
-
-              return (
-                <button
-                  key={pageNum}
-                  type="button"
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`w-8 h-8 rounded-xl text-xs font-bold font-mono transition flex items-center justify-center cursor-pointer active:scale-95 ${
-                    currentPage === pageNum
-                      ? 'bg-cyan-600 text-white shadow-2xs font-black'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })
-          )}
-
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={pageSize === 0 || currentPage >= totalPages}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1 cursor-pointer active:scale-95 ${
-              pageSize === 0 || currentPage >= totalPages
-                ? 'opacity-40 border-slate-200 text-slate-400 cursor-not-allowed'
-                : 'border-slate-200/90 bg-slate-50 hover:bg-slate-100 text-slate-700'
-            }`}
-          >
-            <span className="hidden sm:inline">Suivant</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      />
 
       {/* Quick Movement & Flux Modal */}
       <QuickMovementModal

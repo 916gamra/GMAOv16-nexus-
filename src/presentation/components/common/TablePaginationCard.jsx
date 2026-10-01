@@ -18,14 +18,15 @@ export default function TablePaginationCard({
   setPageSize,
   totalItems = 0,
   pageSizeOptions = [25, 50, 100, 200, 0],
-  color = 'emerald',
+  color = 'cyan',
+  itemLabel = '',
   className = '',
 }) {
   const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / pageSize);
   const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
   const startIndex = (currentPage - 1) * effectivePageSize;
 
-  const activeColorClass = COLOR_CLASSES[color] || COLOR_CLASSES.emerald;
+  const activeColorClass = COLOR_CLASSES[color] || COLOR_CLASSES.cyan;
 
   return (
     <div
@@ -60,7 +61,7 @@ export default function TablePaginationCard({
         <div className="text-xs font-semibold text-slate-500">
           Affichage <b className="text-slate-900">{totalItems === 0 ? 0 : startIndex + 1}</b> à{' '}
           <b className="text-slate-900">{Math.min(startIndex + effectivePageSize, totalItems)}</b>{' '}
-          sur <b className="text-slate-900">{totalItems}</b>
+          sur <b className="text-slate-900">{totalItems}</b> {itemLabel ? itemLabel : ''}
         </div>
 
         {pageSize !== 0 && totalPages > 1 && (
@@ -68,7 +69,7 @@ export default function TablePaginationCard({
             <button
               type="button"
               onClick={() => setCurrentPage && setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
+              disabled={currentPage <= 1}
               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
@@ -82,7 +83,7 @@ export default function TablePaginationCard({
             <button
               type="button"
               onClick={() => setCurrentPage && setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
+              disabled={currentPage >= totalPages}
               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
             >
               Suivant

@@ -3,6 +3,7 @@ import AnimatedPage from '../../components/common/AnimatedPage';
 import Action3DButton from '../../components/common/Action3DButton';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
 import CustomSelect from '../../components/common/CustomSelect';
+import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import { Engine } from '../../components/common/icons/Engine';
 import { CubeIcon } from '../../components/common/icons/CubeIcon';
 import { SpokeIcon } from '../../components/common/icons/SpokeIcon';
@@ -260,6 +261,213 @@ export default function CompTemplateView({
     link.click();
     document.body.removeChild(link);
   };
+
+  const templateColumns = useMemo(
+    () => [
+      {
+        key: 'id_templates',
+        label: 'ID DÉSIGNATION',
+        colLetter: 'A',
+        icon: Tag,
+        sortable: true,
+        render: (item) => {
+          const templateId = item.id_templates || item.id_template || item.id_comp_template || '';
+          return (
+            <span className="px-2 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-200 font-mono font-bold text-xs">
+              {templateId}
+            </span>
+          );
+        },
+      },
+      {
+        key: 'groupe',
+        label: 'GROUPE (NIV 1)',
+        colLetter: '',
+        icon: Boxes,
+        render: (item) => {
+          const fam = compFamilies.find((f) => f.id_family === item.id_family);
+          return fam?.id_groupe ? (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveGroupFilter(fam.id_groupe);
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-bold transition cursor-pointer shadow-2xs"
+              title={`Filtrer sur le groupe ${fam.id_groupe}`}
+            >
+              <Boxes className="w-3 h-3 text-indigo-600 shrink-0" />
+              <span>{fam.id_groupe}</span>
+            </button>
+          ) : (
+            <span className="text-slate-400 font-mono text-xs italic">—</span>
+          );
+        },
+      },
+      {
+        key: 'libelle',
+        label: 'MODÈLE / LIBELLÉ',
+        colLetter: 'B',
+        icon: CubeIcon,
+        sortable: true,
+        render: (item) => (
+          <span className="font-semibold text-slate-800 text-[13px]">
+            {item.libelle}
+          </span>
+        ),
+      },
+      {
+        key: 'id_family',
+        label: 'FAMILLE (NIV 2)',
+        colLetter: 'C',
+        icon: SpokeIcon,
+        sortable: true,
+        render: (item) => {
+          const fam = compFamilies.find((f) => f.id_family === item.id_family);
+          return (
+            <button
+              type="button"
+              onClick={() =>
+                onNavigateToCompFamilies && onNavigateToCompFamilies(item.id_family)
+              }
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-semibold transition cursor-pointer"
+              title="Voir le type de composants"
+            >
+              <Engine className="w-3 h-3 text-teal-600 animate-pulse-slow" />
+              <span className="font-mono">{item.id_family}</span>
+              {fam && <span className="text-slate-500 font-normal"> ({fam.libelle})</span>}
+            </button>
+          );
+        },
+      },
+      {
+        key: 'warehouse_count',
+        label: 'COMPOSANTS EN ENTREPÔT',
+        colLetter: 'D',
+        icon: Warehouse,
+        render: (item) => {
+          const templateId = item.id_templates || item.id_template || item.id_comp_template || '';
+          const cCount = warehouseItems.filter(
+            (w) =>
+              (w.nature === 'COMPONENT' || w.nature === 'PARTIE') &&
+              (w.id_templates === templateId || w.id_template === templateId)
+          ).length;
+          return (
+            <button
+              type="button"
+              onClick={() =>
+                onNavigateToEntrepotByTemplate &&
+                onNavigateToEntrepotByTemplate(templateId, item.id_family)
+              }
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
+              title="Filtrer Entrepôt sur cette désignation de composant"
+            >
+              <Warehouse className="w-3.5 h-3.5 text-emerald-600" />
+              <span>{cCount} composants</span>
+              <ArrowRight className="w-3 h-3 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          );
+        },
+      },
+      {
+        key: 'actions',
+        label: '•••',
+        colLetter: '',
+        align: 'center',
+        render: (item) => {
+          const templateId = item.id_templates || item.id_template || item.id_comp_template || '';
+          return (
+            <div className="relative inline-flex items-center justify-center action-menu-container">
+              <div className="inline-flex rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onNavigateToEntrepotByTemplate) {
+                      onNavigateToEntrepotByTemplate(templateId, item.id_family);
+                    }
+                  }}
+                  className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
+                  title="Filtrer l'entrepôt sur cette désignation de composant"
+                >
+                  <Warehouse className="w-3.5 h-3.5 text-slate-900" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveActionMenuId(activeActionMenuId === templateId ? null : templateId);
+                  }}
+                  className={`p-1.5 hover:bg-slate-100 transition cursor-pointer ${
+                    activeActionMenuId === templateId
+                      ? 'bg-slate-100 text-teal-700 font-bold'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                  title="Actions et options"
+                >
+                  <MoreVertical className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {activeActionMenuId === templateId && (
+                <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150 space-y-1">
+                  <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Actions Désignation Composant
+                    </div>
+                    <div className="font-mono font-bold text-xs text-slate-800 truncate mt-0.5">
+                      {templateId}
+                    </div>
+                  </div>
+                  <div className="space-y-0.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionMenuId(null);
+                        if (onNavigateToEntrepotByTemplate) {
+                          onNavigateToEntrepotByTemplate(templateId, item.id_family);
+                        }
+                      }}
+                      className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-teal-700 hover:bg-teal-50 flex items-center gap-2 transition cursor-pointer group"
+                    >
+                      <Warehouse className="w-3.5 h-3.5 text-teal-600 group-hover:scale-110 transition-transform" />
+                      <span>Filtrer l'Entrepôt</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionMenuId(null);
+                        setToEdit({ ...item });
+                        setForm({
+                          id_templates: item.id_templates || '',
+                          libelle: item.libelle || '',
+                          id_family: item.id_family || '',
+                        });
+                        setShowAddModal(true);
+                      }}
+                      className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-indigo-700 hover:bg-indigo-50 flex items-center gap-2 transition cursor-pointer group"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-indigo-600 group-hover:scale-110 transition-transform" />
+                      <span>Modifier la Désignation</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionMenuId(null);
+                        setToDelete(item);
+                      }}
+                      className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition cursor-pointer group"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-500 group-hover:scale-110 transition-transform" />
+                      <span>Supprimer du Référentiel</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        },
+      },
+    ],
+    [compFamilies, warehouseItems, activeActionMenuId, onNavigateToEntrepotByTemplate, onNavigateToCompFamilies]
+  );
 
   return (
     <AnimatedPage className="space-y-4">
@@ -685,342 +893,33 @@ export default function CompTemplateView({
         )}
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out">
-        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-slate-50/50 gap-2">
-          <div className="font-bold text-slate-800 text-[13px] flex items-center gap-2">
-            <CubeIcon className="w-4 h-4 text-teal-600" />
-            <span>Tableau Désignations de Composants (Entrepôt)</span>
-          </div>
-          <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-            id_templates | groupe | libelle | id_family | warehouse_items
-          </div>
-        </div>
-
-        <div className="max-h-[62vh] overflow-y-auto overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 z-10 shadow-2xs select-none">
-              <tr>
-                <th className="py-3 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0">
-                  N°
-                </th>
-
-                {/* Col 1: ID DÉSIGNATION (A) */}
-                <th
-                  onClick={() => handleSort('id_templates')}
-                  className="py-3 px-4 cursor-pointer hover:bg-slate-200/80 transition select-none group"
-                  title="Cliquer pour trier par ID Désignation"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>ID DÉSIGNATION</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(A)</span>
-                    {renderSortIcon('id_templates')}
-                  </div>
-                </th>
-
-                {/* Col: GROUPE COMPOSANT (NIV 1) */}
-                <th className="py-3 px-4 select-none">
-                  <div className="flex items-center gap-1.5">
-                    <Boxes className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>GROUPE (NIV 1)</span>
-                  </div>
-                </th>
-
-                {/* Col 2: MODÈLE / LIBELLÉ (B) */}
-                <th
-                  onClick={() => handleSort('libelle')}
-                  className="py-3 px-4 cursor-pointer hover:bg-slate-200/80 transition select-none group min-w-[200px]"
-                  title="Cliquer pour trier par Libellé"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <CubeIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>MODÈLE / LIBELLÉ</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(B)</span>
-                    {renderSortIcon('libelle')}
-                  </div>
-                </th>
-
-                {/* Col 3: FAMILLE COMPOSANT PARENTE (C) */}
-                <th
-                  onClick={() => handleSort('id_family')}
-                  className="py-3 px-4 cursor-pointer hover:bg-slate-200/80 transition select-none group"
-                  title="Cliquer pour trier par Famille"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <SpokeIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>FAMILLE (NIV 2)</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(C)</span>
-                    {renderSortIcon('id_family')}
-                  </div>
-                </th>
-
-                {/* Col 4: COMPOSANTS EN ENTREPÔT (D) */}
-                <th className="py-3 px-4">
-                  <div className="flex items-center gap-1.5">
-                    <Warehouse className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>COMPOSANTS EN ENTREPÔT</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(D)</span>
-                  </div>
-                </th>
-
-                {/* Col 5: Action (•••) */}
-                <th className="py-3 px-4 font-bold text-slate-400 tracking-widest text-center select-none" title="Actions & Options">
-                  •••
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200/80">
-              {displayedData.map((t, idx) => {
-                const rowNum = startIndex + idx + 1;
-                const templateId = t.id_templates || t.id_template || t.id_comp_template || `tpl-${idx}`;
-                if (t.__isEmptyPlaceholder) {
-                  return (
-                    <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                      <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
-                        {rowNum}
-                      </td>
-                      <td colSpan={6} className="py-3 px-4 text-center text-slate-300 font-mono text-[11px]">
-                        —
-                      </td>
-                    </tr>
-                  );
-                }
-                  const fam = compFamilies.find((f) => f.id_family === t.id_family);
-                  const cCount = warehouseItems.filter(
-                    (w) =>
-                      (w.nature === 'COMPONENT' || w.nature === 'PARTIE') &&
-                      (w.id_templates === templateId || w.id_template === templateId)
-                  ).length;
-
-                  return (
-                    <tr
-                      key={`${templateId}-${idx}`}
-                      className="even:bg-slate-50/80 odd:bg-white hover:bg-slate-100/70 border-b border-slate-200/70 transition-colors"
-                    >
-                      <td className="py-3 px-3 text-center font-mono text-[11px] font-bold text-slate-400 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
-                        {startIndex + idx + 1}
-                      </td>
-                      <td className="py-3 px-4 font-mono font-bold text-slate-900">
-                        <span className="px-2 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-200">
-                          {templateId}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        {fam?.id_groupe ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveGroupFilter(fam.id_groupe);
-                            }}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 text-xs font-bold transition cursor-pointer shadow-2xs"
-                            title={`Filtrer sur le groupe ${fam.id_groupe}`}
-                          >
-                            <Boxes className="w-3 h-3 text-indigo-600 shrink-0" />
-                            <span>{fam.id_groupe}</span>
-                          </button>
-                        ) : (
-                          <span className="text-slate-400 font-mono text-xs italic">—</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 font-semibold text-slate-800 text-[13px]">
-                        {t.libelle}
-                      </td>
-                      <td className="py-3 px-4">
-                        <button
-                          onClick={() =>
-                            onNavigateToCompFamilies && onNavigateToCompFamilies(t.id_family)
-                          }
-                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-semibold transition cursor-pointer"
-                          title="Voir le type de composants"
-                        >
-                          <Engine className="w-3 h-3 text-teal-600" />
-                          <span className="font-mono">{t.id_family}</span>
-                          {fam && <span className="text-slate-500 font-normal">({fam.libelle})</span>}
-                        </button>
-                      </td>
-                      <td className="py-3 px-4">
-                        <button
-                          onClick={() =>
-                            onNavigateToEntrepotByTemplate &&
-                            onNavigateToEntrepotByTemplate(templateId, t.id_family)
-                          }
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
-                          title="Filtrer Entrepôt sur cette désignation de composant"
-                        >
-                          <Warehouse className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>{cCount} composants</span>
-                          <ArrowRight className="w-3 h-3 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
-                        </button>
-                      </td>
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <div className="relative inline-flex items-center justify-center action-menu-container">
-                          <div className="inline-flex rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-                            {/* Quick Action Button: Filtrer l'entrepôt */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (onNavigateToEntrepotByTemplate) {
-                                  onNavigateToEntrepotByTemplate(templateId, t.id_family);
-                                }
-                                setActiveActionMenuId(null);
-                              }}
-                              className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
-                              title="Filtrer l'entrepôt sur cette désignation de composant"
-                            >
-                              <Warehouse className="w-3.5 h-3.5 text-slate-900" />
-                            </button>
-
-                            {/* 3-dots Toggle Button */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveActionMenuId(activeActionMenuId === templateId ? null : templateId);
-                              }}
-                              className={`p-1.5 hover:bg-slate-100 transition cursor-pointer ${
-                                activeActionMenuId === templateId
-                                  ? 'bg-slate-100 text-teal-700 font-bold'
-                                  : 'text-slate-500 hover:text-slate-800'
-                              }`}
-                              title="Actions et options de la désignation"
-                            >
-                              <MoreVertical className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-
-                          {/* Popover Action Menu Card */}
-                          {activeActionMenuId === templateId && (
-                            <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-1.5 text-left animate-in fade-in slide-in-from-top-2 duration-150 space-y-0.5">
-                              <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                                  Actions Désignation Composant
-                                </span>
-                                <span className="text-xs font-mono font-bold text-teal-700 truncate block">
-                                  {templateId} — {t.libelle}
-                                </span>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveActionMenuId(null);
-                                  if (onNavigateToEntrepotByTemplate) {
-                                    onNavigateToEntrepotByTemplate(templateId, t.id_family);
-                                  }
-                                }}
-                                className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer group"
-                              >
-                                <Warehouse className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
-                                <span>Filtrer l&apos;entrepôt ({cCount})</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveActionMenuId(null);
-                                  if (onNavigateToCompFamilies) {
-                                    onNavigateToCompFamilies(t.id_family);
-                                  }
-                                }}
-                                className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer group"
-                              >
-                                <Engine className="w-3.5 h-3.5 text-teal-600 group-hover:scale-110 transition-transform" />
-                                <span>Voir Type Parent ({t.id_family})</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveActionMenuId(null);
-                                  setToEdit({ ...t });
-                                }}
-                                className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
-                              >
-                                <Edit2 className="w-3.5 h-3.5 text-teal-600" />
-                                <span>Modifier cette désignation</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveActionMenuId(null);
-                                  setToDelete(t);
-                                }}
-                                className="w-full px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                                <span>Supprimer cette désignation</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pagination Footer */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-slate-600">Lignes par page :</span>
-          <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-            {[25, 50, 100, 200, 0].map((size) => (
-              <button
-                key={size}
-                onClick={() => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                  pageSize === size
-                    ? 'bg-white text-teal-800 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out border border-slate-200/50'
-                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                }`}
-              >
-                {size === 0 ? 'Tout' : size}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-xs font-semibold text-slate-500">
-            Affichage <b className="text-slate-900">{totalItems === 0 ? 0 : startIndex + 1}</b> à{' '}
-            <b className="text-slate-900">{Math.min(startIndex + effectivePageSize, totalItems)}</b> sur{' '}
-            <b className="text-slate-900">{totalItems}</b>
-          </div>
-
-          {pageSize !== 0 && totalPages > 1 && (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Précédent
-              </button>
-
-              <span className="px-2 font-mono text-xs font-bold text-slate-600">
-                {currentPage} / {totalPages}
-              </span>
-
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
-              >
-                Suivant
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Unified Industrial Data Grid */}
+      <GmaoIndustrialDataGrid
+        title="Tableau Désignations de Composants (Entrepôt)"
+        icon={<CubeIcon className="w-4 h-4 text-teal-600" />}
+        excelMapping="id_templates (A) | groupe | libelle (B) | id_family (C) | warehouse_items (D)"
+        bannerColor="slate"
+        columns={templateColumns}
+        data={displayedData}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        renderSortIcon={renderSortIcon}
+        startIndex={startIndex}
+        showRowNumber={true}
+        emptyIcon={<CubeIcon className="w-8 h-8 text-slate-300" />}
+        emptyMessage="Aucune désignation de composant trouvée"
+        pagination={{
+          currentPage,
+          setCurrentPage,
+          pageSize,
+          setPageSize,
+          totalItems,
+          pageSizeOptions: [25, 50, 100, 200, 0],
+          color: 'teal',
+          itemLabel: 'désignations',
+        }}
+      />
 
       {/* Add Modal */}
       {showAddModal && (

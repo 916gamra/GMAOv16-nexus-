@@ -19,9 +19,11 @@ import {
   Building2,
   Calendar,
   User,
+  FileSpreadsheet,
 } from 'lucide-react';
 import SortieExterneService from '../../../../application/services/SortieExterneService';
 import { Logger } from '../../../../core/logger/LoggerService.js';
+import GmaoIndustrialDataGrid from '../../../components/common/GmaoIndustrialDataGrid.jsx';
 
 export default function SortieExterneBobinageTab({
   sorties = [],
@@ -41,6 +43,10 @@ export default function SortieExterneBobinageTab({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [fournisseurFilter, setFournisseurFilter] = useState('ALL');
+
+  // Pagination states
+  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
   
   // Modals state
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
@@ -125,6 +131,15 @@ export default function SortieExterneBobinageTab({
       );
     });
   }, [sorties, statusFilter, fournisseurFilter, searchQuery]);
+
+  const totalItems = filteredSorties.length;
+  const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
+  const startIndex = (currentPage - 1) * effectivePageSize;
+
+  const paginatedSorties = useMemo(() => {
+    if (pageSize === 0) return filteredSorties;
+    return filteredSorties.slice(startIndex, startIndex + effectivePageSize);
+  }, [filteredSorties, pageSize, startIndex, effectivePageSize]);
 
   // Prepare next code when opening new modal
   const handleOpenNewModal = () => {
@@ -337,6 +352,197 @@ export default function SortieExterneBobinageTab({
     );
   };
 
+  const bobinageColumns = useMemo(
+    () => [
+      {
+        key: 'code',
+        label: 'CODE / BON SORTIE',
+        colLetter: 'Col A',
+        icon: FileSpreadsheet,
+        render: (item) => (
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono font-bold text-xs text-purple-900 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                {item.code}
+              </span>
+              {item.id_corrective && (
+                <span className="font-mono text-[10px] text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200" title="Bon de Travail Correctif Lié">
+                  {item.id_corrective}
+                </span>
+              )}
+            </div>
+            <div className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1">
+              <span>Réf Bon :</span>
+              <b className="text-slate-600">{item.ref}</b>
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'machine_moteur',
+        label: 'MACHINE & MOTEUR RÉEL',
+        colLetter: 'Col B',
+        icon: Wrench,
+        render: (item) => (
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono font-bold text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
+                {item.id_machine}
+              </span>
+              <span className="font-mono font-bold text-xs text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                {item.code_moteur_reel}
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-600 font-medium truncate max-w-[220px] mt-0.5" title={item.designation_moteur || item.ref_moteur}>
+              {item.designation_moteur || item.ref_moteur || 'Moteur Triphasé'}
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'probleme',
+        label: 'DÉFAUT / DIAGNOSTIC',
+        colLetter: 'Col C',
+        icon: AlertTriangle,
+        render: (item) => (
+          <div>
+            {renderProblemeBadge(item.type_probleme)}
+            {item.observation_probleme && (
+              <div className="text-[10px] text-slate-500 italic mt-0.5 truncate max-w-[180px]" title={item.observation_probleme}>
+                {item.observation_probleme}
+              </div>
+            )}
+          </div>
+        ),
+      },
+      {
+        key: 'demontage_expedition',
+        label: 'DÉMONTAGE & EXPÉDITION',
+        colLetter: 'Col D',
+        icon: Calendar,
+        render: (item) => (
+          <div>
+            <div className="text-[11px] text-slate-800 font-semibold flex items-center gap-1">
+              <Calendar className="w-3 h-3 text-slate-400" />
+              <span>Sortie : {item.date_expedition || item.date_demontage}</span>
+            </div>
+            <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
+              <User className="w-3 h-3 text-slate-400" />
+              <span>Démonté par : <b>{item.technicien_demontage || 'Non spécifié'}</b></span>
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'fournisseur_arrivee',
+        label: 'PRESTATAIRE & ARRIVÉE',
+        colLetter: 'Col E',
+        icon: Building2,
+        render: (item) => (
+          <div>
+            <div className="font-bold text-xs text-slate-900 flex items-center gap-1">
+              <Building2 className="w-3 h-3 text-purple-600" />
+              <span>{item.fournisseur_externe}</span>
+            </div>
+            <div className="text-[10.5px] mt-0.5">
+              {item.date_arrivee_reelle ? (
+                <span className="text-emerald-700 font-medium">
+                  Arrivé le : <b>{item.date_arrivee_reelle}</b>
+                </span>
+              ) : (
+                <span className="text-amber-700 font-medium">
+                  Prévu le : <b>{item.date_arrivee_prevue || 'En cours'}</b>
+                </span>
+              )}
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'cout_bobinage',
+        label: 'COÛT (DH)',
+        colLetter: 'Col F',
+        icon: DollarSign,
+        align: 'right',
+        render: (item) => (
+          <span className="font-mono font-bold text-xs text-slate-900">
+            {Number(item.cout_bobinage || 0).toLocaleString('fr-FR')} <span className="text-[10px] text-slate-400">DH</span>
+          </span>
+        ),
+      },
+      {
+        key: 'etat',
+        label: 'STATUT DU FLUX',
+        colLetter: 'Col G',
+        icon: PackageCheck,
+        align: 'center',
+        render: (item) => (
+          <div>
+            {renderStatusBadge(item.etat)}
+            {item.etat === 'Monté' && item.technicien_montage && (
+              <div className="text-[10px] text-slate-500 mt-0.5">
+                Remonté par {item.technicien_montage}
+              </div>
+            )}
+          </div>
+        ),
+      },
+      {
+        key: 'actions',
+        label: 'ACTIONS GMAO',
+        colLetter: 'Col H',
+        icon: Zap,
+        align: 'right',
+        render: (item) => (
+          <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+            {item.etat === 'En réparation externe' && (
+              <button
+                type="button"
+                onClick={() => handleOpenReturnModal(item)}
+                className="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[10.5px] flex items-center gap-1 transition cursor-pointer border border-indigo-200"
+                title="Réceptionner le moteur réparé à l'atelier"
+              >
+                <RotateCcw className="w-3 h-3 text-indigo-600" />
+                <span>Réceptionner</span>
+              </button>
+            )}
+
+            {item.etat === 'Retourné OK' && (
+              <button
+                type="button"
+                onClick={() => handleOpenMountModal(item)}
+                className="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10.5px] flex items-center gap-1 transition cursor-pointer border border-emerald-200"
+                title="Remonter le moteur sur sa machine"
+              >
+                <Wrench className="w-3 h-3 text-emerald-600" />
+                <span>Monter</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => handleOpenPrintModal(item)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+              title="Imprimer / Afficher Bon de Sortie Bobinage"
+            >
+              <Printer className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleDeleteSortie(item)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+              title="Supprimer la fiche"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    []
+  );
+
   return (
     <div className="space-y-6">
       {/* 1. TOP STATS BAR (KPIS EN DIRECT) */}
@@ -415,14 +621,20 @@ export default function SortieExterneBobinageTab({
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Rechercher par Machine (POA-08), Moteur (mot 23), Prestataire, Technicien, BT..."
               className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-xs font-semibold text-slate-800 placeholder-slate-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/15 outline-none transition"
             />
             {searchQuery && (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
+                onClick={() => {
+                  setSearchQuery('');
+                  setCurrentPage(1);
+                }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
               >
                 <X className="w-3.5 h-3.5" />
@@ -450,7 +662,10 @@ export default function SortieExterneBobinageTab({
 
           <button
             type="button"
-            onClick={() => setStatusFilter('ALL')}
+            onClick={() => {
+              setStatusFilter('ALL');
+              setCurrentPage(1);
+            }}
             className={`px-3 py-1 rounded-lg font-bold text-xs transition cursor-pointer ${
               statusFilter === 'ALL'
                 ? 'bg-purple-100 text-purple-900 border border-purple-300'
@@ -462,7 +677,10 @@ export default function SortieExterneBobinageTab({
 
           <button
             type="button"
-            onClick={() => setStatusFilter('En réparation externe')}
+            onClick={() => {
+              setStatusFilter('En réparation externe');
+              setCurrentPage(1);
+            }}
             className={`px-3 py-1 rounded-lg font-bold text-xs transition cursor-pointer ${
               statusFilter === 'En réparation externe'
                 ? 'bg-amber-100 text-amber-900 border border-amber-300'
@@ -474,7 +692,10 @@ export default function SortieExterneBobinageTab({
 
           <button
             type="button"
-            onClick={() => setStatusFilter('Retourné OK')}
+            onClick={() => {
+              setStatusFilter('Retourné OK');
+              setCurrentPage(1);
+            }}
             className={`px-3 py-1 rounded-lg font-bold text-xs transition cursor-pointer ${
               statusFilter === 'Retourné OK'
                 ? 'bg-indigo-100 text-indigo-900 border border-indigo-300'
@@ -486,7 +707,10 @@ export default function SortieExterneBobinageTab({
 
           <button
             type="button"
-            onClick={() => setStatusFilter('Monté')}
+            onClick={() => {
+              setStatusFilter('Monté');
+              setCurrentPage(1);
+            }}
             className={`px-3 py-1 rounded-lg font-bold text-xs transition cursor-pointer ${
               statusFilter === 'Monté'
                 ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
@@ -502,7 +726,10 @@ export default function SortieExterneBobinageTab({
               <span className="text-[11px] font-bold text-slate-400 uppercase">Prestataire :</span>
               <select
                 value={fournisseurFilter}
-                onChange={(e) => setFournisseurFilter(e.target.value)}
+                onChange={(e) => {
+                  setFournisseurFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="h-7 px-2 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 outline-none cursor-pointer"
               >
                 <option value="ALL">Tous les Prestataires</option>
@@ -515,189 +742,29 @@ export default function SortieExterneBobinageTab({
         </div>
       </div>
 
-      {/* 3. MAIN TABLE OF SORTIES EXTERNES */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                <th className="py-3 px-4">Code / Bon Sortie</th>
-                <th className="py-3 px-4">Machine & Moteur Réel</th>
-                <th className="py-3 px-4">Défaut / Diagnostic</th>
-                <th className="py-3 px-4">Démontage & Expédition</th>
-                <th className="py-3 px-4">Prestataire & Arrivée</th>
-                <th className="py-3 px-4 text-right">Coût (DH)</th>
-                <th className="py-3 px-4 text-center">Statut du Flux</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
-              {filteredSorties.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400 space-y-2">
-                    <Truck className="w-8 h-8 mx-auto text-slate-300" />
-                    <p className="font-semibold text-xs text-slate-500">Aucune sortie de bobinage correspondante.</p>
-                    <button
-                      type="button"
-                      onClick={handleOpenNewModal}
-                      className="mt-2 text-xs font-bold text-purple-700 hover:underline"
-                    >
-                      + Créer une nouvelle fiche de sortie externe
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                filteredSorties.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="hover:bg-purple-50/20 transition-colors duration-150 group"
-                  >
-                    {/* Code & Ref */}
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono font-bold text-xs text-purple-900 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
-                          {item.code}
-                        </span>
-                        {item.id_corrective && (
-                          <span className="font-mono text-[10px] text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200" title="Bon de Travail Correctif Lié">
-                            {item.id_corrective}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1">
-                        <span>Réf Bon :</span>
-                        <b className="text-slate-600">{item.ref}</b>
-                      </div>
-                    </td>
-
-                    {/* Machine & Moteur Réel */}
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono font-bold text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
-                          {item.id_machine}
-                        </span>
-                        <span className="font-mono font-bold text-xs text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-                          {item.code_moteur_reel}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-slate-600 font-medium truncate max-w-[220px] mt-0.5" title={item.designation_moteur || item.ref_moteur}>
-                        {item.designation_moteur || item.ref_moteur || 'Moteur Triphasé'}
-                      </div>
-                    </td>
-
-                    {/* Problème */}
-                    <td className="py-3 px-4">
-                      {renderProblemeBadge(item.type_probleme)}
-                      {item.observation_probleme && (
-                        <div className="text-[10px] text-slate-500 italic mt-0.5 truncate max-w-[180px]" title={item.observation_probleme}>
-                          {item.observation_probleme}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Démontage & Expédition */}
-                    <td className="py-3 px-4">
-                      <div className="text-[11px] text-slate-800 font-semibold flex items-center gap-1">
-                        <Calendar className="w-3 h-3 text-slate-400" />
-                        <span>Sortie : {item.date_expedition || item.date_demontage}</span>
-                      </div>
-                      <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
-                        <User className="w-3 h-3 text-slate-400" />
-                        <span>Démonté par : <b>{item.technicien_demontage || 'Non spécifié'}</b></span>
-                      </div>
-                    </td>
-
-                    {/* Prestataire & Arrivée */}
-                    <td className="py-3 px-4">
-                      <div className="font-bold text-xs text-slate-900 flex items-center gap-1">
-                        <Building2 className="w-3 h-3 text-purple-600" />
-                        <span>{item.fournisseur_externe}</span>
-                      </div>
-                      <div className="text-[10.5px] mt-0.5">
-                        {item.date_arrivee_reelle ? (
-                          <span className="text-emerald-700 font-medium">
-                            Arrivé le : <b>{item.date_arrivee_reelle}</b>
-                          </span>
-                        ) : (
-                          <span className="text-amber-700 font-medium">
-                            Prévu le : <b>{item.date_arrivee_prevue || 'En cours'}</b>
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Coût Bobinage */}
-                    <td className="py-3 px-4 text-right font-mono font-bold text-xs text-slate-900">
-                      {Number(item.cout_bobinage || 0).toLocaleString('fr-FR')} <span className="text-[10px] text-slate-400">DH</span>
-                    </td>
-
-                    {/* Statut du Flux */}
-                    <td className="py-3 px-4 text-center">
-                      {renderStatusBadge(item.etat)}
-                      {item.etat === 'Monté' && item.technicien_montage && (
-                        <div className="text-[10px] text-slate-500 mt-0.5">
-                          Remonté par {item.technicien_montage}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Actions Menu */}
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {/* Action 1: Réceptionner retour (si en réparation) */}
-                        {item.etat === 'En réparation externe' && (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenReturnModal(item)}
-                            className="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[10.5px] flex items-center gap-1 transition cursor-pointer border border-indigo-200"
-                            title="Réceptionner le moteur réparé à l'atelier"
-                          >
-                            <RotateCcw className="w-3 h-3 text-indigo-600" />
-                            <span>Réceptionner</span>
-                          </button>
-                        )}
-
-                        {/* Action 2: Remonter sur machine (si retourné) */}
-                        {item.etat === 'Retourné OK' && (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenMountModal(item)}
-                            className="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10.5px] flex items-center gap-1 transition cursor-pointer border border-emerald-200"
-                            title="Remonter le moteur sur sa machine"
-                          >
-                            <Wrench className="w-3 h-3 text-emerald-600" />
-                            <span>Monter</span>
-                          </button>
-                        )}
-
-                        {/* Print Bon de Sortie */}
-                        <button
-                          type="button"
-                          onClick={() => handleOpenPrintModal(item)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
-                          title="Imprimer / Afficher Bon de Sortie Bobinage"
-                        >
-                          <Printer className="w-3.5 h-3.5" />
-                        </button>
-
-                        {/* Delete */}
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteSortie(item)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                          title="Supprimer la fiche"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* 3. Unified Industrial Data Grid for Sorties Externes */}
+      <GmaoIndustrialDataGrid
+        title="Tableau Sorties_Externes_Bobinage • Suivi des Moteurs & Réparations"
+        icon={<Truck className="w-4 h-4 text-purple-600" />}
+        excelMapping="N° | Code & Réf (A) | Machine & Moteur (B) | Diagnostic (C) | Démontage (D) | Prestataire (E) | Coût (F) | Statut (G) | Actions (H)"
+        bannerColor="purple"
+        columns={bobinageColumns}
+        data={paginatedSorties}
+        startIndex={startIndex}
+        showRowNumber={true}
+        emptyIcon={<Truck className="w-8 h-8 text-slate-300" />}
+        emptyMessage="Aucune sortie de bobinage correspondante."
+        pagination={{
+          currentPage,
+          setCurrentPage,
+          pageSize,
+          setPageSize,
+          totalItems,
+          pageSizeOptions: [25, 50, 100, 200, 0],
+          color: 'purple',
+          itemLabel: 'sorties externes',
+        }}
+      />
 
       {/* 4. MODAL: NOUVELLE SORTIE EXTERNE BOBINAGE */}
       <AnimatePresence>

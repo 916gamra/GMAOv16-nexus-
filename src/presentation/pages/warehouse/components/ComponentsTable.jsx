@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   Tag,
   Hash,
@@ -21,12 +22,12 @@ import {
   Flame,
 } from 'lucide-react';
 import { CubeIcon } from '../../../components/common/icons/CubeIcon';
-import TableSkeletonRows from '../../../components/common/TableSkeletonRows';
+import GmaoIndustrialDataGrid from '../../../components/common/GmaoIndustrialDataGrid.jsx';
 import { EntrepotItem } from '../../../../core/domain';
 
 export default function ComponentsTable({
   displayedData = [],
-  rawLength = 0,
+  rawLength: _rawLength = 0,
   isTableReady = true,
   startIndex = 0,
   sortField: _sortField = 'id_warehouse_item',
@@ -52,171 +53,119 @@ export default function ComponentsTable({
   onNavigateToZone,
   handleOpenAddModal,
 }) {
+  const columns = useMemo(
+    () => [
+      {
+        key: 'id_warehouse_item',
+        label: 'CODE COMPOSANT & RÉF',
+        colLetter: 'A',
+        icon: Tag,
+        sortable: true,
+        headerClassName: 'whitespace-nowrap',
+      },
+      {
+        key: 'id_family',
+        label: 'FAMILLE & TEMPLATE',
+        colLetter: 'D',
+        icon: CubeIcon,
+        sortable: true,
+        headerClassName: 'whitespace-nowrap',
+      },
+      {
+        key: 'designation',
+        label: 'DÉSIGNATION & SPÉCIFICATIONS',
+        colLetter: 'C',
+        icon: Package,
+        sortable: true,
+        headerClassName: 'min-w-[220px]',
+      },
+      {
+        key: 'id_machine_registered',
+        label: 'MACHINE & LOCALISATION',
+        colLetter: 'E',
+        icon: Factory,
+        sortable: true,
+        headerClassName: 'whitespace-nowrap',
+      },
+      {
+        key: 'technician',
+        label: 'RESPONSABLE',
+        colLetter: 'F',
+        icon: User,
+        sortable: true,
+        headerClassName: 'whitespace-nowrap',
+      },
+      {
+        key: 'status',
+        label: 'STATUT',
+        colLetter: 'G',
+        icon: Activity,
+        sortable: true,
+        headerClassName: 'whitespace-nowrap',
+      },
+      {
+        key: 'stockActuel',
+        label: 'STOCK & SOLDE',
+        colLetter: 'H',
+        icon: TrendingUp,
+        sortable: true,
+        align: 'right',
+        headerClassName: 'whitespace-nowrap',
+      },
+      {
+        key: 'actions',
+        label: '•••',
+        align: 'center',
+        headerClassName: 'w-20 tracking-widest text-slate-400 font-bold',
+      },
+    ],
+    []
+  );
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out overflow-hidden">
-      {/* Top Info Header Bar inside Card (Components Table Header) */}
-      <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-blue-50/40 gap-2">
-        <div className="font-bold text-blue-950 text-[13px] flex items-center gap-2">
-          <CubeIcon className="w-4 h-4 text-blue-600" />
-          <span>Tableau Composants Machines • Twin Niveau 4 (Moteurs, Pompes, Réducteurs...)</span>
-        </div>
-        <div className="font-mono text-[11px] text-blue-700/80 hidden lg:block">
-          id_warehouse_item (A) | nature: COMPONENT (B) | designation (C) | famille/template (D) | machine/zone (E) | responsable (F) | statut (G) | stock (H)
-        </div>
-      </div>
-
-      <div className="max-h-[62vh] overflow-y-auto overflow-x-auto">
-        <table className="w-full text-left text-xs border-collapse min-w-[980px]">
-          <thead className="sticky top-0 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 z-10 shadow-2xs select-none">
-            <tr>
-              {/* Row Number Column */}
-              <th className="py-3 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0">
-                N°
-              </th>
-
-              {/* Col 1: Code Composant & Réf Fabricant (A) */}
-              <th
-                onClick={() => handleSort('id_warehouse_item')}
-                className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left whitespace-nowrap"
-                title="Cliquer pour trier par Code Composant / Réf"
-              >
-                <div className="flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>CODE COMPOSANT & RÉF</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(A)</span>
-                  {renderSortIcon('id_warehouse_item')}
-                </div>
-              </th>
-
-              {/* Col 2: Type / Famille / Template (D) */}
-              <th
-                onClick={() => handleSort('id_family')}
-                className="py-3 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left whitespace-nowrap"
-                title="Cliquer pour trier par Famille Technique"
-              >
-                <div className="flex items-center gap-1.5">
-                  <CubeIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>FAMILLE & TEMPLATE</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(D)</span>
-                  {renderSortIcon('id_family')}
-                </div>
-              </th>
-
-              {/* Col 3: Désignation & Spécifications & Bobinage (C) */}
-              <th
-                onClick={() => handleSort('designation')}
-                className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left min-w-[220px]"
-                title="Cliquer pour trier par Désignation"
-              >
-                <div className="flex items-center gap-1.5">
-                  <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>DÉSIGNATION & SPÉCIFICATIONS</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(C)</span>
-                  {renderSortIcon('designation')}
-                </div>
-              </th>
-
-              {/* Col 4: Affectation Machine / Zone (E) */}
-              <th
-                onClick={() => handleSort('id_machine_registered')}
-                className="py-3 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left whitespace-nowrap"
-                title="Cliquer pour trier par Machine / Zone"
-              >
-                <div className="flex items-center gap-1.5">
-                  <Factory className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>MACHINE & LOCALISATION</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(E)</span>
-                  {renderSortIcon('id_machine_registered')}
-                </div>
-              </th>
-
-              {/* Col 5: Technicien Référent (F) */}
-              <th
-                onClick={() => handleSort('technician')}
-                className="py-3 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left whitespace-nowrap"
-                title="Cliquer pour trier par Responsable / Technicien"
-              >
-                <div className="flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>RESPONSABLE</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(F)</span>
-                  {renderSortIcon('technician')}
-                </div>
-              </th>
-
-              {/* Col 6: Statut Opérationnel (G) */}
-              <th
-                onClick={() => handleSort('status')}
-                className="py-3 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left whitespace-nowrap"
-                title="Cliquer pour trier par Statut"
-              >
-                <div className="flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>STATUT</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(G)</span>
-                  {renderSortIcon('status')}
-                </div>
-              </th>
-
-              {/* Col 7: Stock & Solde (H) */}
-              <th
-                onClick={() => handleSort('stockActuel')}
-                className="py-3 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group text-right whitespace-nowrap"
-                title="Cliquer pour trier par Stock Actuel"
-              >
-                <div className="flex items-center justify-end gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>STOCK & SOLDE</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(H)</span>
-                  {renderSortIcon('stockActuel')}
-                </div>
-              </th>
-
-              {/* Col 8: Action (•••) */}
-              <th className="py-3 px-3 text-center w-20 select-none font-bold text-slate-400 tracking-widest whitespace-nowrap">
-                •••
-              </th>
+    <GmaoIndustrialDataGrid
+      title="Tableau Composants Machines • Twin Niveau 4 (Moteurs, Pompes, Réducteurs...)"
+      icon={<CubeIcon className="w-4 h-4 text-blue-600" />}
+      excelMapping="id_warehouse_item (A) | nature: COMPONENT (B) | designation (C) | famille/template (D) | machine/zone (E) | responsable (F) | statut (G) | stock (H)"
+      bannerColor="blue"
+      columns={columns}
+      data={displayedData}
+      isLoading={!isTableReady}
+      loadingRowsCount={8}
+      sortField={_sortField}
+      sortOrder={_sortOrder}
+      onSort={handleSort}
+      renderSortIcon={renderSortIcon}
+      startIndex={startIndex}
+      showRowNumber={true}
+      minWidth="min-w-[980px]"
+      maxHeight="max-h-[62vh]"
+      emptyIcon={<CubeIcon className="w-10 h-10 text-blue-300 stroke-1" />}
+      emptyMessage="Aucun composant trouvé"
+      emptyAction={
+        handleOpenAddModal ? (
+          <button
+            onClick={handleOpenAddModal}
+            className="mt-2 px-4 py-2 rounded-xl bg-blue-50 text-blue-700 font-bold hover:bg-blue-100 border border-blue-200 transition cursor-pointer"
+          >
+            Ajouter un Composant
+          </button>
+        ) : null
+      }
+      renderRow={(item, idx) => {
+        const realIndex = startIndex + idx;
+        if (item.__isEmptyPlaceholder) {
+          return (
+            <tr key={`empty-comp-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+              <td className="py-2.5 px-3 text-center font-mono text-[10.5px] text-slate-300 bg-slate-100/30 border-r border-slate-200/60">
+                {realIndex + 1}
+              </td>
+              <td colSpan={8} className="py-2.5 px-3 text-center text-slate-300 font-mono text-[11px]">
+                —
+              </td>
             </tr>
-          </thead>
-
-          <tbody className="divide-y divide-slate-100 text-slate-700">
-            {!isTableReady ? (
-              <TableSkeletonRows cols={9} rows={8} color="blue" />
-            ) : rawLength === 0 ? (
-              <tr>
-                <td colSpan={9} className="p-10 text-center text-slate-400 text-xs">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <CubeIcon className="w-10 h-10 text-blue-300 stroke-1" />
-                    <p className="font-bold text-slate-700 text-sm">Aucun composant trouvé</p>
-                    <p className="text-xs text-slate-400 max-w-sm">
-                      Modifiez vos filtres de recherche ou ajoutez un nouveau composant (Moteur, Pompe, Réducteur...).
-                    </p>
-                    {handleOpenAddModal && (
-                      <button
-                        onClick={handleOpenAddModal}
-                        className="mt-2 px-4 py-2 rounded-xl bg-blue-50 text-blue-700 font-bold hover:bg-blue-100 border border-blue-200 transition cursor-pointer"
-                      >
-                        Ajouter un Composant
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              displayedData.map((item, idx) => {
-                const realIndex = startIndex + idx;
-                if (item.__isEmptyPlaceholder) {
-                  return (
-                    <tr key={`empty-comp-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                      <td className="py-2.5 px-3 text-center font-mono text-[10.5px] text-slate-300 bg-slate-100/30 border-r border-slate-200/60">
-                        {realIndex + 1}
-                      </td>
-                      <td colSpan={8} className="py-2.5 px-3 text-center text-slate-300 font-mono text-[11px]">
-                        —
-                      </td>
-                    </tr>
-                  );
-                }
+          );
+        }
                 const domainItem = new EntrepotItem(item);
                 const famObj = families.find((f) => f.id_family === item.id_family);
                 const tplObj = templates.find((t) => t.id_templates === item.id_templates);
@@ -600,11 +549,7 @@ export default function ComponentsTable({
                     </td>
                   </tr>
                 );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+              }}
+    />
   );
 }

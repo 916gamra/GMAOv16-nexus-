@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import AnimatedPage from '../../components/common/AnimatedPage';
 import Action3DButton from '../../components/common/Action3DButton';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
-import TablePaginationCard from '../../components/common/TablePaginationCard';
+import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import {
   Search,
   ArrowRight,
@@ -262,6 +262,242 @@ export default function CompGroupView({
     document.body.removeChild(link);
   };
 
+  const groupColumns = useMemo(
+    () => [
+      {
+        key: 'code',
+        label: 'CODE GROUPE (MAISON)',
+        colLetter: 'A',
+        icon: Boxes,
+        sortable: true,
+        render: (group) => {
+          const gId = group.id || group.id_groupe;
+          return (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200/80 text-xs font-mono font-bold text-indigo-800 shadow-2xs">
+              <Boxes className="w-3 h-3 text-indigo-600" />
+              <span>{group.code || gId}</span>
+            </span>
+          );
+        },
+      },
+      {
+        key: 'libelle',
+        label: 'DÉSIGNATION / LIBELLÉ',
+        colLetter: 'B',
+        icon: FolderTree,
+        sortable: true,
+        render: (group) => (
+          <span className="font-semibold text-slate-800 text-[13px]">{group.libelle}</span>
+        ),
+      },
+      {
+        key: 'description',
+        label: 'DESCRIPTION & PÉRIMÈTRE',
+        colLetter: 'C',
+        render: (group) => (
+          <span className="max-w-xs text-slate-500 text-[11px] leading-relaxed line-clamp-2 block">
+            {group.description || '—'}
+          </span>
+        ),
+      },
+      {
+        key: 'familiesCount',
+        label: 'FAMILLES (NIV 2)',
+        colLetter: 'D',
+        icon: SpokeIcon,
+        sortable: true,
+        align: 'center',
+        render: (group) => {
+          const gId = group.id || group.id_groupe;
+          const stats = groupStats[gId] || { familiesCount: 0 };
+          return (
+            <button
+              onClick={() => onNavigateToCompFamilies?.(gId)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 text-xs font-semibold transition group/btn shadow-2xs cursor-pointer"
+              title="Voir les familles de ce groupe"
+            >
+              <SpokeIcon className="w-3.5 h-3.5 text-amber-700" />
+              <span>{stats.familiesCount} famille(s)</span>
+              <ArrowRight className="w-3 h-3 text-amber-700 group-hover/btn:translate-x-0.5 transition-transform" />
+            </button>
+          );
+        },
+      },
+      {
+        key: 'templatesCount',
+        label: 'TEMPLATES (NIV 3)',
+        colLetter: 'E',
+        icon: CubeIcon,
+        sortable: true,
+        align: 'center',
+        render: (group) => {
+          const gId = group.id || group.id_groupe;
+          const stats = groupStats[gId] || { templatesCount: 0 };
+          return (
+            <button
+              onClick={() => onNavigateToCompTemplates?.(gId)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200 text-xs font-semibold transition group/btn shadow-2xs cursor-pointer"
+              title="Voir les templates de ce groupe"
+            >
+              <CubeIcon className="w-3.5 h-3.5 text-purple-700" />
+              <span>{stats.templatesCount} template(s)</span>
+              <ArrowRight className="w-3 h-3 text-purple-700 group-hover/btn:translate-x-0.5 transition-transform" />
+            </button>
+          );
+        },
+      },
+      {
+        key: 'passport_id',
+        label: 'ID PASSPORT',
+        colLetter: 'F',
+        render: (group) => {
+          const gId = group.id || group.id_groupe;
+          const isCopied = copiedId === gId;
+          return (
+            <div className="flex items-center gap-1.5">
+              <code className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-[11px] text-slate-700 font-mono">
+                {gId}
+              </code>
+              <button
+                onClick={() => handleCopyId(gId)}
+                className="p-1 text-slate-400 hover:text-slate-700 rounded transition cursor-pointer"
+                title="Copier l'ID Passport"
+              >
+                {isCopied ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
+          );
+        },
+      },
+      {
+        key: 'actions',
+        label: '•••',
+        align: 'center',
+        headerClassName: 'w-24 text-center font-bold text-slate-400 tracking-widest select-none',
+        render: (group) => {
+          const gId = group.id || group.id_groupe;
+          const stats = groupStats[gId] || { familiesCount: 0, templatesCount: 0 };
+          return (
+            <div className="relative inline-flex items-center justify-center action-menu-container">
+              <div className="inline-flex rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigateToCompFamilies?.(gId);
+                    setActiveActionMenuId(null);
+                  }}
+                  className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
+                  title="Voir les familles de ce groupe"
+                >
+                  <SpokeIcon className="w-3.5 h-3.5 text-indigo-700" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveActionMenuId(activeActionMenuId === gId ? null : gId);
+                  }}
+                  className={`p-1.5 hover:bg-slate-100 transition cursor-pointer ${
+                    activeActionMenuId === gId
+                      ? 'bg-slate-100 text-indigo-700 font-bold'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                  title="Actions et options du groupe"
+                >
+                  <MoreVertical className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {activeActionMenuId === gId && (
+                <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-1.5 text-left animate-in fade-in slide-in-from-top-2 duration-150 space-y-0.5">
+                  <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Actions Groupe Composant
+                    </span>
+                    <span className="text-xs font-mono font-bold text-indigo-700 truncate block">
+                      {group.code || gId} — {group.libelle}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveActionMenuId(null);
+                      onNavigateToCompFamilies?.(gId);
+                    }}
+                    className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-800 rounded-xl transition flex items-center justify-between cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <SpokeIcon className="w-3.5 h-3.5 text-amber-600 group-hover:scale-110 transition-transform" />
+                      <span>Voir Familles (Niveau 2)</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded font-bold border border-amber-200/60">
+                      {stats.familiesCount}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveActionMenuId(null);
+                      onNavigateToCompTemplates?.(gId);
+                    }}
+                    className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-800 rounded-xl transition flex items-center justify-between cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <CubeIcon className="w-3.5 h-3.5 text-purple-600 group-hover:scale-110 transition-transform" />
+                      <span>Voir Templates (Niveau 3)</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded font-bold border border-purple-200/60">
+                      {stats.templatesCount}
+                    </span>
+                  </button>
+
+                  <div className="border-t border-slate-100 my-1" />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveActionMenuId(null);
+                      setEditingGroup(group);
+                      setForm({
+                        id: gId,
+                        code: group.code || '',
+                        libelle: group.libelle || '',
+                        description: group.description || '',
+                      });
+                    }}
+                    className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Modifier ce groupe</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveActionMenuId(null);
+                      setDeletingGroup(group);
+                    }}
+                    className="w-full px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                    <span>Supprimer ce groupe</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        },
+      },
+    ],
+    [copiedId, groupStats, activeActionMenuId, onNavigateToCompFamilies, onNavigateToCompTemplates]
+  );
+
   return (
     <AnimatedPage className="space-y-4">
       {/* Top Banner (Header Card with Tactile Elevation) */}
@@ -485,342 +721,32 @@ export default function CompGroupView({
         </div>
       </div>
 
-      {/* Main Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out overflow-hidden">
-        {/* Top Info Header Bar inside Card */}
-        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-indigo-50/40 gap-2">
-          <div className="font-bold text-indigo-950 text-[13px] flex items-center gap-2">
-            <Boxes className="w-4 h-4 text-indigo-600" />
-            <span>Tableau Groupes de Composants (Niveau 1) • Structure Parent Hiérarchique</span>
-          </div>
-          <div className="font-mono text-[11px] text-indigo-700/80 hidden lg:block">
-            code_groupe (A) | libelle (B) | description (C) | familles_niv2 (D) | templates_niv3 (E) | passport_id (F)
-          </div>
-        </div>
-
-        <div className="max-h-[62vh] overflow-y-auto overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse min-w-[900px]">
-            <thead className="sticky top-0 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 z-10 shadow-2xs select-none">
-              <tr>
-                {/* Row Number Column */}
-                <th className="py-3 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0">
-                  N°
-                </th>
-
-                {/* Col A: Code Groupe */}
-                <th
-                  onClick={() => handleSort('code')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left whitespace-nowrap"
-                  title="Cliquer pour trier par Code Groupe"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Boxes className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>CODE GROUPE (MAISON)</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(A)</span>
-                    {renderSortIcon('code')}
-                  </div>
-                </th>
-
-                {/* Col B: Libellé */}
-                <th
-                  onClick={() => handleSort('libelle')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left whitespace-nowrap"
-                  title="Cliquer pour trier par Désignation"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <FolderTree className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>DÉSIGNATION / LIBELLÉ</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(B)</span>
-                    {renderSortIcon('libelle')}
-                  </div>
-                </th>
-
-                {/* Col C: Description */}
-                <th className="py-3 px-3.5 whitespace-nowrap">
-                  <div className="flex items-center gap-1.5">
-                    <span>DESCRIPTION & PÉRIMÈTRE</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(C)</span>
-                  </div>
-                </th>
-
-                {/* Col D: Familles */}
-                <th
-                  onClick={() => handleSort('familiesCount')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group text-center whitespace-nowrap"
-                  title="Cliquer pour trier par Nombre de Familles"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <SpokeIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>FAMILLES (NIV 2)</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(D)</span>
-                    {renderSortIcon('familiesCount')}
-                  </div>
-                </th>
-
-                {/* Col E: Templates */}
-                <th
-                  onClick={() => handleSort('templatesCount')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group text-center whitespace-nowrap"
-                  title="Cliquer pour trier par Nombre de Templates"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <CubeIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>TEMPLATES (NIV 3)</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(E)</span>
-                    {renderSortIcon('templatesCount')}
-                  </div>
-                </th>
-
-                {/* Col F: ID Passport */}
-                <th className="py-3 px-3.5 whitespace-nowrap">
-                  <div className="flex items-center gap-1.5">
-                    <span>ID PASSPORT</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(F)</span>
-                  </div>
-                </th>
-
-                {/* Col 6: Action (•••) */}
-                <th className="py-3 px-4 font-bold text-slate-400 tracking-widest text-center select-none" title="Actions & Options">
-                  •••
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200/80">
-              {displayedData.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-12 text-slate-400">
-                    <Boxes className="w-10 h-10 mx-auto mb-2 text-slate-300 opacity-60" />
-                    <p className="text-sm font-semibold text-slate-600">Aucun groupe trouvé</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Modifiez votre recherche ou ajoutez un nouveau groupe de composants.
-                    </p>
-                  </td>
-                </tr>
-              ) : (
-                displayedData.map((group, rowIdx) => {
-                  const rowNum = startIndex + rowIdx + 1;
-                  if (group.__isEmptyPlaceholder) {
-                    return (
-                      <tr key={`empty-${rowIdx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                        <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
-                          {rowNum}
-                        </td>
-                        <td colSpan={7} className="py-3 px-4 text-center text-slate-300 font-mono text-[11px]">
-                          —
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  const gId = group.id || group.id_groupe;
-                  const stats = groupStats[gId] || { familiesCount: 0, templatesCount: 0, itemsCount: 0 };
-                  const isCopied = copiedId === gId;
-
-                  return (
-                    <tr
-                      key={gId}
-                      className="even:bg-slate-50/80 odd:bg-white hover:bg-slate-100/70 border-b border-slate-200/70 transition-colors"
-                    >
-                      {/* Row N° */}
-                      <td className="py-3 px-3 text-center font-mono text-[11px] font-bold text-slate-400 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
-                        {rowNum}
-                      </td>
-
-                      {/* Code Groupe */}
-                      <td className="py-3 px-4 font-mono font-black text-indigo-700">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200/80 text-xs font-mono font-bold text-indigo-800 shadow-2xs">
-                          <Boxes className="w-3 h-3 text-indigo-600" />
-                          <span>{group.code || gId}</span>
-                        </span>
-                      </td>
-
-                      {/* Libellé */}
-                      <td className="py-3 px-4 font-semibold text-slate-800 text-[13px]">
-                        {group.libelle}
-                      </td>
-
-                      {/* Description */}
-                      <td className="py-3 px-4 max-w-xs text-slate-500 text-[11px] leading-relaxed line-clamp-2">
-                        {group.description || '—'}
-                      </td>
-
-                      {/* Familles (Niveau 2) */}
-                      <td className="py-3 px-4 text-center">
-                        <button
-                          onClick={() => onNavigateToCompFamilies?.(gId)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 text-xs font-semibold transition group/btn shadow-2xs cursor-pointer"
-                          title="Voir les familles de ce groupe"
-                        >
-                          <SpokeIcon className="w-3.5 h-3.5 text-amber-700" />
-                          <span>{stats.familiesCount} famille(s)</span>
-                          <ArrowRight className="w-3 h-3 text-amber-700 group-hover/btn:translate-x-0.5 transition-transform" />
-                        </button>
-                      </td>
-
-                      {/* Templates (Niveau 3) */}
-                      <td className="py-3 px-4 text-center">
-                        <button
-                          onClick={() => onNavigateToCompTemplates?.(gId)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200 text-xs font-semibold transition group/btn shadow-2xs cursor-pointer"
-                          title="Voir les templates de ce groupe"
-                        >
-                          <CubeIcon className="w-3.5 h-3.5 text-purple-700" />
-                          <span>{stats.templatesCount} template(s)</span>
-                          <ArrowRight className="w-3 h-3 text-purple-700 group-hover/btn:translate-x-0.5 transition-transform" />
-                        </button>
-                      </td>
-
-                      {/* Passport ID */}
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-1.5">
-                          <code className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-[11px] text-slate-700 font-mono">
-                            {gId}
-                          </code>
-                          <button
-                            onClick={() => handleCopyId(gId)}
-                            className="p-1 text-slate-400 hover:text-slate-700 rounded transition cursor-pointer"
-                            title="Copier l'ID Passport"
-                          >
-                            {isCopied ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-600" />
-                            ) : (
-                              <Copy className="w-3.5 h-3.5" />
-                            )}
-                          </button>
-                        </div>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        <div className="relative inline-flex items-center justify-center action-menu-container">
-                          <div className="inline-flex rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-                            {/* Quick Action Button: Navigate to Families */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                onNavigateToCompFamilies?.(gId);
-                                setActiveActionMenuId(null);
-                              }}
-                              className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
-                              title="Voir les familles de ce groupe"
-                            >
-                              <SpokeIcon className="w-3.5 h-3.5 text-indigo-700" />
-                            </button>
-
-                            {/* 3-dots Toggle Button */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveActionMenuId(activeActionMenuId === gId ? null : gId);
-                              }}
-                              className={`p-1.5 hover:bg-slate-100 transition cursor-pointer ${
-                                activeActionMenuId === gId
-                                  ? 'bg-slate-100 text-indigo-700 font-bold'
-                                  : 'text-slate-500 hover:text-slate-800'
-                              }`}
-                              title="Actions et options du groupe"
-                            >
-                              <MoreVertical className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-
-                          {/* Popover Action Menu Card */}
-                          {activeActionMenuId === gId && (
-                            <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-1.5 text-left animate-in fade-in slide-in-from-top-2 duration-150 space-y-0.5">
-                              <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                                  Actions Groupe Composant
-                                </span>
-                                <span className="text-xs font-mono font-bold text-indigo-700 truncate block">
-                                  {group.code || gId} — {group.libelle}
-                                </span>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveActionMenuId(null);
-                                  onNavigateToCompFamilies?.(gId);
-                                }}
-                                className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-800 rounded-xl transition flex items-center justify-between cursor-pointer group"
-                              >
-                                <div className="flex items-center gap-2.5">
-                                  <SpokeIcon className="w-3.5 h-3.5 text-amber-600 group-hover:scale-110 transition-transform" />
-                                  <span>Voir Familles (Niveau 2)</span>
-                                </div>
-                                <span className="text-[10px] font-mono text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded font-bold border border-amber-200/60">
-                                  {stats.familiesCount}
-                                </span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveActionMenuId(null);
-                                  onNavigateToCompTemplates?.(gId);
-                                }}
-                                className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-800 rounded-xl transition flex items-center justify-between cursor-pointer group"
-                              >
-                                <div className="flex items-center gap-2.5">
-                                  <CubeIcon className="w-3.5 h-3.5 text-purple-600 group-hover:scale-110 transition-transform" />
-                                  <span>Voir Templates (Niveau 3)</span>
-                                </div>
-                                <span className="text-[10px] font-mono text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded font-bold border border-purple-200/60">
-                                  {stats.templatesCount}
-                                </span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveActionMenuId(null);
-                                  setEditingGroup(group);
-                                  setForm({
-                                    id: gId,
-                                    code: group.code || '',
-                                    libelle: group.libelle || '',
-                                    description: group.description || '',
-                                  });
-                                }}
-                                className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
-                              >
-                                <Edit2 className="w-3.5 h-3.5 text-indigo-600" />
-                                <span>Modifier ce groupe</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveActionMenuId(null);
-                                  setDeletingGroup(group);
-                                }}
-                                className="w-full px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                                <span>Supprimer ce groupe</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pagination Footer */}
-      <TablePaginationCard
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        pageSize={pageSize}
-        setPageSize={setPageSize}
-        totalItems={totalItems}
-        pageSizeOptions={[20, 50, 100, 200, 0]}
-        color="indigo"
+      {/* Unified Industrial Data Grid */}
+      <GmaoIndustrialDataGrid
+        title="Tableau Groupes de Composants (Niveau 1) • Structure Parent Hiérarchique"
+        icon={<Boxes className="w-4 h-4 text-indigo-600" />}
+        excelMapping="code_groupe (A) | libelle (B) | description (C) | familles_niv2 (D) | templates_niv3 (E) | passport_id (F)"
+        bannerColor="indigo"
+        columns={groupColumns}
+        data={displayedData}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        renderSortIcon={renderSortIcon}
+        startIndex={startIndex}
+        showRowNumber={true}
+        emptyIcon={<Boxes className="w-8 h-8 text-slate-300" />}
+        emptyMessage="Aucun groupe de composants trouvé"
+        pagination={{
+          currentPage,
+          setCurrentPage,
+          pageSize,
+          setPageSize,
+          totalItems,
+          pageSizeOptions: [20, 50, 100, 200, 0],
+          color: 'indigo',
+          itemLabel: 'groupes',
+        }}
       />
 
       {/* Modal: Add Group */}

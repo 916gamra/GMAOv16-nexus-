@@ -17,8 +17,6 @@ import {
   X,
   SlidersHorizontal,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -48,9 +46,11 @@ import {
   Puzzle,
   Printer,
   MoreVertical,
+  Wrench,
 } from 'lucide-react';
 import MovementVoucherModal from '../../components/warehouse/MovementVoucherModal.jsx';
 import { usePermission } from '../../components/common/PermissionGate.jsx';
+import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 
 /**
  * Smart OT / Commande resolver:
@@ -1053,6 +1053,24 @@ export default function MouvementsJournalTable({
     }
   };
 
+  const mvtColumns = useMemo(
+    () => [
+      { key: 'date', label: 'DATE / BON', colLetter: 'A', icon: FileText, sortable: true },
+      { key: 'num_commande', label: 'N° OT / CDE / RÉF', colLetter: 'Col B', icon: Hash, sortable: true },
+      { key: 'type', label: 'TYPE FLUX', colLetter: 'B', icon: Layers, sortable: true },
+      { key: 'source_category', label: 'SOURCE', colLetter: 'C', icon: Boxes, align: 'center', sortable: true },
+      { key: 'ref', label: 'ARTICLE', colLetter: 'D', icon: Package, sortable: true },
+      { key: 'quantite', label: 'QTÉ', colLetter: 'E', icon: Activity, align: 'right', sortable: true },
+      { key: 'action_id', label: 'TYPE INTERVENTION', colLetter: 'F', icon: Wrench, sortable: true },
+      { key: 'id_machine_registered', label: 'DESTINATION', colLetter: 'G', icon: Factory, sortable: true },
+      { key: 'technicien', label: 'INTERVENANT', colLetter: 'H', icon: User, sortable: true },
+      { key: 'commentaire', label: 'COMMENTAIRE', colLetter: 'I', icon: MessageSquare, sortable: true },
+      { key: 'statut', label: 'STATUT', colLetter: 'J', icon: CheckCircle2, align: 'center' },
+      { key: 'actions', label: '•••', align: 'center', headerClassName: 'w-16 text-center' },
+    ],
+    []
+  );
+
   const renderTableSortIcon = (field) => {
     if (tableSortField !== field) {
       return <ArrowUpDown className="w-3 h-3 text-slate-300 group-hover:text-slate-500 transition-colors shrink-0" />;
@@ -1561,202 +1579,62 @@ export default function MouvementsJournalTable({
         </div>
       </div>
 
-      {/* Main Table Container */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out">
-        {/* Top Info Header Bar inside Card */}
-        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-slate-50/50 gap-2">
-          <div className="font-bold text-slate-800 text-[13px] flex items-center gap-2">
-            <FileSpreadsheet className="w-4 h-4 text-indigo-600" />
-            <span>Tableau Mouvements_Journal • Colonnes A → J</span>
-          </div>
-          <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-            date_bon (A) | type_flux (B) | source (C) | article (D) | quantite (E) | action (F) | destination (G) | intervenant (H) | commentaire (I) | statut (J)
-          </div>
-        </div>
-
-        <div className="max-h-[62vh] overflow-y-auto overflow-x-auto">
-          <table className="w-full text-xs text-left border-collapse">
-            <thead className="sticky top-0 z-10 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 select-none shadow-2xs">
-              <tr>
-                <th className="py-2.5 px-3 text-center w-10">N°</th>
-
-                {/* DATE / BON (A) */}
-                <th
-                  onClick={() => handleTableSort('date')}
-                  className="py-2.5 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Date"
-                >
-                  <div className="flex items-center gap-1">
-                    <span>DATE / BON</span>{' '}
-                    <span className="text-slate-400 font-normal text-[10px]">(A)</span>
-                    {renderTableSortIcon('date')}
-                  </div>
-                </th>
-
-                {/* N° OT / COMMANDE / RÉF */}
-                <th
-                  onClick={() => handleTableSort('num_commande')}
-                  className="py-2.5 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par N° OT / Commande"
-                >
-                  <div className="flex items-center gap-1">
-                    <span>N° OT / CDE / RÉF</span>
-                    {renderTableSortIcon('num_commande')}
-                  </div>
-                </th>
-
-                {/* TYPE DE FLUX (B) */}
-                <th
-                  onClick={() => handleTableSort('type')}
-                  className="py-2.5 px-2.5 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Type de Flux"
-                >
-                  <div className="flex items-center gap-1">
-                    <span>TYPE FLUX</span>{' '}
-                    <span className="text-slate-400 font-normal text-[10px]">(B)</span>
-                    {renderTableSortIcon('type')}
-                  </div>
-                </th>
-
-                {/* SOURCE (C) */}
-                <th
-                  onClick={() => handleTableSort('source_category')}
-                  className="py-2.5 px-2.5 text-center cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Source (Stock / Entrepôt)"
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    <span>SOURCE</span>{' '}
-                    <span className="text-slate-400 font-normal text-[10px]">(C)</span>
-                    {renderTableSortIcon('source_category')}
-                  </div>
-                </th>
-
-                {/* ARTICLE (D) */}
-                <th
-                  onClick={() => handleTableSort('ref')}
-                  className="py-2.5 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group min-w-[220px]"
-                  title="Cliquer pour trier par Article (Type, Désignation, Réf)"
-                >
-                  <div className="flex items-center gap-1">
-                    <span>ARTICLE</span>{' '}
-                    <span className="text-slate-400 font-normal text-[10px]">(D)</span>
-                    {renderTableSortIcon('ref')}
-                  </div>
-                </th>
-
-                {/* QTÉ (E) */}
-                <th
-                  onClick={() => handleTableSort('quantite')}
-                  className="py-2.5 px-2.5 text-right cursor-pointer select-none hover:bg-slate-200/80 transition group min-w-[130px]"
-                  title="Cliquer pour trier par Quantité / Évolution de Stock"
-                >
-                  <div className="flex items-center justify-end gap-1">
-                    <span>QTÉ</span>{' '}
-                    <span className="text-slate-400 font-normal text-[10px]">(E)</span>
-                    {renderTableSortIcon('quantite')}
-                  </div>
-                </th>
-
-                {/* ACTION / TYPE INTERVENTION (F) */}
-                <th
-                  onClick={() => handleTableSort('action_id')}
-                  className="py-2.5 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Type d'Intervention / Action"
-                >
-                  <div className="flex items-center gap-1">
-                    <span>TYPE INTERVENTION</span>{' '}
-                    <span className="text-slate-400 font-normal text-[10px]">(F)</span>
-                    {renderTableSortIcon('action_id')}
-                  </div>
-                </th>
-
-                {/* DESTINATION (G) */}
-                <th
-                  onClick={() => handleTableSort('id_machine_registered')}
-                  className="py-2.5 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group min-w-[210px]"
-                  title="Cliquer pour trier par Destination (Zone & Machine)"
-                >
-                  <div className="flex items-center gap-1">
-                    <span>DESTINATION</span>{' '}
-                    <span className="text-slate-400 font-normal text-[10px]">(G)</span>
-                    {renderTableSortIcon('id_machine_registered')}
-                  </div>
-                </th>
-
-                {/* INTERVENANT (H) */}
-                <th
-                  onClick={() => handleTableSort('technicien')}
-                  className="py-2.5 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Intervenant"
-                >
-                  <div className="flex items-center gap-1">
-                    <span>INTERVENANT</span>{' '}
-                    <span className="text-slate-400 font-normal text-[10px]">(H)</span>
-                    {renderTableSortIcon('technicien')}
-                  </div>
-                </th>
-
-                {/* COMMENTAIRE (I) */}
-                <th
-                  onClick={() => handleTableSort('commentaire')}
-                  className="py-2.5 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Commentaire"
-                >
-                  <div className="flex items-center gap-1">
-                    <span>COMMENTAIRE</span>{' '}
-                    <span className="text-slate-400 font-normal text-[10px]">(I)</span>
-                    {renderTableSortIcon('commentaire')}
-                  </div>
-                </th>
-
-                {/* STATUT (J) */}
-                <th className="py-2.5 px-2 text-center select-none">
-                  <div className="flex items-center justify-center gap-1">
-                    <span>STATUT</span>{' '}
-                    <span className="text-slate-400 font-normal text-[10px]">(J)</span>
-                  </div>
-                </th>
-
-                {/* ACTION COLUMN: "•••" */}
-                <th
-                  className="py-2.5 px-2 text-center w-16 select-none font-bold text-slate-400 tracking-widest"
-                  title="Actions (Modifier / Supprimer)"
-                >
-                  •••
-                </th>
+      {/* Unified Industrial Data Grid */}
+      <GmaoIndustrialDataGrid
+        title="Tableau Mouvements_Journal • Colonnes A → J"
+        icon={<FileSpreadsheet className="w-4 h-4 text-indigo-600" />}
+        excelMapping="date_bon (A) | type_flux (B) | source (C) | article (D) | quantite (E) | action (F) | destination (G) | intervenant (H) | commentaire (I) | statut (J)"
+        bannerColor="indigo"
+        columns={mvtColumns}
+        data={displayedMouvements}
+        sortField={tableSortField}
+        sortOrder={tableSortOrder}
+        onSort={handleTableSort}
+        renderSortIcon={renderTableSortIcon}
+        startIndex={startIndex}
+        showRowNumber={true}
+        emptyIcon={<FileSpreadsheet className="w-8 h-8 text-slate-300" />}
+        emptyMessage="Aucun mouvement trouvé pour les critères sélectionnés."
+        pagination={{
+          currentPage,
+          setCurrentPage,
+          pageSize,
+          setPageSize,
+          totalItems,
+          pageSizeOptions: [25, 50, 100, 200, 0],
+          color: 'indigo',
+          itemLabel: 'mouvements',
+        }}
+        renderRow={(m, idx, rowNumber) => {
+          const realIndex = startIndex + idx;
+          if (m.__isEmptyPlaceholder) {
+            return (
+              <tr key={`empty-mvt-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+                <td className="py-2 px-3 text-center font-mono text-[10.5px] text-slate-300">
+                  {rowNumber}
+                </td>
+                <td colSpan={12} className="py-2 px-3 text-center text-slate-300 font-mono text-[11px]">
+                  —
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {displayedMouvements.map((m, idx) => {
-                  const realIndex = startIndex + idx;
-                  if (m.__isEmptyPlaceholder) {
-                    return (
-                      <tr key={`empty-mvt-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                        <td className="py-2 px-3 text-center font-mono text-[10.5px] text-slate-300">
-                          {realIndex + 1}
-                        </td>
-                        <td colSpan={12} className="py-2 px-3 text-center text-slate-300 font-mono text-[11px]">
-                          —
-                        </td>
-                      </tr>
-                    );
-                  }
+            );
+          }
 
-                  // Smart Article Lookup (Type, Désignation, Réf, Source)
-                  const artInfo = resolveArticleInfo(m, { stockItems, warehouseItems });
-                  const sourceCat = artInfo.sourceCat;
+          // Smart Article Lookup (Type, Désignation, Réf, Source)
+          const artInfo = resolveArticleInfo(m, { stockItems, warehouseItems });
+          const sourceCat = artInfo.sourceCat;
 
-                  // Smart Destination Lookup (Zone, Machine Registered, Emplacement, INCONNU)
-                  const destInfo = resolveDestinationInfo(m, { machines, zones, technicians, operations });
+          // Smart Destination Lookup (Zone, Machine Registered, Emplacement, INCONNU)
+          const destInfo = resolveDestinationInfo(m, { machines, zones, technicians, operations });
 
-                  return (
-                    <tr
-                      key={`mvt-row-${m.id || 'm'}-${m.code_bon || 'bon'}-${realIndex}`}
-                      className="even:bg-slate-50/70 odd:bg-white hover:bg-indigo-50/40 transition-colors border-b border-slate-100"
-                    >
-                      <td className="py-2 px-3 text-center font-mono text-[10.5px] font-bold text-slate-400">
-                        {realIndex + 1}
-                      </td>
+          return (
+            <tr
+              key={`mvt-row-${m.id || 'm'}-${m.code_bon || 'bon'}-${realIndex}`}
+              className="even:bg-slate-50/70 odd:bg-white hover:bg-indigo-50/40 transition-colors border-b border-slate-100"
+            >
+              <td className="py-2 px-3 text-center font-mono text-[10.5px] font-bold text-slate-400">
+                {rowNumber}
+              </td>
 
                       {/* DATE / BON / HEURE (A): Code Bon on top with FileText icon, Date in middle with Calendar icon, Time on bottom with Clock icon */}
                       <td className="py-2.5 px-3 whitespace-nowrap min-w-[130px]">
@@ -2203,70 +2081,8 @@ export default function MouvementsJournalTable({
                       </td>
                     </tr>
                   );
-                })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pagination Footer */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-slate-600">Lignes par page :</span>
-          <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-            {[25, 50, 100, 200, 0].map((size) => (
-              <button
-                key={size}
-                type="button"
-                onClick={() => {
-                  setPageSize(size);
-                  setCurrentPage(1);
                 }}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                  pageSize === size
-                    ? 'bg-white text-indigo-900 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out border border-slate-200/50'
-                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                }`}
-              >
-                {size === 0 ? 'Tout' : size}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-xs font-semibold text-slate-500">
-            Affichage <b className="text-slate-900">{totalItems === 0 ? 0 : startIndex + 1}</b> à{' '}
-            <b className="text-slate-900">{Math.min(startIndex + effectivePageSize, totalItems)}</b>{' '}
-            sur <b className="text-slate-900">{totalItems}</b>
-          </div>
-          {pageSize !== 0 && totalPages > 1 && (
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Précédent
-              </button>
-              <span className="px-2 font-mono text-xs font-bold text-slate-600">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
-              >
-                Suivant
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      />
 
       {/* EDIT MOVEMENT MODAL */}
       {editingMovement && (

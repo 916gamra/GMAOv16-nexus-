@@ -3,6 +3,7 @@ import AnimatedPage from '../../components/common/AnimatedPage';
 import SequentialCodePicker from '../../components/common/SequentialCodePicker';
 import Action3DButton from '../../components/common/Action3DButton';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
+import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid';
 import { HubIcon } from '../../components/common/icons/HubIcon';
 import { CategoryIcon } from '../../components/common/icons/CategoryIcon';
 import {
@@ -175,6 +176,47 @@ export default function FamilyView({
     }
     return padded;
   }, [rawDisplayedData]);
+
+  const familyColumns = useMemo(
+    () => [
+      {
+        key: 'id_family',
+        label: 'ID FAMILLE',
+        colLetter: 'B',
+        icon: HubIcon,
+        sortable: true,
+      },
+      {
+        key: 'libelle',
+        label: 'LIBELLÉ DE LA FAMILLE',
+        colLetter: 'C',
+        icon: Boxes,
+        sortable: true,
+        headerClassName: 'min-w-[200px]',
+      },
+      {
+        key: 'nb_templates',
+        label: 'NB TEMPLATES',
+        colLetter: 'D',
+        icon: CategoryIcon,
+        align: 'center',
+      },
+      {
+        key: 'nb_machines',
+        label: 'NB MACHINES',
+        colLetter: 'E',
+        icon: Factory,
+        align: 'center',
+      },
+      {
+        key: 'actions',
+        label: '•••',
+        align: 'center',
+        headerClassName: 'w-24 font-bold text-slate-400 tracking-widest',
+      },
+    ],
+    []
+  );
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -448,311 +490,206 @@ export default function FamilyView({
         )}
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out">
-        {/* Top Info Header Bar inside Card */}
-        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-slate-50/50 gap-2">
-          <div className="font-bold text-slate-800 text-[13px] flex items-center gap-2">
-            <Boxes className="w-4 h-4 text-cyan-600" />
-            <span>Tableau Families • Colonnes B → E</span>
-          </div>
-          <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-            id_family (B) | libelle (C) | nb_templates (D) | nb_machines (E)
-          </div>
-        </div>
-
-        {/* Table Container with max-h-[62vh] and overflow-y-auto */}
-        <div className="max-h-[62vh] overflow-y-auto overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 z-10 shadow-2xs select-none">
-              <tr>
-                <th className="py-3 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0 select-none">
-                  N°
-                </th>
-                <th
-                  onClick={() => handleSort('id_family')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par ID Famille"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <HubIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>ID FAMILLE</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(B)</span>
-                    {renderSortIcon('id_family')}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort('libelle')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group min-w-[200px]"
-                  title="Cliquer pour trier par Libellé"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Boxes className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>LIBELLÉ DE LA FAMILLE</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(C)</span>
-                    {renderSortIcon('libelle')}
-                  </div>
-                </th>
-                <th className="py-3 px-3.5 text-center">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <CategoryIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>NB TEMPLATES</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(D)</span>
-                  </div>
-                </th>
-                <th className="py-3 px-3.5 text-center">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <Factory className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>NB MACHINES</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(E)</span>
-                  </div>
-                </th>
-                <th className="py-3 px-3 text-center font-bold text-slate-400 tracking-widest select-none w-24" title="Actions & Options">
-                  •••
-                </th>
+      {/* Unified Industrial Data Grid */}
+      <GmaoIndustrialDataGrid
+        title="Tableau Families • Colonnes B → E"
+        icon={<Boxes className="w-4 h-4 text-cyan-600" />}
+        excelMapping="id_family (B) | libelle (C) | nb_templates (D) | nb_machines (E)"
+        bannerColor="slate"
+        columns={familyColumns}
+        data={displayedData}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        renderSortIcon={renderSortIcon}
+        startIndex={startIndex}
+        showRowNumber={true}
+        renderRow={(f, idx) => {
+          const rowNum = startIndex + idx + 1;
+          if (f.__isEmptyPlaceholder) {
+            return (
+              <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+                <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
+                  {rowNum}
+                </td>
+                <td colSpan={5} className="py-3 px-4 text-center text-slate-300 font-mono text-[11px]">
+                  —
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200/80">
-              {displayedData.map((f, idx) => {
-                const rowNum = startIndex + idx + 1;
-                if (f.__isEmptyPlaceholder) {
-                  return (
-                    <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                      <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
-                        {rowNum}
-                      </td>
-                      <td colSpan={5} className="py-3 px-4 text-center text-slate-300 font-mono text-[11px]">
-                        —
-                      </td>
-                    </tr>
-                  );
-                }
-                const tCount = templates.filter((t) => t.id_family === f.id_family).length;
-                const mCount = machines.filter((m) => m.id_family === f.id_family).length;
+            );
+          }
+          const tCount = templates.filter((t) => t.id_family === f.id_family).length;
+          const mCount = machines.filter((m) => m.id_family === f.id_family).length;
 
-                return (
-                  <tr
-                    key={f.id_family}
-                    className="even:bg-slate-50/80 odd:bg-white hover:bg-slate-100/70 border-b border-slate-200/70 transition-colors"
-                  >
-                    {/* Row N° Column */}
-                    <td className="py-3 px-3 text-center font-mono text-[11px] font-bold text-slate-400 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
-                      {rowNum}
-                    </td>
-                    <td className="py-3 px-4 font-mono font-bold text-slate-900">
-                      <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">
-                        {f.id_family}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 font-semibold text-slate-800 text-[13px]">
-                      {f.libelle}
-                    </td>
-                    <td className="py-3 px-4 text-center">
+          return (
+            <tr
+              key={f.id_family}
+              className="even:bg-slate-50/80 odd:bg-white hover:bg-slate-100/70 border-b border-slate-200/70 transition-colors"
+            >
+              {/* Row N° Column */}
+              <td className="py-3 px-3 text-center font-mono text-[11px] font-bold text-slate-400 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
+                {rowNum}
+              </td>
+              <td className="py-3 px-4 font-mono font-bold text-slate-900">
+                <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">
+                  {f.id_family}
+                </span>
+              </td>
+              <td className="py-3 px-4 font-semibold text-slate-800 text-[13px]">
+                {f.libelle}
+              </td>
+              <td className="py-3 px-4 text-center">
+                <button
+                  onClick={() => onNavigateToTemplatesFiltered(f.id_family)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-50 text-cyan-800 hover:bg-cyan-100 border border-cyan-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
+                  title="Voir les templates de cette famille"
+                >
+                  <CategoryIcon className="w-3.5 h-3.5 text-cyan-600" />
+                  <span>{tCount} templates</span>
+                  <ArrowRight className="w-3 h-3 text-cyan-600 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </td>
+              <td className="py-3 px-4 text-center">
+                <button
+                  onClick={() => onNavigateToMachinesByFamily(f.id_family)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
+                  title="Filtrer Machines Registered : Famille sélectionnée, Template = Tous"
+                >
+                  <Cpu className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{mCount} machines (All)</span>
+                  <ArrowRight className="w-3 h-3 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </td>
+              {/* Actions (•••) */}
+              <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                <div className="relative inline-flex items-center justify-center action-menu-container">
+                  <div className="inline-flex rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onQuickCreateTemplate) {
+                          onQuickCreateTemplate(f.id_family);
+                        } else if (onNavigateToTemplatesFiltered) {
+                          onNavigateToTemplatesFiltered(f.id_family);
+                        }
+                        setActiveActionMenuId(null);
+                      }}
+                      className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
+                      title="Créer un Modèle (Template) pour cette famille"
+                    >
+                      <CategoryPlusIcon className="w-3.5 h-3.5 text-slate-900" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionMenuId(activeActionMenuId === f.id_family ? null : f.id_family);
+                      }}
+                      className={`p-1.5 hover:bg-slate-100 transition cursor-pointer ${
+                        activeActionMenuId === f.id_family
+                          ? 'bg-slate-100 text-cyan-700 font-bold'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                      title="Actions et options"
+                    >
+                      <MoreVertical className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {activeActionMenuId === f.id_family && (
+                    <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-1.5 text-left animate-in fade-in slide-in-from-top-2 duration-150 space-y-0.5">
+                      <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                          Famille Machine
+                        </span>
+                        <span className="font-mono text-xs font-bold text-cyan-700 block truncate">
+                          {f.id_family} • {f.libelle}
+                        </span>
+                      </div>
+
                       <button
-                        onClick={() => onNavigateToTemplatesFiltered(f.id_family)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-50 text-cyan-800 hover:bg-cyan-100 border border-cyan-200 text-xs font-semibold transition group shadow-2xs"
-                        title="Voir les templates de cette famille"
+                        type="button"
+                        onClick={() => {
+                          setActiveActionMenuId(null);
+                          if (onQuickCreateTemplate) {
+                            onQuickCreateTemplate(f.id_family);
+                          } else if (onNavigateToTemplatesFiltered) {
+                            onNavigateToTemplatesFiltered(f.id_family);
+                          }
+                        }}
+                        className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <CategoryPlusIcon className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Créer un template ({f.id_family})</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveActionMenuId(null);
+                          onNavigateToTemplatesFiltered(f.id_family);
+                        }}
+                        className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-cyan-50 hover:text-cyan-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
                       >
                         <CategoryIcon className="w-3.5 h-3.5 text-cyan-600" />
-                        <span>{tCount} templates</span>
-                        <ArrowRight className="w-3 h-3 text-cyan-600 group-hover:translate-x-0.5 transition-transform" />
+                        <span>Voir les templates ({tCount})</span>
                       </button>
-                    </td>
-                    <td className="py-3 px-4 text-center">
+
                       <button
-                        onClick={() => onNavigateToMachinesByFamily(f.id_family)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold transition group shadow-2xs"
-                        title="Filtrer Machines Registered : Famille sélectionnée, Template = Tous"
+                        type="button"
+                        onClick={() => {
+                          setActiveActionMenuId(null);
+                          onNavigateToMachinesByFamily(f.id_family);
+                        }}
+                        className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
                       >
                         <Cpu className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>{mCount} machines (All)</span>
-                        <ArrowRight className="w-3 h-3 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
+                        <span>Filtrer les machines ({mCount})</span>
                       </button>
-                    </td>
-                    {/* Actions (•••) */}
-                    <td className="py-3 px-3.5 text-center whitespace-nowrap">
-                      <div className="relative inline-flex items-center justify-center action-menu-container">
-                        <div className="inline-flex rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-                          {/* Quick Action Button: Create Template for this Family */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (onQuickCreateTemplate) {
-                                onQuickCreateTemplate(f.id_family);
-                              } else if (onNavigateToTemplatesFiltered) {
-                                onNavigateToTemplatesFiltered(f.id_family);
-                              }
-                              setActiveActionMenuId(null);
-                            }}
-                            className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
-                            title="Créer un Modèle (Template) pour cette famille"
-                          >
-                            <CategoryPlusIcon className="w-3.5 h-3.5 text-slate-900" />
-                          </button>
 
-                          {/* 3-dots Toggle Button */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveActionMenuId(activeActionMenuId === f.id_family ? null : f.id_family);
-                            }}
-                            className={`p-1.5 hover:bg-slate-100 transition cursor-pointer ${
-                              activeActionMenuId === f.id_family
-                                ? 'bg-slate-100 text-cyan-700 font-bold'
-                                : 'text-slate-500 hover:text-slate-800'
-                            }`}
-                            title="Actions et options"
-                          >
-                            <MoreVertical className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                      <div className="my-1 border-t border-slate-100" />
 
-                        {/* Popover Action Menu Card */}
-                        {activeActionMenuId === f.id_family && (
-                          <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-1.5 text-left animate-in fade-in slide-in-from-top-2 duration-150 space-y-0.5">
-                            <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                                Famille Machine
-                              </span>
-                              <span className="font-mono text-xs font-bold text-cyan-700 block truncate">
-                                {f.id_family} • {f.libelle}
-                              </span>
-                            </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveActionMenuId(null);
+                          setToEdit({ ...f });
+                        }}
+                        className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <Edit2 className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Modifier cette famille</span>
+                      </button>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveActionMenuId(null);
-                                if (onQuickCreateTemplate) {
-                                  onQuickCreateTemplate(f.id_family);
-                                } else if (onNavigateToTemplatesFiltered) {
-                                  onNavigateToTemplatesFiltered(f.id_family);
-                                }
-                              }}
-                              className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
-                            >
-                              <CategoryPlusIcon className="w-3.5 h-3.5 text-amber-600" />
-                              <span>Créer un template ({f.id_family})</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveActionMenuId(null);
-                                onNavigateToTemplatesFiltered(f.id_family);
-                              }}
-                              className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-cyan-50 hover:text-cyan-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
-                            >
-                              <CategoryIcon className="w-3.5 h-3.5 text-cyan-600" />
-                              <span>Voir les templates ({tCount})</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveActionMenuId(null);
-                                onNavigateToMachinesByFamily(f.id_family);
-                              }}
-                              className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
-                            >
-                              <Cpu className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Filtrer les machines ({mCount})</span>
-                            </button>
-
-                            <div className="my-1 border-t border-slate-100" />
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveActionMenuId(null);
-                                setToEdit({ ...f });
-                              }}
-                              className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
-                            >
-                              <Edit2 className="w-3.5 h-3.5 text-slate-600" />
-                              <span>Modifier cette famille</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveActionMenuId(null);
-                                setToDelete(f);
-                              }}
-                              className="w-full px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                              <span>Supprimer cette famille</span>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Add Modal */}
-
-      {/* Pagination Footer */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-slate-600">Lignes par page :</span>
-          <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-            {[25, 50, 100, 200, 0].map((size) => (
-              <button
-                key={size}
-                onClick={() => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                  pageSize === size
-                    ? 'bg-white text-cyan-800 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out border border-slate-200/50'
-                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                }`}
-              >
-                {size === 0 ? 'Tout' : size}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-xs font-semibold text-slate-500">
-            Affichage <b className="text-slate-900">{totalItems === 0 ? 0 : startIndex + 1}</b> à{' '}
-            <b className="text-slate-900">{Math.min(startIndex + effectivePageSize, totalItems)}</b>{' '}
-            sur <b className="text-slate-900">{totalItems}</b>
-          </div>
-          {pageSize !== 0 && totalPages > 1 && (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Précédent
-              </button>
-              <span className="px-2 font-mono text-xs font-bold text-slate-600">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
-              >
-                Suivant
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveActionMenuId(null);
+                          setToDelete(f);
+                        }}
+                        className="w-full px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                        <span>Supprimer cette famille</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </td>
+            </tr>
+          );
+        }}
+        pagination={{
+          currentPage,
+          setCurrentPage,
+          pageSize,
+          setPageSize,
+          totalItems,
+          pageSizeOptions: [25, 50, 100, 200, 0],
+          color: 'cyan',
+          itemLabel: 'familles',
+        }}
+      />
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">

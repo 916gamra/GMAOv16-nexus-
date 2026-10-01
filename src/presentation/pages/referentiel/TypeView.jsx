@@ -2,6 +2,7 @@ import {  useState, useRef, useMemo, useEffect  } from 'react';
 import AnimatedPage from '../../components/common/AnimatedPage';
 import Action3DButton from '../../components/common/Action3DButton';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
+import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import SequentialCodePicker from '../../components/common/SequentialCodePicker';
 import {
   Tag,
@@ -15,8 +16,6 @@ import {
   Trash2,
   Edit2,
   AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
   SlidersHorizontal,
   ArrowUpDown,
   ChevronDown,
@@ -226,6 +225,240 @@ export default function TypeView({
     setForm({ id_type: '', libelle: '' });
     setShowAddModal(false);
   };
+
+  const typeColumns = useMemo(
+    () => [
+      {
+        key: 'id_type',
+        label: 'ID TYPE',
+        colLetter: 'A',
+        icon: Tag,
+        sortable: true,
+        render: (t) => {
+          const typeVal = String(t.id_type || t.libelle || '');
+          return (
+            <span className="px-2.5 py-1 rounded-full bg-cyan-50 text-cyan-800 border border-cyan-200 text-[11px] font-mono font-bold">
+              {typeVal}
+            </span>
+          );
+        },
+      },
+      {
+        key: 'libelle',
+        label: 'LIBELLÉ DU TYPE',
+        colLetter: 'B',
+        icon: Layers,
+        sortable: true,
+        render: (t) => {
+          const typeVal = String(t.id_type || t.libelle || '');
+          return <span className="font-semibold text-slate-800 text-[13px]">{t.libelle || typeVal}</span>;
+        },
+      },
+      {
+        key: 'desig_count',
+        label: 'DÉSIGNATIONS LIÉES',
+        colLetter: 'C',
+        icon: Boxes,
+        sortable: true,
+        render: (t) => {
+          const typeVal = String(t.id_type || t.libelle || '');
+          const desigCount = designations.filter((d) => {
+            const dIdType = String(d?.id_type || '').toLowerCase();
+            const dType = String(d?.type || '').toLowerCase();
+            const typeValLower = typeVal.toLowerCase();
+            return Boolean(typeValLower && (dIdType === typeValLower || dType === typeValLower));
+          }).length;
+          return (
+            <button
+              onClick={() => onNavigateToDesignationsFiltered && onNavigateToDesignationsFiltered(typeVal)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
+            >
+              <BadgeCheck className="w-3.5 h-3.5 text-indigo-600" />
+              <span>{desigCount} désignations</span>
+              <ArrowRight className="w-3 h-3 text-indigo-600 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          );
+        },
+      },
+      {
+        key: 'article_count',
+        label: 'ARTICLES EN STOCK',
+        colLetter: 'D',
+        icon: Package,
+        sortable: true,
+        render: (t) => {
+          const typeVal = String(t.id_type || t.libelle || '');
+          const articleCount = stockItems.filter((s) => {
+            const sIdType = String(s?.id_type || '').toLowerCase();
+            const sType = String(s?.type || '').toLowerCase();
+            const typeValLower = typeVal.toLowerCase();
+            return Boolean(typeValLower && (sIdType === typeValLower || sType === typeValLower));
+          }).length;
+          return (
+            <button
+              onClick={() => onNavigateToStockFiltered && onNavigateToStockFiltered(typeVal)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-50 text-cyan-800 hover:bg-cyan-100 border border-cyan-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
+            >
+              <Package className="w-3.5 h-3.5 text-cyan-600" />
+              <span>{articleCount} articles</span>
+              <ArrowRight className="w-3 h-3 text-cyan-600 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          );
+        },
+      },
+      {
+        key: 'actions',
+        label: '•••',
+        align: 'center',
+        headerClassName: 'w-24 text-center font-bold text-slate-400 tracking-widest select-none',
+        render: (t) => {
+          const typeVal = String(t.id_type || t.libelle || '');
+          const desigCount = designations.filter((d) => {
+            const dIdType = String(d?.id_type || '').toLowerCase();
+            const dType = String(d?.type || '').toLowerCase();
+            const typeValLower = typeVal.toLowerCase();
+            return Boolean(typeValLower && (dIdType === typeValLower || dType === typeValLower));
+          }).length;
+          const articleCount = stockItems.filter((s) => {
+            const sIdType = String(s?.id_type || '').toLowerCase();
+            const sType = String(s?.type || '').toLowerCase();
+            const typeValLower = typeVal.toLowerCase();
+            return Boolean(typeValLower && (sIdType === typeValLower || sType === typeValLower));
+          }).length;
+
+          return (
+            <div className="relative inline-flex items-center justify-center action-menu-container">
+              <div className="inline-flex rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onQuickCreateDesignation) {
+                      onQuickCreateDesignation(typeVal);
+                    } else if (onNavigateToDesignationsFiltered) {
+                      onNavigateToDesignationsFiltered(typeVal);
+                    }
+                    setActiveActionMenuId(null);
+                  }}
+                  className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
+                  title="Créer une Désignation pour ce type"
+                >
+                  <BadgePlus className="w-3.5 h-3.5 text-slate-900" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveActionMenuId(activeActionMenuId === typeVal ? null : typeVal);
+                  }}
+                  className={`p-1.5 hover:bg-slate-100 transition cursor-pointer ${
+                    activeActionMenuId === typeVal
+                      ? 'bg-slate-100 text-cyan-700 font-bold'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                  title="Actions et options du type"
+                >
+                  <MoreVertical className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {activeActionMenuId === typeVal && (
+                <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150 space-y-1">
+                  <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Actions Type
+                    </div>
+                    <div className="font-mono font-bold text-xs text-slate-800 truncate mt-0.5">
+                      {t.id_type} • {t.libelle || t.id_type}
+                    </div>
+                  </div>
+                  <div className="space-y-0.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionMenuId(null);
+                        if (onQuickCreateDesignation) {
+                          onQuickCreateDesignation(typeVal);
+                        } else if (onNavigateToDesignationsFiltered) {
+                          onNavigateToDesignationsFiltered(typeVal);
+                        }
+                      }}
+                      className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 flex items-center justify-between transition cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <BadgePlus className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
+                        <span>Nouvelle Désignation</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-bold border border-emerald-200/60">
+                        +
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionMenuId(null);
+                        if (onNavigateToDesignationsFiltered) {
+                          onNavigateToDesignationsFiltered(typeVal);
+                        }
+                      }}
+                      className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-indigo-700 hover:bg-indigo-50 flex items-center justify-between transition cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <BadgeCheck className="w-3.5 h-3.5 text-indigo-600 group-hover:scale-110 transition-transform" />
+                        <span>Voir les Désignations</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded font-bold border border-emerald-200/60">
+                        {desigCount}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionMenuId(null);
+                        if (onNavigateToStockFiltered) {
+                          onNavigateToStockFiltered(typeVal);
+                        }
+                      }}
+                      className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-cyan-700 hover:bg-cyan-50 flex items-center justify-between transition cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Package className="w-3.5 h-3.5 text-cyan-600 group-hover:scale-110 transition-transform" />
+                        <span>Voir Articles du Stock</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-cyan-700 bg-cyan-50 px-1.5 py-0.2 rounded font-bold border border-emerald-200/60">
+                        {articleCount}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionMenuId(null);
+                        setToEdit({ ...t });
+                      }}
+                      className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-blue-700 hover:bg-blue-50 flex items-center gap-2 transition cursor-pointer group border-t border-slate-100 mt-1 pt-2"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
+                      <span>Modifier ce Type</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionMenuId(null);
+                        setToDelete(t);
+                      }}
+                      className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-rose-700 hover:bg-rose-50 flex items-center gap-2 transition cursor-pointer group"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-600 group-hover:scale-110 transition-transform" />
+                      <span>Supprimer ce Type</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        },
+      },
+    ],
+    [designations, stockItems, activeActionMenuId]
+  );
 
   return (
     <AnimatedPage className="space-y-4">
@@ -484,369 +717,33 @@ export default function TypeView({
         )}
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out">
-        {/* Top Info Header Bar inside Card */}
-        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-slate-50/50 gap-2">
-          <div className="font-bold text-slate-800 text-[13px] flex items-center gap-2">
-            <Tag className="w-4 h-4 text-cyan-600" />
-            <span>Tableau Types d'Articles • Colonnes A → D</span>
-          </div>
-          <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-            id_type (A) | libelle (B) | nb_designations (C) | nb_articles (D)
-          </div>
-        </div>
-
-        <div className="max-h-[62vh] overflow-y-auto overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 z-10 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 shadow-2xs select-none">
-              <tr>
-                <th className="py-3 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0">
-                  N°
-                </th>
-
-                {/* ID TYPE (A) */}
-                <th
-                  onClick={() => handleTableSort('id_type')}
-                  className="py-3 px-4 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Code / ID Type"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>ID TYPE</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(A)</span>
-                    {renderTableSortIcon('id_type')}
-                  </div>
-                </th>
-
-                {/* LIBELLÉ DU TYPE (B) */}
-                <th
-                  onClick={() => handleTableSort('libelle')}
-                  className="py-3 px-4 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Libellé du Type"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>LIBELLÉ DU TYPE</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(B)</span>
-                    {renderTableSortIcon('libelle')}
-                  </div>
-                </th>
-
-                {/* NB DÉSIGNATIONS (C) */}
-                <th
-                  onClick={() => handleTableSort('desig_count')}
-                  className="py-3 px-4 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Nombre de Désignations"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Boxes className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>DÉSIGNATIONS LIÉES</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(C)</span>
-                    {renderTableSortIcon('desig_count')}
-                  </div>
-                </th>
-
-                {/* NB ARTICLES (D) */}
-                <th
-                  onClick={() => handleTableSort('article_count')}
-                  className="py-3 px-4 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Nombre d'Articles en Stock"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>ARTICLES EN STOCK</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(D)</span>
-                    {renderTableSortIcon('article_count')}
-                  </div>
-                </th>
-
-                <th
-                  className="py-3 px-4 text-center select-none font-bold text-slate-400 tracking-widest"
-                  title="Actions (Désignations, Stock, Modifier, Supprimer)"
-                >
-                  •••
-                </th>
-              </tr>
-            </thead>
-          <tbody className="divide-y divide-slate-200/80">
-            {displayedData.map((t, idx) => {
-              const rowNum = startIndex + idx + 1;
-              if (t.__isEmptyPlaceholder) {
-                return (
-                  <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                    <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
-                      {rowNum}
-                    </td>
-                    <td colSpan={5} className="py-3 px-4 text-center text-slate-300 font-mono text-[11px]">
-                      —
-                    </td>
-                  </tr>
-                );
-              }
-              const typeVal = String(t.id_type || t.libelle || '');
-              const typeValLower = typeVal.toLowerCase();
-
-              const desigCount = designations.filter((d) => {
-                const dIdType = String(d?.id_type || '').toLowerCase();
-                const dType = String(d?.type || '').toLowerCase();
-                return Boolean(typeValLower && (dIdType === typeValLower || dType === typeValLower));
-              }).length;
-
-              const articleCount = stockItems.filter((s) => {
-                const sIdType = String(s?.id_type || '').toLowerCase();
-                const sType = String(s?.type || '').toLowerCase();
-                return Boolean(typeValLower && (sIdType === typeValLower || sType === typeValLower));
-              }).length;
-
-              return (
-                <tr
-                  key={typeVal}
-                  className="even:bg-slate-50/80 odd:bg-white hover:bg-slate-100/70 border-b border-slate-200/70 transition-colors"
-                >
-                  {/* Row N° Column */}
-                  <td className="py-3 px-3 text-center font-mono text-[11px] font-bold text-slate-400 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
-                    {rowNum}
-                  </td>
-                  <td className="py-3 px-4 font-mono font-bold text-slate-900">
-                    <span className="px-2.5 py-1 rounded-full bg-cyan-50 text-cyan-800 border border-cyan-200 text-[11px]">
-                      {typeVal}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 font-semibold text-slate-800 text-[13px]">
-                    {t.libelle || typeVal}
-                  </td>
-                  <td className="py-3 px-4">
-                    <button
-                      onClick={() =>
-                        onNavigateToDesignationsFiltered &&
-                        onNavigateToDesignationsFiltered(typeVal)
-                      }
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200 text-xs font-semibold transition group shadow-2xs"
-                      title="Voir les Désignations d'Articles liées à ce Type"
-                    >
-                      <BadgeCheck className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>{desigCount} désignations</span>
-                      <ArrowRight className="w-3 h-3 text-indigo-600 group-hover:translate-x-0.5 transition-transform" />
-                    </button>
-                  </td>
-                  <td className="py-3 px-4">
-                    <button
-                      onClick={() =>
-                        onNavigateToStockFiltered && onNavigateToStockFiltered(typeVal)
-                      }
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-50 text-cyan-800 hover:bg-cyan-100 border border-cyan-200 text-xs font-semibold transition group shadow-2xs"
-                      title="Aller vers le Stock filtré sur ce Type"
-                    >
-                      <Package className="w-3.5 h-3.5 text-cyan-600" />
-                      <span>{articleCount} articles</span>
-                      <ArrowRight className="w-3 h-3 text-cyan-600 group-hover:translate-x-0.5 transition-transform" />
-                    </button>
-                  </td>
-                  <td className="py-3 px-4 text-center whitespace-nowrap">
-                    <div className="relative inline-flex items-center justify-center action-menu-container">
-                      <div className="inline-flex rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-                        {/* Quick Action Button: Create Designation for this Type */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (onQuickCreateDesignation) {
-                              onQuickCreateDesignation(typeVal);
-                            } else if (onNavigateToDesignationsFiltered) {
-                              onNavigateToDesignationsFiltered(typeVal);
-                            }
-                            setActiveActionMenuId(null);
-                          }}
-                          className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
-                          title="Créer une Désignation pour ce type"
-                        >
-                          <BadgePlus className="w-3.5 h-3.5 text-slate-900" />
-                        </button>
-
-                        {/* 3-dots Toggle Button */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveActionMenuId(activeActionMenuId === typeVal ? null : typeVal);
-                          }}
-                          className={`p-1.5 hover:bg-slate-100 transition cursor-pointer ${
-                            activeActionMenuId === typeVal
-                              ? 'bg-slate-100 text-cyan-700 font-bold'
-                              : 'text-slate-500 hover:text-slate-800'
-                          }`}
-                          title="Actions et options du type"
-                        >
-                          <MoreVertical className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-
-                      {/* Popover Action Menu Card */}
-                      {activeActionMenuId === typeVal && (
-                        <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150 space-y-1">
-                          {/* Card Header */}
-                          <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                              Actions Type
-                            </div>
-                            <div className="font-mono font-bold text-xs text-slate-800 truncate mt-0.5">
-                              {t.id_type} • {t.libelle || t.id_type}
-                            </div>
-                          </div>
-
-                          {/* Menu Items */}
-                          <div className="space-y-0.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveActionMenuId(null);
-                                if (onQuickCreateDesignation) {
-                                  onQuickCreateDesignation(typeVal);
-                                } else if (onNavigateToDesignationsFiltered) {
-                                  onNavigateToDesignationsFiltered(typeVal);
-                                }
-                              }}
-                              className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-emerald-700 hover:bg-emerald-50 flex items-center justify-between transition cursor-pointer group"
-                            >
-                              <div className="flex items-center gap-2">
-                                <BadgePlus className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
-                                <span>Nouvelle Désignation</span>
-                              </div>
-                              <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-bold border border-emerald-200/60">
-                                +
-                              </span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveActionMenuId(null);
-                                if (onNavigateToDesignationsFiltered) {
-                                  onNavigateToDesignationsFiltered(typeVal);
-                                }
-                              }}
-                              className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-indigo-700 hover:bg-indigo-50 flex items-center justify-between transition cursor-pointer group"
-                            >
-                              <div className="flex items-center gap-2">
-                                <BadgeCheck className="w-3.5 h-3.5 text-indigo-600 group-hover:scale-110 transition-transform" />
-                                <span>Voir les Désignations</span>
-                              </div>
-                              <span className="text-[10px] font-mono text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded font-bold border border-indigo-200/60">
-                                {desigCount}
-                              </span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveActionMenuId(null);
-                                if (onNavigateToStockFiltered) {
-                                  onNavigateToStockFiltered(typeVal);
-                                }
-                              }}
-                              className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-cyan-700 hover:bg-cyan-50 flex items-center justify-between transition cursor-pointer group"
-                            >
-                              <div className="flex items-center gap-2">
-                                <Package className="w-3.5 h-3.5 text-cyan-600 group-hover:scale-110 transition-transform" />
-                                <span>Voir Articles du Stock</span>
-                              </div>
-                              <span className="text-[10px] font-mono text-cyan-700 bg-cyan-50 px-1.5 py-0.2 rounded font-bold border border-cyan-200/60">
-                                {articleCount}
-                              </span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveActionMenuId(null);
-                                setToEdit({ ...t });
-                              }}
-                              className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-blue-700 hover:bg-blue-50 flex items-center gap-2 transition cursor-pointer group border-t border-slate-100 mt-1 pt-2"
-                            >
-                              <Edit2 className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
-                              <span>Modifier ce Type</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActiveActionMenuId(null);
-                                setToDelete(t);
-                              }}
-                              className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-rose-700 hover:bg-rose-50 flex items-center gap-2 transition cursor-pointer group"
-                            >
-                              <Trash2 className="w-3.5 h-3.5 text-rose-600 group-hover:scale-110 transition-transform" />
-                              <span>Supprimer ce Type</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      </div>
-
-      {/* Add Modal */}
-
-      {/* Pagination Footer */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-slate-600">Lignes par page :</span>
-          <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-            {[25, 50, 100, 200, 0].map((size) => (
-              <button
-                key={size}
-                onClick={() => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
-                  pageSize === size
-                    ? 'bg-white text-cyan-800 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out border border-slate-200/50'
-                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                }`}
-              >
-                {size === 0 ? 'Tout' : size}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-xs font-semibold text-slate-500">
-            Affichage <b className="text-slate-900">{totalItems === 0 ? 0 : startIndex + 1}</b> à{' '}
-            <b className="text-slate-900">{Math.min(startIndex + effectivePageSize, totalItems)}</b>{' '}
-            sur <b className="text-slate-900">{totalItems}</b>
-          </div>
-          {pageSize !== 0 && totalPages > 1 && (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Précédent
-              </button>
-              <span className="px-2 font-mono text-xs font-bold text-slate-600">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition"
-              >
-                Suivant
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Unified Industrial Data Grid */}
+      <GmaoIndustrialDataGrid
+        title="Tableau Types d'Articles • Colonnes A → D"
+        icon={<Tag className="w-4 h-4 text-cyan-600" />}
+        excelMapping="id_type (A) | libelle (B) | nb_designations (C) | nb_articles (D)"
+        bannerColor="slate"
+        columns={typeColumns}
+        data={displayedData}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={handleTableSort}
+        renderSortIcon={renderTableSortIcon}
+        startIndex={startIndex}
+        showRowNumber={true}
+        emptyIcon={<Tag className="w-8 h-8 text-slate-300" />}
+        emptyMessage="Aucun type d'article trouvé"
+        pagination={{
+          currentPage,
+          setCurrentPage,
+          pageSize,
+          setPageSize,
+          totalItems,
+          pageSizeOptions: [20, 50, 100, 200, 0],
+          color: 'cyan',
+          itemLabel: 'types',
+        }}
+      />
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">

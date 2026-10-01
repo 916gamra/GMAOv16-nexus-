@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import TablePaginationCard from '../../../components/common/TablePaginationCard';
+import GmaoIndustrialDataGrid from '../../../components/common/GmaoIndustrialDataGrid.jsx';
 import {
   Users,
   LayoutGrid,
@@ -69,13 +70,6 @@ export default function EquipeIntervenantsTab({
       setCurrentPage(newPage);
     }
   };
-
-  // Fixed 20 rows placeholder filler when fewer than 20 items in page
-  const emptyRowsCount = useMemo(() => {
-    if (pageSize === 0 || pageSize === 'ALL') return 0;
-    const count = effectivePageSize - paginatedIntervenants.length;
-    return count > 0 ? Math.min(count, 20) : 0;
-  }, [effectivePageSize, paginatedIntervenants.length, pageSize]);
 
   // Modal Handlers
   const handleOpenAddModal = () => {
@@ -157,6 +151,148 @@ export default function EquipeIntervenantsTab({
     setTechToDelete(null);
   };
 
+  const techColumns = useMemo(
+    () => [
+      {
+        key: 'id_technician',
+        label: 'ID TECHNICIEN',
+        colLetter: 'Col A',
+        icon: Users,
+        align: 'center',
+        render: (tech, idx) => {
+          const idCode = tech.id_technician || tech.id || `TECH-${String(startIndex + idx + 1).padStart(2, '0')}`;
+          return (
+            <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-800 font-bold border border-purple-200 text-[10.5px] font-mono whitespace-nowrap">
+              {idCode}
+            </span>
+          );
+        },
+      },
+      {
+        key: 'nom',
+        label: 'NOM & PRÉNOM DU TECHNICIEN',
+        colLetter: 'Col B',
+        icon: User,
+        render: (tech) => {
+          const name = tech.nom || tech.name || 'Technicien';
+          return (
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-800 border border-purple-200 flex items-center justify-center font-bold text-[10px] shrink-0">
+                {name.charAt(0).toUpperCase()}
+              </div>
+              <span className="font-black text-slate-900 text-xs">{name}</span>
+            </div>
+          );
+        },
+      },
+      {
+        key: 'id_zone',
+        label: 'ZONE / ATELIER',
+        colLetter: 'Col C',
+        icon: MapPin,
+        render: (tech) => {
+          const zone = tech.id_zone || tech.zone || 'Toutes zones';
+          return (
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+              <span className="font-bold text-slate-700 text-xs">{zone}</span>
+            </div>
+          );
+        },
+      },
+      {
+        key: 'specialite',
+        label: 'SPÉCIALITÉ & COMPÉTENCES',
+        colLetter: 'Col D',
+        icon: Wrench,
+        render: (tech) => {
+          const spec = tech.specialite || 'Maintenance & Dépannage';
+          return (
+            <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-semibold border border-slate-200 text-[11px] whitespace-nowrap">
+              {spec}
+            </span>
+          );
+        },
+      },
+      {
+        key: 'total',
+        label: 'INTERVENTIONS BT',
+        colLetter: 'Col E',
+        icon: FileSpreadsheet,
+        align: 'center',
+        render: (tech) => {
+          const total = tech.total || 0;
+          return (
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black bg-indigo-50 text-indigo-900 border border-indigo-200 whitespace-nowrap">
+              {total} BT{total > 1 ? 's' : ''}
+            </span>
+          );
+        },
+      },
+      {
+        key: 'statut',
+        label: 'STATUT GMAO',
+        colLetter: 'Col F',
+        icon: CheckCircle2,
+        align: 'center',
+        render: () => (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 whitespace-nowrap">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+            <span>Habilité</span>
+          </span>
+        ),
+      },
+      {
+        key: 'actions',
+        label: 'ACTIONS GMAO',
+        colLetter: 'Col G',
+        icon: Zap,
+        align: 'center',
+        render: (tech) => {
+          const name = tech.nom || tech.name || 'Technicien';
+          return (
+            <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
+              <button
+                type="button"
+                onClick={() => handleOpenEditModal(tech)}
+                className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition cursor-pointer active:scale-95"
+                title="Modifier les informations du technicien"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTechToDelete(tech)}
+                className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition cursor-pointer active:scale-95"
+                title="Supprimer ce technicien de l'équipe"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof onAddDemandeWithPreset === 'function') {
+                    onAddDemandeWithPreset({
+                      intervenant: name,
+                    });
+                  }
+                }}
+                className="px-2 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-[10.5px] transition inline-flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                title="Affecter ce technicien à une nouvelle Demande"
+              >
+                <Plus className="w-3 h-3" />
+                <span>DI</span>
+              </button>
+            </div>
+          );
+        },
+      },
+    ],
+    [startIndex, onAddDemandeWithPreset]
+  );
+
   return (
     <div className="space-y-4 font-sans select-none">
       {/* 1. Sub-Header Toolbar: Summary on Left & Action Buttons / Mode Switch on Top Right */}
@@ -234,196 +370,28 @@ export default function EquipeIntervenantsTab({
 
       {/* 2. MAIN CONTENT DISPLAY: EXCEL SPREADSHEET TABLE MODE */}
       {displayMode === 'excel' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-          {/* Subheader ribbon */}
-          <div className="bg-slate-50 border-b border-slate-200/80 px-4 py-2 text-[11px] font-bold text-slate-500 flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-              <span className="font-mono text-slate-700">Registre Habilité des Techniciens de Maintenance (Calcul Dynamique Interventions)</span>
-            </div>
-            <div className="font-mono text-slate-400 text-[10px]">
-              Affichage: {startIndex + 1} à {endIndex} sur {totalItems} • Défilement fluide
-            </div>
-          </div>
-
-          <div className="overflow-x-auto max-h-[65vh] overflow-y-auto">
-            <table className="w-full text-left text-xs border-collapse min-w-[950px]">
-              <thead className="bg-slate-100 text-[11px] font-black uppercase text-slate-700 tracking-wider border-b border-slate-200 sticky top-0 z-20 font-mono shadow-2xs">
-              <tr>
-                <th className="py-3 px-3 text-center w-12 bg-slate-200/70 border-r border-slate-200/90">
-                  N°
-                </th>
-                <th className="py-3 px-3.5 text-center w-36 border-r border-slate-200/90 whitespace-nowrap">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-purple-600" />
-                    <span>ID TECHNICIEN</span>
-                  </div>
-                </th>
-                <th className="py-3 px-4 border-r border-slate-200/90 whitespace-nowrap">
-                  <div className="flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-slate-600" />
-                    <span>NOM & PRÉNOM DU TECHNICIEN</span>
-                  </div>
-                </th>
-                <th className="py-3 px-4 border-r border-slate-200/90 whitespace-nowrap">
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                    <span>ZONE / ATELIER</span>
-                  </div>
-                </th>
-                <th className="py-3 px-4 border-r border-slate-200/90 whitespace-nowrap">
-                  <div className="flex items-center gap-1.5">
-                    <Wrench className="w-3.5 h-3.5 text-amber-600" />
-                    <span>SPÉCIALITÉ & COMPÉTENCES</span>
-                  </div>
-                </th>
-                <th className="py-3 px-3 text-center w-36 border-r border-slate-200/90 whitespace-nowrap">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>INTERVENTIONS BT</span>
-                  </div>
-                </th>
-                <th className="py-3 px-3 text-center w-32 border-r border-slate-200/90 whitespace-nowrap">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>STATUT GMAO</span>
-                  </div>
-                </th>
-                <th className="py-3 px-3 text-center w-48 whitespace-nowrap">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <Zap className="w-3.5 h-3.5 text-amber-600" />
-                    <span>ACTIONS GMAO</span>
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100/90">
-              {paginatedIntervenants.map((tech, relativeIdx) => {
-                const absoluteIdx = startIndex + relativeIdx;
-                const name = tech.nom || tech.name || 'Technicien';
-                const idCode = tech.id_technician || tech.id || `TECH-${String(absoluteIdx + 1).padStart(2, '0')}`;
-                const total = tech.total || 0;
-                const zone = tech.id_zone || tech.zone || 'Toutes zones';
-                const spec = tech.specialite || 'Maintenance & Dépannage';
-
-                return (
-                  <tr
-                    key={idCode}
-                    className="odd:bg-white even:bg-slate-50/60 hover:bg-purple-50/40 transition-colors group/row"
-                  >
-                    {/* Row Index */}
-                    <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-400 bg-slate-100/60 border-r border-slate-200/60 text-[11px]">
-                      {absoluteIdx + 1}
-                    </td>
-
-                    {/* ID Badge */}
-                    <td className="py-2.5 px-3.5 text-center font-mono border-r border-slate-200/60 whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-800 font-bold border border-purple-200 text-[10.5px]">
-                        {idCode}
-                      </span>
-                    </td>
-
-                    {/* Name */}
-                    <td className="py-2.5 px-4 font-black text-slate-900 text-xs border-r border-slate-200/60">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-purple-100 text-purple-800 border border-purple-200 flex items-center justify-center font-bold text-[10px] shrink-0">
-                          {name.charAt(0).toUpperCase()}
-                        </div>
-                        <span>{name}</span>
-                      </div>
-                    </td>
-
-                    {/* Zone */}
-                    <td className="py-2.5 px-4 font-bold text-slate-700 text-xs border-r border-slate-200/60">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                        <span>{zone}</span>
-                      </div>
-                    </td>
-
-                    {/* Specialite */}
-                    <td className="py-2.5 px-4 text-slate-700 text-xs border-r border-slate-200/60">
-                      <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 font-semibold border border-slate-200 text-[11px]">
-                        {spec}
-                      </span>
-                    </td>
-
-                    {/* Interventions Count */}
-                    <td className="py-2.5 px-3 text-center border-r border-slate-200/60 whitespace-nowrap">
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black bg-indigo-50 text-indigo-900 border border-indigo-200">
-                        {total} BT{total > 1 ? 's' : ''}
-                      </span>
-                    </td>
-
-                    {/* Status */}
-                    <td className="py-2.5 px-3 text-center border-r border-slate-200/60 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                        <span>Habilité</span>
-                      </span>
-                    </td>
-
-                    {/* Action Buttons: Edit, Delete, Create DI */}
-                    <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEditModal(tech)}
-                          className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition cursor-pointer active:scale-95"
-                          title="Modifier les informations du technicien"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setTechToDelete(tech)}
-                          className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition cursor-pointer active:scale-95"
-                          title="Supprimer ce technicien de l'équipe"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (typeof onAddDemandeWithPreset === 'function') {
-                              onAddDemandeWithPreset({
-                                intervenant: name,
-                              });
-                            }
-                          }}
-                          className="px-2 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-[10.5px] transition inline-flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
-                          title="Affecter ce technicien à une nouvelle Demande"
-                        >
-                          <Plus className="w-3 h-3" />
-                          <span>DI</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {/* Placeholder rows to maintain 20 rows height */}
-              {Array.from({ length: emptyRowsCount }).map((_, idx) => (
-                <tr key={`empty-${idx}`} className="h-10 opacity-30 select-none pointer-events-none">
-                  <td className="py-2.5 px-3 text-center font-mono text-[10px] text-slate-300 bg-slate-50 border-r border-slate-100">
-                    -
-                  </td>
-                  <td className="border-r border-slate-100 text-center text-[10px] text-slate-300">-</td>
-                  <td className="border-r border-slate-100 text-[10px] text-slate-300 px-4">-</td>
-                  <td className="border-r border-slate-100 text-[10px] text-slate-300 px-4">-</td>
-                  <td className="border-r border-slate-100 text-[10px] text-slate-300 px-4">-</td>
-                  <td className="border-r border-slate-100 text-center text-[10px] text-slate-300">-</td>
-                  <td className="border-r border-slate-100 text-center text-[10px] text-slate-300">-</td>
-                  <td className="text-center text-[10px] text-slate-300">-</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        </div>
+        <GmaoIndustrialDataGrid
+          title="Tableau Équipe_Intervenants • Ordre Excel Row 3 : A → G"
+          icon={<Users className="w-4 h-4 text-purple-600" />}
+          excelMapping="N° | ID (A) | Nom (B) | Zone (C) | Spécialité (D) | BTs (E) | Statut (F) | Actions (G)"
+          bannerColor="purple"
+          columns={techColumns}
+          data={paginatedIntervenants}
+          startIndex={startIndex}
+          showRowNumber={true}
+          emptyIcon={<Users className="w-8 h-8 text-slate-300" />}
+          emptyMessage="Aucun technicien trouvé pour cette recherche."
+          pagination={{
+            currentPage: safeCurrentPage,
+            setCurrentPage: handlePageChange,
+            pageSize,
+            setPageSize,
+            totalItems,
+            pageSizeOptions: [20, 25, 50, 100, 200, 0],
+            color: 'purple',
+            itemLabel: 'techniciens',
+          }}
+        />
       )}
 
       {/* 3. MAIN CONTENT DISPLAY: GRID CARDS MODE */}
@@ -535,16 +503,18 @@ export default function EquipeIntervenantsTab({
         </div>
       )}
 
-      {/* 5. FOOTER PAGINATION BAR (Always at bottom of container) */}
-      <TablePaginationCard
-        currentPage={safeCurrentPage}
-        setCurrentPage={handlePageChange}
-        pageSize={pageSize}
-        setPageSize={setPageSize}
-        totalItems={totalItems}
-        pageSizeOptions={[20, 25, 50, 100, 200, 0]}
-        color="purple"
-      />
+      {/* 5. FOOTER PAGINATION BAR (For Grid Mode) */}
+      {displayMode === 'grid' && (
+        <TablePaginationCard
+          currentPage={safeCurrentPage}
+          setCurrentPage={handlePageChange}
+          pageSize={pageSize}
+          setPageSize={setPageSize}
+          totalItems={totalItems}
+          pageSizeOptions={[20, 25, 50, 100, 200, 0]}
+          color="purple"
+        />
+      )}
 
       {/* 6. MODAL: NOUVEAU TECHNICIEN */}
       {isAddModalOpen && (

@@ -7,8 +7,7 @@ import { CategoryIcon } from '../../components/common/icons/CategoryIcon';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
 import Action3DButton from '../../components/common/Action3DButton';
 import { useSmartTableLoader } from '../../hooks/useSmartTableLoader';
-import TableSkeletonRows from '../../components/common/TableSkeletonRows';
-import TablePaginationCard from '../../components/common/TablePaginationCard';
+import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import MachinesKPIBar from './components/MachinesKPIBar';
 import {
   Factory,
@@ -434,6 +433,78 @@ export default function MachinesRegisteredView({
     const nowStr = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(wb, `GMAO_Parc_Machines_${nowStr}.xlsx`);
   };
+
+  const machineColumns = useMemo(
+    () => [
+      {
+        key: 'id_machine_registered',
+        label: 'CODE MACHINE',
+        colLetter: 'B',
+        icon: Factory,
+        sortable: true,
+      },
+      {
+        key: 'designation',
+        label: 'DÉSIGNATION',
+        colLetter: 'C',
+        icon: Cpu,
+        sortable: true,
+        headerClassName: 'min-w-[200px]',
+      },
+      {
+        key: 'serial_number',
+        label: 'MISE EN SERVICE',
+        colLetter: 'N° Série',
+        sortable: true,
+        headerClassName: 'min-w-[170px]',
+      },
+      {
+        key: 'id_family',
+        label: 'FAMILLE & TEMPLATE',
+        colLetter: 'D+E',
+        sortable: true,
+        headerClassName: 'min-w-[200px]',
+      },
+      {
+        key: 'id_blueprint',
+        label: 'BLUEPRINT',
+        colLetter: 'Plan',
+        icon: FileText,
+        sortable: true,
+        headerClassName: 'min-w-[170px]',
+      },
+      {
+        key: 'id_zone_default',
+        label: 'ZONE & TECHNICIEN',
+        colLetter: 'F+G',
+        sortable: true,
+        headerClassName: 'min-w-[210px]',
+      },
+      {
+        key: 'status',
+        label: 'STATUT',
+        colLetter: 'H',
+        icon: Radio,
+        sortable: true,
+        align: 'center',
+      },
+      {
+        key: 'sorties',
+        label: 'INTERVENTIONS',
+        colLetter: 'Flux',
+        icon: Activity,
+        sortable: true,
+        align: 'right',
+      },
+      {
+        key: 'actions',
+        label: '•••',
+        align: 'center',
+        headerClassName: 'w-24 tracking-widest text-slate-400 font-bold',
+      },
+    ],
+    []
+  );
 
   return (
     <AnimatedPage className="space-y-5">
@@ -887,182 +958,48 @@ export default function MachinesRegisteredView({
         )}
       </div>
 
-      {/* Main Table with Iconic Excel Mirror Headers */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out">
-        {/* Top Info Header Bar inside Card */}
-        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-slate-50/50 gap-2">
-          <div className="font-bold text-slate-800 text-[13px] flex items-center gap-2">
-            <Factory className="w-4 h-4 text-emerald-600" />
-            <span>Tableau Machines_Registered • Ordre Excel Row 3 : B → H</span>
-          </div>
-          <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-            N° | Code Machine (B) | Désignation (C) | Mise en Service / N° Série | Famille & Template (D+E) | Zone & Technicien (F+G) | Statut (H) | Flux
-          </div>
-        </div>
-
-        <div className="max-h-[62vh] overflow-y-auto overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse min-w-[980px]">
-            <thead className="sticky top-0 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 z-10 shadow-2xs select-none">
-              <tr>
-                {/* Row N° */}
-                <th className="py-3 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0 select-none">
-                  N°
-                </th>
-
-                {/* CODE MACHINE (B) */}
-                <th
-                  onClick={() => handleSort('id_machine_registered')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Code Machine"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Factory className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>CODE MACHINE</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(B)</span>
-                    {renderSortIcon('id_machine_registered')}
-                  </div>
-                </th>
-
-                {/* DÉSIGNATION (C) */}
-                <th
-                  onClick={() => handleSort('designation')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group min-w-[200px]"
-                  title="Cliquer pour trier par Désignation"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Cpu className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>DÉSIGNATION</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(C)</span>
-                    {renderSortIcon('designation')}
-                  </div>
-                </th>
-
-                {/* MISE EN SERVICE / N° SÉRIE */}
-                <th
-                  onClick={() => handleSort('serial_number')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group min-w-[170px]"
-                  title="Cliquer pour trier par N° de Série / Mise en Service"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <div className="flex items-center -space-x-1">
-                      <Hash className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    </div>
-                    <span>MISE EN SERVICE</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(N° Série)</span>
-                    {renderSortIcon('serial_number')}
-                  </div>
-                </th>
-
-                {/* FAMILLE & TEMPLATE (D + E) */}
-                <th
-                  onClick={() => handleSort('id_family')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group min-w-[200px]"
-                  title="Cliquer pour trier par Famille & Modèle"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <div className="flex items-center -space-x-1">
-                      <HubIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <CategoryIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    </div>
-                    <span>FAMILLE & TEMPLATE</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(D+E)</span>
-                    {renderSortIcon('id_family')}
-                  </div>
-                </th>
-
-                {/* BLUEPRINT (Plan / Schéma) */}
-                <th
-                  onClick={() => handleSort('id_blueprint')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group min-w-[170px]"
-                  title="Cliquer pour trier par Blueprint / Schéma"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>BLUEPRINT</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Plan)</span>
-                    {renderSortIcon('id_blueprint')}
-                  </div>
-                </th>
-
-                {/* ZONE & TECHNICIEN (F + G) */}
-                <th
-                  onClick={() => handleSort('id_zone_default')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group min-w-[210px]"
-                  title="Cliquer pour trier par Zone & Technicien"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <div className="flex items-center -space-x-1">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    </div>
-                    <span>ZONE & TECHNICIEN</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(F+G)</span>
-                    {renderSortIcon('id_zone_default')}
-                  </div>
-                </th>
-
-                {/* STATUS (H) */}
-                <th
-                  onClick={() => handleSort('status')}
-                  className="py-3 px-3 text-center cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Statut"
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    <Radio className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>STATUT</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(H)</span>
-                    {renderSortIcon('status')}
-                  </div>
-                </th>
-
-                {/* INTERVENTIONS */}
-                <th
-                  onClick={() => handleSort('sorties')}
-                  className="py-3 px-3 text-right cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Nombre d'Interventions"
-                >
-                  <div className="flex items-center justify-end gap-1">
-                    <Activity className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>INTERVENTIONS</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Flux)</span>
-                    {renderSortIcon('sorties')}
-                  </div>
-                </th>
-
-                {/* ACTIONS (•••) */}
-                <th className="py-3 px-3 text-center font-bold text-slate-400 tracking-widest select-none w-24" title="Actions & Options">
-                  •••
-                </th>
+      {/* Unified Industrial Data Grid */}
+      <GmaoIndustrialDataGrid
+        title="Tableau Machines_Registered • Ordre Excel Row 3 : B → H"
+        icon={<Factory className="w-4 h-4 text-emerald-600" />}
+        excelMapping="N° | Code Machine (B) | Désignation (C) | Mise en Service / N° Série | Famille & Template (D+E) | Zone & Technicien (F+G) | Statut (H) | Flux"
+        bannerColor="slate"
+        columns={machineColumns}
+        data={displayedData}
+        isLoading={!isTableReady}
+        loadingRowsCount={7}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        renderSortIcon={renderSortIcon}
+        startIndex={startIndex}
+        showRowNumber={true}
+        emptyIcon={<Factory className="w-8 h-8 text-slate-300" />}
+        emptyMessage="Aucune machine ne correspond aux critères de recherche."
+        pagination={{
+          currentPage,
+          setCurrentPage,
+          pageSize,
+          setPageSize,
+          totalItems,
+          pageSizeOptions: [25, 50, 100, 200, 0],
+          color: 'emerald',
+          itemLabel: 'machines',
+        }}
+        renderRow={(m, idx) => {
+          const realIndex = startIndex + idx;
+          if (m.__isEmptyPlaceholder) {
+            return (
+              <tr key={`empty-mch-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+                <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
+                  {realIndex + 1}
+                </td>
+                <td colSpan={9} className="py-3 px-3 text-center text-slate-300 font-mono text-[11px]">
+                  —
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200/80">
-              {!isTableReady ? (
-                <TableSkeletonRows cols={10} rows={7} color="emerald" />
-              ) : rawDisplayedData.length === 0 ? (
-                <tr>
-                  <td colSpan="10" className="py-12 text-center text-slate-500 font-medium">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <Factory className="w-8 h-8 text-slate-300" />
-                      <span>Aucune machine ne correspond aux critères de recherche.</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                displayedData.map((m, idx) => {
-                  const realIndex = startIndex + idx;
-                  if (m.__isEmptyPlaceholder) {
-                    return (
-                      <tr key={`empty-mch-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                        <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
-                          {realIndex + 1}
-                        </td>
-                        <td colSpan={9} className="py-3 px-3 text-center text-slate-300 font-mono text-[11px]">
-                          —
-                        </td>
-                      </tr>
-                    );
-                  }
+            );
+          }
                   const fam = families.find((f) => f.id_family === m.id_family);
                   const tpl = templates.find((t) => t.id_templates === m.id_templates);
                   const bp = blueprints.find((b) => b.id_blueprint === m.id_blueprint);
@@ -1395,22 +1332,7 @@ export default function MachinesRegisteredView({
                       </td>
                     </tr>
                   );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pagination Footer (General Shared Component) */}
-      <TablePaginationCard
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        pageSize={pageSize}
-        setPageSize={setPageSize}
-        totalItems={totalItems}
-        pageSizeOptions={[25, 50, 100, 200, 0]}
-        color="emerald"
+                }}
       />
 
       {/* MODAL: MODIFIER MACHINE */}

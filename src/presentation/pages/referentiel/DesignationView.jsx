@@ -2,6 +2,8 @@ import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import AnimatedPage from '../../components/common/AnimatedPage';
 import Action3DButton from '../../components/common/Action3DButton';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
+import TablePaginationCard from '../../components/common/TablePaginationCard';
+import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import CustomSelect from '../../components/common/CustomSelect';
 import SequentialCodePicker from '../../components/common/SequentialCodePicker';
 import {
@@ -17,8 +19,6 @@ import {
   XCircle,
   Trash2,
   Edit2,
-  ChevronLeft,
-  ChevronRight,
   SlidersHorizontal,
   ArrowUpDown,
   ChevronDown,
@@ -391,6 +391,264 @@ export default function DesignationView({
     }
   };
 
+  const designationColumns = useMemo(
+    () => [
+      {
+        key: 'ref',
+        label: 'REF / CODE',
+        colLetter: 'A',
+        icon: Tag,
+        sortable: true,
+        render: (item) => {
+          const refDisplay = item.ref || item.id_designation || item.id_diag || 'N/A';
+          return (
+            <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-[11.5px] font-mono font-bold text-slate-900">
+              {refDisplay}
+            </span>
+          );
+        },
+      },
+      {
+        key: 'designation',
+        label: 'DÉSIGNATION',
+        colLetter: 'B',
+        icon: Package,
+        sortable: true,
+        render: (item) => {
+          const desigDisplay = item.designation || item.libelle || item.nom || 'Sans désignation';
+          return <span className="font-semibold text-slate-900 text-[13px]">{desigDisplay}</span>;
+        },
+      },
+      {
+        key: 'id_type',
+        label: 'TYPE PARENT',
+        colLetter: 'C',
+        icon: Layers,
+        sortable: true,
+        render: (item) => {
+          const typeName = item.id_type || item.type || 'Standard';
+          return (
+            <button
+              type="button"
+              onClick={() => setDesigTypeFilter(typeName)}
+              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-semibold transition ${getTypeStyle(typeName)}`}
+              title="Filtrer par ce Type"
+            >
+              <Tag className="w-3 h-3 opacity-70" />
+              <span>{typeName}</span>
+            </button>
+          );
+        },
+      },
+      {
+        key: 'stockActuel',
+        label: 'STOCK ACTUEL',
+        colLetter: 'D',
+        icon: Boxes,
+        sortable: true,
+        align: 'right',
+        render: (item) => {
+          const itemRefKey = String(item.ref || item.id_designation || item.id_diag || '').trim().toLowerCase();
+          const itemDesigKey = String(item.designation || item.libelle || item.nom || '').trim().toLowerCase();
+          const stockMatch = stockItems.find((s) => {
+            const sRef = String(s.ref || '').trim().toLowerCase();
+            const sDesig = String(s.designation || '').trim().toLowerCase();
+            if (itemRefKey && sRef === itemRefKey) return true;
+            if (itemDesigKey && sDesig === itemDesigKey) return true;
+            return false;
+          });
+          const currentStock = stockMatch ? stockMatch.stockActuel : (item.stockActuel != null ? item.stockActuel : item.stockInitial || 0);
+          return <span className="font-mono font-bold text-slate-800 text-[13px]">{currentStock}</span>;
+        },
+      },
+      {
+        key: 'alerte',
+        label: 'ÉTAT',
+        colLetter: 'E',
+        icon: AlertTriangle,
+        sortable: true,
+        align: 'center',
+        render: (item) => {
+          const itemRefKey = String(item.ref || item.id_designation || item.id_diag || '').trim().toLowerCase();
+          const itemDesigKey = String(item.designation || item.libelle || item.nom || '').trim().toLowerCase();
+          const stockMatch = stockItems.find((s) => {
+            const sRef = String(s.ref || '').trim().toLowerCase();
+            const sDesig = String(s.designation || '').trim().toLowerCase();
+            if (itemRefKey && sRef === itemRefKey) return true;
+            if (itemDesigKey && sDesig === itemDesigKey) return true;
+            return false;
+          });
+          const currentStock = stockMatch ? stockMatch.stockActuel : (item.stockActuel != null ? item.stockActuel : item.stockInitial || 0);
+          const threshold = stockMatch ? stockMatch.seuil : item.seuil || 3;
+          const alertStatus = stockMatch
+            ? stockMatch.alerte
+            : currentStock <= 0
+              ? 'RUPTURE'
+              : currentStock <= threshold
+                ? 'ALERTE'
+                : 'OK';
+
+          return (
+            <>
+              {alertStatus === 'RUPTURE' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                  <XCircle className="w-3 h-3" />
+                  <span>RUPTURE</span>
+                </span>
+              )}
+              {alertStatus === 'ALERTE' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>ALERTE</span>
+                </span>
+              )}
+              {alertStatus === 'OK' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>OK</span>
+                </span>
+              )}
+            </>
+          );
+        },
+      },
+      {
+        key: 'emplacement',
+        label: 'EMPLACEMENT',
+        colLetter: 'F',
+        icon: MapPin,
+        sortable: true,
+        render: (item) => {
+          const itemRefKey = String(item.ref || item.id_designation || item.id_diag || '').trim().toLowerCase();
+          const itemDesigKey = String(item.designation || item.libelle || item.nom || '').trim().toLowerCase();
+          const stockMatch = stockItems.find((s) => {
+            const sRef = String(s.ref || '').trim().toLowerCase();
+            const sDesig = String(s.designation || '').trim().toLowerCase();
+            if (itemRefKey && sRef === itemRefKey) return true;
+            if (itemDesigKey && sDesig === itemDesigKey) return true;
+            return false;
+          });
+          const location = stockMatch ? stockMatch.emplacement : item.emplacement || 'A1-R1';
+          return <span className="font-mono text-slate-500 text-[11px]">{location}</span>;
+        },
+      },
+      {
+        key: 'actions',
+        label: '•••',
+        colLetter: '',
+        align: 'center',
+        render: (item) => {
+          const refDisplay = item.ref || item.id_designation || item.id_diag || '';
+          const desigDisplay = item.designation || item.libelle || item.nom || '';
+          const uniqueRowKey = item.id || item.ref || item.id_designation || item.id_diag;
+          const itemRefKey = String(item.ref || item.id_designation || item.id_diag || '').trim().toLowerCase();
+          const itemDesigKey = String(item.designation || item.libelle || item.nom || '').trim().toLowerCase();
+          const stockMatch = stockItems.find((s) => {
+            const sRef = String(s.ref || '').trim().toLowerCase();
+            const sDesig = String(s.designation || '').trim().toLowerCase();
+            if (itemRefKey && sRef === itemRefKey) return true;
+            if (itemDesigKey && sDesig === itemDesigKey) return true;
+            return false;
+          });
+          const currentStock = stockMatch ? stockMatch.stockActuel : (item.stockActuel != null ? item.stockActuel : item.stockInitial || 0);
+
+          return (
+            <div className="relative inline-flex items-center justify-center action-menu-container">
+              <div className="inline-flex rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onNavigateToStockFilteredByRef) {
+                      onNavigateToStockFilteredByRef(refDisplay || desigDisplay);
+                    }
+                  }}
+                  className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
+                  title="Filtrer le Stock Actuel sur cet article"
+                >
+                  <Warehouse className="w-3.5 h-3.5 text-slate-900" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveActionMenuId(activeActionMenuId === uniqueRowKey ? null : uniqueRowKey);
+                  }}
+                  className={`p-1.5 hover:bg-slate-100 transition cursor-pointer ${
+                    activeActionMenuId === uniqueRowKey
+                      ? 'bg-slate-100 text-cyan-700 font-bold'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                  title="Actions et options de la désignation"
+                >
+                  <MoreVertical className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {activeActionMenuId === uniqueRowKey && (
+                <div className="absolute right-0 top-full mt-1.5 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150 space-y-1">
+                  <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Actions Désignation PDR
+                    </div>
+                    <div className="font-mono font-bold text-xs text-slate-800 truncate mt-0.5">
+                      {refDisplay} • {desigDisplay}
+                    </div>
+                  </div>
+                  <div className="space-y-0.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionMenuId(null);
+                        if (onNavigateToStockFilteredByRef) {
+                          onNavigateToStockFilteredByRef(refDisplay || desigDisplay);
+                        }
+                      }}
+                      className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-cyan-700 hover:bg-cyan-50 flex items-center gap-2 transition cursor-pointer group"
+                    >
+                      <Warehouse className="w-3.5 h-3.5 text-cyan-600 group-hover:scale-110 transition-transform" />
+                      <span>Filtrer le Stock Actuel ({currentStock})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionMenuId(null);
+                        setToEdit(item);
+                        setForm({
+                          id_type: item.id_type || item.type || '',
+                          ref: item.ref || item.id_designation || item.id_diag || '',
+                          designation: item.designation || item.libelle || item.nom || '',
+                          stockInitial: item.stockInitial || currentStock || 5,
+                          seuil: item.seuil || 3,
+                          emplacement: item.emplacement || 'A1-R1',
+                        });
+                        setShowAddModal(true);
+                      }}
+                      className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-indigo-700 hover:bg-indigo-50 flex items-center gap-2 transition cursor-pointer group"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-indigo-600 group-hover:scale-110 transition-transform" />
+                      <span>Modifier la Désignation</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveActionMenuId(null);
+                        setToDelete(item);
+                      }}
+                      className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition cursor-pointer group"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-500 group-hover:scale-110 transition-transform" />
+                      <span>Supprimer du Référentiel</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        },
+      },
+    ],
+    [stockItems, activeActionMenuId, onNavigateToStockFilteredByRef]
+  );
+
   return (
     <AnimatedPage className="space-y-4">
       {/* Top Banner (BDR Light GMAO Header Card with 3D Tactile Elevation) */}
@@ -746,380 +1004,33 @@ export default function DesignationView({
         )}
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out">
-        {/* Top Info Header Bar inside Card */}
-        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-slate-50/50 gap-2">
-          <div className="font-bold text-slate-800 text-[13px] flex items-center gap-2">
-            <BadgeCheck className="w-4 h-4 text-indigo-600" />
-            <span>Tableau Désignations d'Articles • Colonnes A → F</span>
-          </div>
-          <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-            ref (A) | designation (B) | id_type (C) | stockActuel (D) | alerte (E) | emplacement (F)
-          </div>
-        </div>
-
-        <div className="max-h-[62vh] overflow-y-auto overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 z-10 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 shadow-2xs select-none">
-              <tr>
-                <th className="py-3 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0">
-                  N°
-                </th>
-
-                {/* REF / CODE (A) */}
-                <th
-                  onClick={() => handleTableSort('ref')}
-                  className="py-3 px-4 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Référence / Code"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>REF / CODE</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(A)</span>
-                    {renderTableSortIcon('ref')}
-                  </div>
-                </th>
-
-                {/* DÉSIGNATION (B) */}
-                <th
-                  onClick={() => handleTableSort('designation')}
-                  className="py-3 px-4 min-w-[220px] cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Désignation"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>DÉSIGNATION</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(B)</span>
-                    {renderTableSortIcon('designation')}
-                  </div>
-                </th>
-
-                {/* TYPE PARENT (C) */}
-                <th
-                  onClick={() => handleTableSort('id_type')}
-                  className="py-3 px-4 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Type Parent"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>TYPE PARENT</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(C)</span>
-                    {renderTableSortIcon('id_type')}
-                  </div>
-                </th>
-
-                {/* STOCK ACTUEL (D) */}
-                <th
-                  onClick={() => handleTableSort('stockActuel')}
-                  className="py-3 px-3 text-right cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Stock Actuel"
-                >
-                  <div className="flex items-center justify-end gap-1.5">
-                    <Boxes className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>STOCK ACTUEL</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(D)</span>
-                    {renderTableSortIcon('stockActuel')}
-                  </div>
-                </th>
-
-                {/* ÉTAT (E) */}
-                <th
-                  onClick={() => handleTableSort('alerte')}
-                  className="py-3 px-3 text-center cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par État du Stock"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <AlertTriangle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>ÉTAT</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(E)</span>
-                    {renderTableSortIcon('alerte')}
-                  </div>
-                </th>
-
-                {/* EMPLACEMENT (F) */}
-                <th
-                  onClick={() => handleTableSort('emplacement')}
-                  className="py-3 px-4 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Emplacement"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>EMPLACEMENT</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(F)</span>
-                    {renderTableSortIcon('emplacement')}
-                  </div>
-                </th>
-
-                <th
-                  className="py-3 px-4 text-center select-none font-bold text-slate-400 tracking-widest"
-                  title="Actions (Voir Stock, Modifier, Supprimer)"
-                >
-                  •••
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200/80">
-              {displayedData.map((item, idx) => {
-                const rowNum = startIndex + idx + 1;
-                if (item.__isEmptyPlaceholder) {
-                  return (
-                    <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                      <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
-                        {rowNum}
-                      </td>
-                      <td colSpan={7} className="py-3 px-4 text-center text-slate-300 font-mono text-[11px]">
-                        —
-                      </td>
-                    </tr>
-                  );
-                }
-                const itemRefKey = String(item.ref || item.id_designation || item.id_diag || '').trim().toLowerCase();
-                const itemDesigKey = String(item.designation || item.libelle || item.nom || '').trim().toLowerCase();
-
-                const stockMatch = stockItems.find((s) => {
-                  const sRef = String(s.ref || '').trim().toLowerCase();
-                  const sDesig = String(s.designation || '').trim().toLowerCase();
-                  if (itemRefKey && sRef === itemRefKey) return true;
-                  if (itemDesigKey && sDesig === itemDesigKey) return true;
-                  return false;
-                });
-
-                const currentStock = stockMatch ? stockMatch.stockActuel : (item.stockActuel != null ? item.stockActuel : item.stockInitial || 0);
-                const threshold = stockMatch ? stockMatch.seuil : item.seuil || 3;
-                const alertStatus = stockMatch
-                  ? stockMatch.alerte
-                  : currentStock <= 0
-                    ? 'RUPTURE'
-                    : currentStock <= threshold
-                      ? 'ALERTE'
-                      : 'OK';
-                const location = stockMatch ? stockMatch.emplacement : item.emplacement || 'A1-R1';
-                const typeName = item.id_type || item.type || (stockMatch ? stockMatch.type || stockMatch.id_type : 'Standard');
-                const refDisplay = item.ref || item.id_designation || item.id_diag || (stockMatch ? stockMatch.ref : 'N/A');
-                const desigDisplay = item.designation || item.libelle || item.nom || (stockMatch ? stockMatch.designation : 'Sans désignation');
-                const uniqueRowKey = item.id || item.ref || item.id_designation || item.id_diag || `desig-${idx}`;
-
-                return (
-                  <tr
-                    key={`desig-row-${uniqueRowKey}-${idx}`}
-                    className="even:bg-slate-50/80 odd:bg-white hover:bg-slate-100/70 border-b border-slate-200/70 transition-colors"
-                  >
-                    {/* Row N° Column */}
-                    <td className="py-2.5 px-3 text-center font-mono text-[11px] font-bold text-slate-400 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
-                      {rowNum}
-                    </td>
-                    <td className="py-3 px-4 font-mono font-bold text-slate-900">
-                      <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-[11.5px]">
-                        {refDisplay}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 font-semibold text-slate-900 text-[13px]">
-                      {desigDisplay}
-                    </td>
-                    <td className="py-3 px-4">
-                      <button
-                        onClick={() => setDesigTypeFilter(typeName)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-semibold transition ${getTypeStyle(typeName)}`}
-                        title="Filtrer par ce Type"
-                      >
-                        <Tag className="w-3 h-3 opacity-70" />
-                        <span>{typeName}</span>
-                      </button>
-                    </td>
-                    <td className="py-3 px-3 text-right font-mono font-bold text-slate-800 text-[13px]">
-                      {currentStock}
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      {alertStatus === 'RUPTURE' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                          <XCircle className="w-3 h-3" />
-                          <span>RUPTURE</span>
-                        </span>
-                      )}
-                      {alertStatus === 'ALERTE' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          <AlertTriangle className="w-3 h-3" />
-                          <span>ALERTE</span>
-                        </span>
-                      )}
-                      {alertStatus === 'OK' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>OK</span>
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 font-mono text-slate-500 text-[11px]">{location}</td>
-                    <td className="py-3 px-4 text-center whitespace-nowrap">
-                      <div className="relative inline-flex items-center justify-center action-menu-container">
-                        <div className="inline-flex rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-                          {/* Quick Action: Filtrer le Stock Actuel */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (onNavigateToStockFilteredByRef) {
-                                onNavigateToStockFilteredByRef(refDisplay || desigDisplay);
-                              }
-                              setActiveActionMenuId(null);
-                            }}
-                            className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
-                            title="Filtrer le Stock Actuel sur cet article"
-                          >
-                            <Warehouse className="w-3.5 h-3.5 text-slate-900" />
-                          </button>
-
-                          {/* 3-dots Toggle Button */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveActionMenuId(activeActionMenuId === uniqueRowKey ? null : uniqueRowKey);
-                            }}
-                            className={`p-1.5 hover:bg-slate-100 transition cursor-pointer ${
-                              activeActionMenuId === uniqueRowKey
-                                ? 'bg-slate-100 text-cyan-700 font-bold'
-                                : 'text-slate-500 hover:text-slate-800'
-                            }`}
-                            title="Actions et options de la désignation"
-                          >
-                            <MoreVertical className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        {/* Popover Action Menu Card */}
-                        {activeActionMenuId === uniqueRowKey && (
-                          <div className="absolute right-0 top-full mt-1.5 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150 space-y-1">
-                            {/* Card Header */}
-                            <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
-                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                Actions Désignation PDR
-                              </div>
-                              <div className="font-mono font-bold text-xs text-slate-800 truncate mt-0.5">
-                                {refDisplay} • {desigDisplay}
-                              </div>
-                            </div>
-
-                            {/* Menu Items */}
-                            <div className="space-y-0.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveActionMenuId(null);
-                                  if (onNavigateToStockFilteredByRef) {
-                                    onNavigateToStockFilteredByRef(refDisplay || desigDisplay);
-                                  }
-                                }}
-                                className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-cyan-700 hover:bg-cyan-50 flex items-center gap-2 transition cursor-pointer group"
-                              >
-                                <Warehouse className="w-3.5 h-3.5 text-cyan-600 group-hover:scale-110 transition-transform" />
-                                <span>Filtrer le Stock Actuel ({currentStock})</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveActionMenuId(null);
-                                  setDesigTypeFilter(typeName);
-                                }}
-                                className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-indigo-700 hover:bg-indigo-50 flex items-center gap-2 transition cursor-pointer group"
-                              >
-                                <Tag className="w-3.5 h-3.5 text-indigo-600 group-hover:scale-110 transition-transform" />
-                                <span>Filtrer par ce Type ({typeName})</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveActionMenuId(null);
-                                  setToEdit({ ...item });
-                                }}
-                                className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-blue-700 hover:bg-blue-50 flex items-center gap-2 transition cursor-pointer group border-t border-slate-100 mt-1 pt-2"
-                              >
-                                <Edit2 className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
-                                <span>Modifier la Désignation</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveActionMenuId(null);
-                                  setToDelete(item);
-                                }}
-                                className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-rose-700 hover:bg-rose-50 flex items-center gap-2 transition cursor-pointer group"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-rose-600 group-hover:scale-110 transition-transform" />
-                                <span>Supprimer la Désignation</span>
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Add Modal */}
-
-      {/* Pagination Footer */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-slate-600">Lignes par page :</span>
-          <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-            {[25, 50, 100, 200, 0].map((size) => (
-              <button
-                key={size}
-                onClick={() => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
-                  pageSize === size
-                    ? 'bg-white text-cyan-800 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out border border-slate-200/50'
-                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                }`}
-              >
-                {size === 0 ? 'Tout' : size}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-xs font-semibold text-slate-500">
-            Affichage <b className="text-slate-900">{totalItems === 0 ? 0 : startIndex + 1}</b> à{' '}
-            <b className="text-slate-900">{Math.min(startIndex + effectivePageSize, totalItems)}</b>{' '}
-            sur <b className="text-slate-900">{totalItems}</b>
-          </div>
-          {pageSize !== 0 && totalPages > 1 && (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Précédent
-              </button>
-              <span className="px-2 font-mono text-xs font-bold text-slate-600">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition"
-              >
-                Suivant
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Unified Industrial Data Grid */}
+      <GmaoIndustrialDataGrid
+        title="Tableau Désignations d'Articles • Colonnes A → F"
+        icon={<BadgeCheck className="w-4 h-4 text-indigo-600" />}
+        excelMapping="ref (A) | designation (B) | id_type (C) | stockActuel (D) | alerte (E) | emplacement (F)"
+        bannerColor="slate"
+        columns={designationColumns}
+        data={displayedData}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={handleTableSort}
+        renderSortIcon={renderTableSortIcon}
+        startIndex={startIndex}
+        showRowNumber={true}
+        emptyIcon={<BadgeCheck className="w-8 h-8 text-slate-300" />}
+        emptyMessage="Aucune désignation trouvée"
+        pagination={{
+          currentPage,
+          setCurrentPage,
+          pageSize,
+          setPageSize,
+          totalItems,
+          pageSizeOptions: [25, 50, 100, 200, 0],
+          color: 'cyan',
+          itemLabel: 'désignations',
+        }}
+      />
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">

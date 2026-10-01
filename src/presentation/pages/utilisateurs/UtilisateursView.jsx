@@ -1,6 +1,7 @@
 import {  useState, useRef, useMemo, useEffect  } from 'react';
 import AnimatedPage from '../../components/common/AnimatedPage';
 import CustomSelect from '../../components/common/CustomSelect';
+import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import {
   Users,
   User,
@@ -10,8 +11,6 @@ import {
   Trash2,
   Edit2,
   AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
   SlidersHorizontal,
   ArrowUpDown,
   ChevronDown,
@@ -452,6 +451,220 @@ export default function UtilisateursView({
       <ArrowDown className="w-3 h-3 text-indigo-700 shrink-0 font-bold" />
     );
   };
+
+  const userColumns = useMemo(
+    () => [
+      {
+        key: 'id',
+        label: 'IDENTIFIANT',
+        colLetter: 'B',
+        icon: Hash,
+        sortable: true,
+        render: (user) => (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-mono font-bold text-xs bg-slate-100 text-slate-900 border border-slate-200/90 shadow-2xs">
+            <Hash className="w-3 h-3 text-indigo-600 shrink-0" />
+            <span>{user.id}</span>
+          </span>
+        ),
+      },
+      {
+        key: 'nom',
+        label: 'NOM COMPLET',
+        colLetter: 'C',
+        icon: User,
+        sortable: true,
+        render: (user) => {
+          const isResp = user.type === 'RESPONSABLE';
+          const isTech = user.type === 'TECHNICIEN';
+          const isOp = user.type === 'OPERATEUR';
+          return (
+            <div className="flex items-center gap-2.5">
+              <div
+                className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border shadow-2xs ${
+                  isTech
+                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                    : isOp
+                      ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                      : 'bg-purple-50 text-purple-700 border-purple-200'
+                }`}
+              >
+                {isTech ? (
+                  <Wrench className="w-3.5 h-3.5 text-blue-600" />
+                ) : isOp ? (
+                  <ClipboardList className="w-3.5 h-3.5 text-indigo-600" />
+                ) : (
+                  <SupervisorAccount className="w-3.5 h-3.5 text-amber-600" />
+                )}
+              </div>
+              <div>
+                <span className="font-bold text-slate-900 text-xs sm:text-[12.5px] block leading-tight">
+                  {user.nom}
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
+                  <User className="w-2.5 h-2.5 text-slate-400" />
+                  <span>
+                    {isResp
+                      ? 'Cadre / Supervision'
+                      : isTech
+                        ? 'Maintenance Industrielle'
+                        : 'Opérations & Lignes'}
+                  </span>
+                </span>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        key: 'type',
+        label: 'PROFIL & RÔLE',
+        colLetter: 'D',
+        icon: ShieldCheck,
+        sortable: true,
+        render: (user) => {
+          const isResp = user.type === 'RESPONSABLE';
+          const isOp = user.type === 'OPERATEUR';
+          const tpls =
+            Array.isArray(user.templates) && user.templates.length > 0
+              ? user.templates
+              : getTemplatesForUser(user);
+
+          if (isOp) {
+            return (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
+                <ClipboardList className="w-3 h-3 text-indigo-600 shrink-0" />
+                <span>Opérateur Ligne (OP)</span>
+              </span>
+            );
+          }
+          if (isResp) {
+            return (
+              <div className="flex flex-wrap gap-1 items-center max-w-sm">
+                {tpls.map((tpl, tplIdx) => (
+                  <span
+                    key={`tpl-${user.id || 'u'}-${tpl.id || tplIdx}`}
+                    className={`inline-flex items-center gap-1 text-[10.5px] font-bold border px-2.5 py-0.5 rounded-full shadow-2xs ${tpl.badgeClass || ''}`}
+                    title={`${tpl.label || ''} - ${tpl.description || ''}`}
+                  >
+                    <Crown className="w-2.5 h-2.5 shrink-0 opacity-80" />
+                    <span>
+                      [{tpl.id}] {tpl.label}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            );
+          }
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs">
+              <Wrench className="w-3 h-3 text-blue-600 shrink-0" />
+              <span>Technicien (TECH)</span>
+            </span>
+          );
+        },
+      },
+      {
+        key: 'id_zone',
+        label: "ZONE(S) D'AFFECTATION",
+        colLetter: 'E',
+        icon: MapPin,
+        sortable: true,
+        render: (user) => {
+          if (user.zones && user.zones.includes('ALL')) {
+            return (
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 shadow-2xs">
+                <Globe className="w-3 h-3 text-purple-600 shrink-0" />
+                <span>ALL (Toutes les zones)</span>
+              </span>
+            );
+          }
+          const userZoneList = user.zones && user.zones.length > 0 ? user.zones : [user.id_zone];
+          return (
+            <div className="flex flex-wrap gap-1 items-center max-w-xs">
+              {userZoneList.map((zid, zIdx) => {
+                const zObj = zones.find((z) => z.id_zone === zid);
+                return (
+                  <span
+                    key={`zone-tag-${user.id || 'u'}-${zid || 'na'}-${zIdx}`}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 shadow-2xs"
+                  >
+                    <MapPin className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+                    <span className="font-semibold text-slate-800">{zObj ? zObj.libelle : zid}</span>
+                    <span className="text-[10px] font-mono text-slate-400">({zid})</span>
+                  </span>
+                );
+              })}
+            </div>
+          );
+        },
+      },
+      {
+        key: 'specialite',
+        label: 'SPÉCIALITÉ / DOMAINE',
+        colLetter: 'F',
+        icon: Wrench,
+        render: (user) => (
+          <div className="flex items-center gap-1.5 text-xs max-w-xs truncate" title={user.specialite}>
+            <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <span className="font-medium text-slate-700 truncate">
+              {user.specialite || '— Polyvalent / Affectation Générale —'}
+            </span>
+          </div>
+        ),
+      },
+      {
+        key: 'actions',
+        label: '•••',
+        align: 'center',
+        headerClassName: 'w-24 text-center font-bold text-slate-400 tracking-widest select-none',
+        render: (user) => (
+          <div className="flex items-center justify-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                const userTpls = normalizeTemplateIds(
+                  user.templates || user.template_ids || user.template_id
+                );
+                setUserToEdit(user);
+                setForm({
+                  type: user.type,
+                  nom: user.nom,
+                  id_zone: user.id_zone,
+                  zones:
+                    user.zones && user.zones.length > 0
+                      ? user.zones
+                      : [user.id_zone || 'ALL'],
+                  templates: userTpls.length > 0 ? userTpls : ['RMT'],
+                  template_id: userTpls.join(', ') || 'RMT',
+                  specialite:
+                    user.specialite === 'Spécialité Maintenance' ||
+                    user.specialite?.includes('Opérateur') ||
+                    user.specialite?.includes('Supervision') ||
+                    user.specialite?.includes('Responsabilité')
+                      ? ''
+                      : user.specialite || '',
+                });
+                setShowAddModal(true);
+              }}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 transition cursor-pointer shadow-2xs"
+              title="Modifier l'utilisateur"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setUserToDelete(user)}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 transition cursor-pointer shadow-2xs"
+              title="Supprimer l'utilisateur"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [zones]
+  );
 
   return (
     <AnimatedPage className="space-y-5">
@@ -912,400 +1125,33 @@ export default function UtilisateursView({
           )}
         </div>
 
-        {/* Unified Table in Excel Twin Style (like Journal des Mouvements) */}
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out">
-          {/* Top Info Header Bar inside Card */}
-          <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-slate-50/50 gap-2">
-            <div className="font-bold text-slate-800 text-[13px] flex items-center gap-2">
-              <Users className="w-4 h-4 text-indigo-600" />
-              <span>Tableau Utilisateurs • Colonnes B → F</span>
-            </div>
-            <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-              id_user (B) | nom (C) | type_profil (D) | id_zone (E) | specialite (F)
-            </div>
-          </div>
-
-          <div className="h-[1150px] overflow-y-auto overflow-x-auto">
-            <table className="min-w-[850px] w-full text-left text-xs whitespace-nowrap border-collapse">
-              <thead className="bg-slate-100/90 text-[10.5px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 select-none">
-                <tr>
-                  <th className="py-2.5 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/50 border-r border-slate-200 shrink-0">
-                    N°
-                  </th>
-
-                  {/* IDENTIFIANT (B) */}
-                  <th
-                    onClick={() => handleSort('id')}
-                    className="py-2.5 px-4 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left"
-                    title="Cliquer pour trier par Identifiant Unique"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Hash className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                      <span>IDENTIFIANT</span>{' '}
-                      <span className="text-slate-400 font-normal text-[10px] font-mono">(B)</span>
-                      {renderSortIcon('id')}
-                    </div>
-                  </th>
-
-                  {/* NOM COMPLET (C) */}
-                  <th
-                    onClick={() => handleSort('nom')}
-                    className="py-2.5 px-4 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left"
-                    title="Cliquer pour trier par Nom Complet"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                      <span>NOM COMPLET</span>{' '}
-                      <span className="text-slate-400 font-normal text-[10px] font-mono">(C)</span>
-                      {renderSortIcon('nom')}
-                    </div>
-                  </th>
-
-                  {/* PROFIL & RÔLE (D) */}
-                  <th
-                    onClick={() => handleSort('type')}
-                    className="py-2.5 px-4 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left"
-                    title="Cliquer pour trier par Profil & Rôle"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                      <span>PROFIL & RÔLE</span>{' '}
-                      <span className="text-slate-400 font-normal text-[10px] font-mono">(D)</span>
-                      {renderSortIcon('type')}
-                    </div>
-                  </th>
-
-                  {/* ZONE(S) D'AFFECTATION (E) */}
-                  <th
-                    onClick={() => handleSort('id_zone')}
-                    className="py-2.5 px-4 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left"
-                    title="Cliquer pour trier par Zone d'Affectation"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>ZONE(S) D&apos;AFFECTATION</span>{' '}
-                      <span className="text-slate-400 font-normal text-[10px] font-mono">(E)</span>
-                      {renderSortIcon('id_zone')}
-                    </div>
-                  </th>
-
-                  {/* SPÉCIALITÉ / DESCRIPTION (F) */}
-                  <th className="py-2.5 px-4 text-slate-700 font-bold select-none text-left">
-                    <div className="flex items-center gap-1.5">
-                      <Wrench className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                      <span>SPÉCIALITÉ / DOMAINE</span>{' '}
-                      <span className="text-slate-400 font-normal text-[10px] font-mono">(F)</span>
-                    </div>
-                  </th>
-
-                  {/* ACTIONS COLUMN: "•••" */}
-                  <th
-                    className="py-2.5 px-4 text-center w-20 select-none font-bold text-slate-400 tracking-widest"
-                    title="Actions (Modifier / Supprimer)"
-                  >
-                    •••
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {displayedData.map((user, idx) => {
-                    const realIndex = startIndex + idx;
-                    if (user.__isEmptyPlaceholder) {
-                      return (
-                        <tr key={`empty-row-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                          <td className="py-2.5 px-3 text-center font-mono text-[10.5px] text-slate-300 bg-slate-100/30 border-r border-slate-200/60 shrink-0">
-                            {realIndex + 1}
-                          </td>
-                          <td colSpan={6} className="py-2.5 px-4 text-center text-slate-300 font-mono text-[11px]">
-                            —
-                          </td>
-                        </tr>
-                      );
-                    }
-                    const isResp = user.type === 'RESPONSABLE';
-                    const isTech = user.type === 'TECHNICIEN';
-                    const isOp = user.type === 'OPERATEUR';
-
-                    const tpls = Array.isArray(user.templates) && user.templates.length > 0
-                      ? user.templates
-                      : getTemplatesForUser(user);
-
-                    return (
-                      <tr
-                        key={`user-row-${user.id || 'usr'}-${user.type || 'typ'}-${realIndex}`}
-                        className="even:bg-slate-50/70 odd:bg-white hover:bg-indigo-50/40 transition-colors border-b border-slate-100"
-                      >
-                        {/* Row N° Column */}
-                        <td className="py-2.5 px-3 text-center font-mono text-[10.5px] font-bold text-slate-400 bg-slate-100/30 border-r border-slate-200/60 shrink-0">
-                          {realIndex + 1}
-                        </td>
-
-                        {/* IDENTIFIANT (B) */}
-                        <td className="py-2.5 px-4 whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-mono font-bold text-xs bg-slate-100 text-slate-900 border border-slate-200/90 shadow-2xs">
-                            <Hash className="w-3 h-3 text-indigo-600 shrink-0" />
-                            <span>{user.id}</span>
-                          </span>
-                        </td>
-
-                        {/* NOM COMPLET (C) */}
-                        <td className="py-2.5 px-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2.5">
-                            <div
-                              className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border shadow-2xs ${
-                                isTech
-                                  ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                  : isOp
-                                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                                    : 'bg-purple-50 text-purple-700 border-purple-200'
-                              }`}
-                            >
-                              {isTech ? (
-                                <Wrench className="w-3.5 h-3.5 text-blue-600" />
-                              ) : isOp ? (
-                                <ClipboardList className="w-3.5 h-3.5 text-indigo-600" />
-                              ) : (
-                                <SupervisorAccount className="w-3.5 h-3.5 text-amber-600" />
-                              )}
-                            </div>
-                            <div>
-                              <span className="font-bold text-slate-900 text-xs sm:text-[12.5px] block leading-tight">
-                                {user.nom}
-                              </span>
-                              <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
-                                <User className="w-2.5 h-2.5 text-slate-400" />
-                                <span>{isResp ? 'Cadre / Supervision' : isTech ? 'Maintenance Industrielle' : 'Opérations & Lignes'}</span>
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* PROFIL & RÔLE (D) */}
-                        <td className="py-2.5 px-4 whitespace-nowrap">
-                          {isOp ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
-                              <ClipboardList className="w-3 h-3 text-indigo-600 shrink-0" />
-                              <span>Opérateur Ligne (OP)</span>
-                            </span>
-                          ) : isResp ? (
-                            <div className="flex flex-wrap gap-1 items-center max-w-sm">
-                              {tpls.map((tpl, tplIdx) => (
-                                <span
-                                  key={`tpl-${user.id || realIndex}-${tpl.id || tplIdx}`}
-                                  className={`inline-flex items-center gap-1 text-[10.5px] font-bold border px-2.5 py-0.5 rounded-full shadow-2xs ${tpl.badgeClass || ''}`}
-                                  title={`${tpl.label || ''} - ${tpl.description || ''}`}
-                                >
-                                  <Crown className="w-2.5 h-2.5 shrink-0 opacity-80" />
-                                  <span>[{tpl.id}] {tpl.label}</span>
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs">
-                              <Wrench className="w-3 h-3 text-blue-600 shrink-0" />
-                              <span>Technicien (TECH)</span>
-                            </span>
-                          )}
-                        </td>
-
-                        {/* ZONE(S) D'AFFECTATION (E) */}
-                        <td className="py-2.5 px-4 whitespace-nowrap">
-                          {user.zones && user.zones.includes('ALL') ? (
-                            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 shadow-2xs">
-                              <Globe className="w-3 h-3 text-purple-600 shrink-0" />
-                              <span>ALL (Toutes les zones)</span>
-                            </span>
-                          ) : (
-                            <div className="flex flex-wrap gap-1 items-center max-w-xs">
-                              {(user.zones && user.zones.length > 0 ? user.zones : [user.id_zone]).map(
-                                (zid, zIdx) => {
-                                  const zObj = zones.find((z) => z.id_zone === zid);
-                                  return (
-                                    <span
-                                      key={`zone-tag-${user.id || realIndex}-${zid || 'na'}-${zIdx}`}
-                                      className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 shadow-2xs"
-                                    >
-                                      <MapPin className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
-                                      <span className="font-semibold text-slate-800">{zObj ? zObj.libelle : zid}</span>
-                                      <span className="text-[10px] font-mono text-slate-400">({zid})</span>
-                                    </span>
-                                  );
-                                }
-                              )}
-                            </div>
-                          )}
-                        </td>
-
-                        {/* SPÉCIALITÉ / DESCRIPTION (F) */}
-                        <td className="py-2.5 px-4 text-slate-600 max-w-xs truncate" title={user.specialite}>
-                          <div className="flex items-center gap-1.5 text-xs">
-                            <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                            <span className="font-medium text-slate-700 truncate">
-                              {user.specialite || '— Polyvalent / Affectation Générale —'}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* ACTIONS (•••) */}
-                        <td className="py-2.5 px-4 text-center whitespace-nowrap">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const userTpls = normalizeTemplateIds(
-                                  user.templates || user.template_ids || user.template_id
-                                );
-                                setUserToEdit(user);
-                                setForm({
-                                  type: user.type,
-                                  nom: user.nom,
-                                  id_zone: user.id_zone,
-                                  zones:
-                                    user.zones && user.zones.length > 0
-                                      ? user.zones
-                                      : [user.id_zone || 'ALL'],
-                                  templates: userTpls.length > 0 ? userTpls : ['RMT'],
-                                  template_id: userTpls.join(', ') || 'RMT',
-                                  specialite:
-                                    user.specialite === 'Spécialité Maintenance' ||
-                                    user.specialite?.includes('Opérateur') ||
-                                    user.specialite?.includes('Supervision') ||
-                                    user.specialite?.includes('Responsabilité')
-                                      ? ''
-                                      : user.specialite || '',
-                                });
-                                setShowAddModal(true);
-                              }}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 transition cursor-pointer shadow-2xs"
-                              title="Modifier l'utilisateur"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setUserToDelete(user)}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 transition cursor-pointer shadow-2xs"
-                              title="Supprimer l'utilisateur"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-
-              {/* 20-row placeholder filler */}
-              {pageSize !== 0 && displayedData.length < 20 && (
-                Array.from({ length: Math.max(0, (pageSize || 20) - displayedData.length) }).map((_, idx) => (
-                  <tr key={`empty-fill-${idx}`} className="h-10 opacity-30 select-none pointer-events-none">
-                    <td className="py-2.5 px-3 text-center font-mono text-[10px] text-slate-300 bg-slate-50 border-r border-slate-100">-</td>
-                    <td className="border-r border-slate-100 text-center text-[10px] text-slate-300 px-3">-</td>
-                    <td className="border-r border-slate-100 text-[10px] text-slate-300 px-3">-</td>
-                    <td className="border-r border-slate-100 text-center text-[10px] text-slate-300 px-3">-</td>
-                    <td className="border-r border-slate-100 text-center text-[10px] text-slate-300 px-3">-</td>
-                    <td className="border-r border-slate-100 text-center text-[10px] text-slate-300 px-3">-</td>
-                    <td className="text-center text-[10px] text-slate-300 px-3">-</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Pagination Footer */}
-        <div className="bg-white p-3 md:p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-3 mt-4">
-          <div className="text-xs text-slate-600 font-medium">
-            {totalItems > 0 ? (
-              <>
-                Affichage de <b>{startIndex + 1}</b> à <b>{Math.min(startIndex + effectivePageSize, totalItems)}</b> sur <b>{totalItems}</b> membres (Page <b>{currentPage}</b> / <b>{totalPages}</b>)
-              </>
-            ) : (
-              '0 membre'
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold text-slate-400 uppercase font-mono hidden sm:inline">Lignes :</span>
-            <div className="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/80">
-              {[20, 50, 100, 200, 0].map((size) => (
-                <button
-                  key={`page-size-btn-${size}`}
-                  onClick={() => {
-                    setPageSize(size);
-                    setCurrentPage(1);
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold font-mono transition cursor-pointer active:scale-95 ${
-                    pageSize === size
-                      ? 'bg-indigo-600 text-white shadow-2xs font-black'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {size === 0 ? 'Tout' : size}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage <= 1}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1 cursor-pointer active:scale-95 ${
-                currentPage <= 1
-                  ? 'opacity-40 border-slate-200 text-slate-400 cursor-not-allowed'
-                  : 'border-slate-200/90 bg-slate-50 hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Précédent</span>
-            </button>
-
-            {pageSize !== 0 && totalPages > 1 && (
-              Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-
-                return (
-                  <button
-                    key={pageNum}
-                    type="button"
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={`w-8 h-8 rounded-xl text-xs font-bold font-mono transition flex items-center justify-center cursor-pointer active:scale-95 ${
-                      currentPage === pageNum
-                        ? 'bg-indigo-600 text-white shadow-2xs font-black'
-                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })
-            )}
-
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={pageSize === 0 || currentPage >= totalPages}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1 cursor-pointer active:scale-95 ${
-                pageSize === 0 || currentPage >= totalPages
-                  ? 'opacity-40 border-slate-200 text-slate-400 cursor-not-allowed'
-                  : 'border-slate-200/90 bg-slate-50 hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              <span className="hidden sm:inline">Suivant</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
+        {/* Unified Industrial Data Grid */}
+        <GmaoIndustrialDataGrid
+          title="Tableau Utilisateurs • Colonnes B → F"
+          icon={<Users className="w-4 h-4 text-indigo-600" />}
+          excelMapping="id_user (B) | nom (C) | type_profil (D) | id_zone (E) | specialite (F)"
+          bannerColor="indigo"
+          columns={userColumns}
+          data={displayedData}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          renderSortIcon={renderSortIcon}
+          startIndex={startIndex}
+          showRowNumber={true}
+          emptyIcon={<Users className="w-8 h-8 text-slate-300" />}
+          emptyMessage="Aucun utilisateur trouvé"
+          pagination={{
+            currentPage,
+            setCurrentPage,
+            pageSize,
+            setPageSize,
+            totalItems,
+            pageSizeOptions: [20, 50, 100, 200, 0],
+            color: 'indigo',
+            itemLabel: 'membres',
+          }}
+        />
 
         {/* Manual Add / Edit Modal */}
         {showAddModal && (

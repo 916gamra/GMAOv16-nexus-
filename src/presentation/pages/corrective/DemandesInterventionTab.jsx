@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import CustomSelect from '../../components/common/CustomSelect';
-import TablePaginationCard from '../../components/common/TablePaginationCard';
+import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 
 export default function DemandesInterventionTab({
   interventions = [],
@@ -471,6 +471,177 @@ export default function DemandesInterventionTab({
       onNavigateToTab('corrective_bt');
     }
   };
+
+  const diColumns = useMemo(
+    () => [
+      {
+        key: 'code_machine',
+        label: 'Machine',
+        colLetter: 'Col A',
+        icon: Factory,
+        sortable: true,
+        render: (di) => (
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <span className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-700 flex items-center justify-center font-black text-[10px] border border-amber-200/60 shadow-2xs font-mono">
+              {String(di.code_machine || 'MCH').slice(0, 3)}
+            </span>
+            <span className="font-bold text-slate-900 font-mono">{di.code_machine}</span>
+          </div>
+        ),
+      },
+      {
+        key: 'date_demande',
+        label: 'Date & Heure',
+        colLetter: 'Col C',
+        icon: Clock,
+        sortable: true,
+        render: (di) => (
+          <div className="font-mono whitespace-nowrap">
+            <div className="font-semibold text-slate-800">{di.date_demande || di.date || '2026-03-24'}</div>
+            <div className="text-[10.5px] text-slate-400">{di.heure_demande || di.heure || '08:00'}</div>
+          </div>
+        ),
+      },
+      {
+        key: 'type_panne',
+        label: 'Type',
+        colLetter: 'Col I',
+        icon: Layers,
+        sortable: true,
+        render: (di) => (
+          <span className="px-2.5 py-1 rounded-md font-mono font-bold text-xs bg-slate-100 text-slate-800 border border-slate-200 shadow-2xs">
+            {di.type_panne || 'M'}
+          </span>
+        ),
+      },
+      {
+        key: 'anomalie',
+        label: 'Anomalie Constatée',
+        colLetter: 'Col J',
+        icon: AlertTriangle,
+        sortable: true,
+        render: (di) => (
+          <span className="font-bold text-slate-900 max-w-xs truncate block" title={di.anomalie}>
+            {di.anomalie || 'court_circuit'}
+          </span>
+        ),
+      },
+      {
+        key: 'demandeur',
+        label: 'Demandeur / Travail Demandé',
+        icon: User,
+        render: (di) => (
+          <div className="max-w-xs truncate" title={di.travail_a_faire}>
+            <span className="font-semibold text-slate-800 mr-1.5 px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-[10.5px]">
+              {di.demandeur || 'Production'}
+            </span>
+            <span className="text-slate-600">{di.travail_a_faire || 'Diagnostic en attente'}</span>
+          </div>
+        ),
+      },
+      {
+        key: 'arret_machine',
+        label: 'Arrêt Machine',
+        icon: Power,
+        align: 'center',
+        sortable: true,
+        render: (di) => {
+          const isArret = di.arret_machine === true || di.arret_machine === 'OUI';
+          return isArret ? (
+            <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-rose-100 text-rose-800 border border-rose-200 font-mono shadow-2xs">
+              ARRÊT
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-slate-100 text-slate-500 font-mono">
+              NON
+            </span>
+          );
+        },
+      },
+      {
+        key: 'priorite',
+        label: 'Priorité',
+        icon: Flame,
+        align: 'center',
+        sortable: true,
+        render: (di) => (
+          <span
+            className={`px-2.5 py-1 rounded-full font-bold text-[10.5px] font-mono shadow-2xs ${
+              di.priorite === 'HAUTE'
+                ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                : di.priorite === 'BASSE'
+                ? 'bg-slate-100 text-slate-600 border border-slate-200/60'
+                : 'bg-amber-50 text-amber-700 border border-amber-200'
+            }`}
+          >
+            {di.priorite || 'MOYENNE'}
+          </span>
+        ),
+      },
+      {
+        key: 'statut',
+        label: 'Statut',
+        icon: Radio,
+        align: 'center',
+        sortable: true,
+        render: (di) => {
+          const isPending =
+            di.statut === 'DEMANDE' ||
+            di.statut === 'DEMANDE_CREEE' ||
+            di.statut === 'EN_ATTENTE_VALIDATION';
+          if (isPending) {
+            return (
+              <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-amber-100 text-amber-900 border border-amber-300 font-mono animate-pulse shadow-2xs">
+                EN ATTENTE
+              </span>
+            );
+          }
+          if (di.statut === 'EN_COURS') {
+            return (
+              <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-blue-100 text-blue-900 border border-blue-300 font-mono shadow-2xs">
+                BT ACTIF
+              </span>
+            );
+          }
+          return (
+            <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono shadow-2xs">
+              CLÔTURÉ
+            </span>
+          );
+        },
+      },
+      {
+        key: 'actions',
+        label: 'Action Rapide',
+        icon: Wrench,
+        align: 'center',
+        headerClassName: 'w-36 text-center whitespace-nowrap',
+        render: (di) => {
+          const isPending =
+            di.statut === 'DEMANDE' ||
+            di.statut === 'DEMANDE_CREEE' ||
+            di.statut === 'EN_ATTENTE_VALIDATION';
+          return isPending ? (
+            <button
+              onClick={() => handleOpenConvert(di)}
+              className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 mx-auto cursor-pointer shadow-2xs active:scale-95"
+              title="Convertir en Bon de Travail (BT) et affecter un technicien"
+            >
+              <Wrench className="w-3.5 h-3.5" />
+              <span>Générer BT</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 font-mono font-bold text-xs shadow-2xs">
+              <Check className="w-3 h-3 text-indigo-600" />
+              {di.num_bt || 'BT-OK'}
+            </span>
+          );
+        },
+      },
+    ],
+    []
+  );
 
   return (
     <div className="space-y-6">
@@ -1053,300 +1224,32 @@ export default function DemandesInterventionTab({
         )}
       </div>
 
-      {/* 3. Excel-Grade Clean Industrial Data Table */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] overflow-hidden">
-        {/* Subheader info bar */}
-        <div className="bg-slate-50/80 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs font-bold text-slate-600">
-          <div className="flex items-center gap-2">
-            <FileSpreadsheet className="w-4 h-4 text-amber-600" />
-            <span>Tableau Demandes_Intervention • Ordre Excel Row 3 : A → J</span>
-          </div>
-          <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-            N° | Machine (A) | Date & Heure (C) | Type (I) | Anomalie Constatée (J) | Demandeur / Travail | Arrêt | Priorité | Statut | Action BT
-          </div>
-        </div>
-
-        <div className="h-[1150px] overflow-y-auto overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs min-w-[1350px]">
-            <thead className="sticky top-0 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 z-10 shadow-2xs select-none">
-              <tr>
-                {/* Row N° Column Header */}
-                <th className="py-3.5 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0 select-none whitespace-nowrap">
-                  N°
-                </th>
-
-                {/* Machine (Col A) */}
-                <th
-                  onClick={() => toggleSort('code_machine')}
-                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[160px]"
-                  title="Cliquer pour trier par Machine"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <Factory className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Machine</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col A)</span>
-                    {renderSortIcon('code_machine')}
-                  </div>
-                </th>
-
-                {/* Date & Heure (Col C) */}
-                <th
-                  onClick={() => toggleSort('date_demande')}
-                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[170px]"
-                  title="Cliquer pour trier par Date & Heure"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Date & Heure</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col C)</span>
-                    {renderSortIcon('date_demande')}
-                  </div>
-                </th>
-
-                {/* Type (Col I) */}
-                <th
-                  onClick={() => toggleSort('type_panne')}
-                  className="py-3.5 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[110px]"
-                  title="Cliquer pour trier par Type de Panne"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Type</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col I)</span>
-                    {renderSortIcon('type_panne')}
-                  </div>
-                </th>
-
-                {/* Anomalie (Col J) */}
-                <th
-                  onClick={() => toggleSort('anomalie')}
-                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[220px]"
-                  title="Cliquer pour trier par Anomalie"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <AlertTriangle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Anomalie Constatée</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col J)</span>
-                    {renderSortIcon('anomalie')}
-                  </div>
-                </th>
-
-                {/* Demandeur / Travail */}
-                <th className="py-3.5 px-3.5 select-none whitespace-nowrap min-w-[260px]">
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Demandeur / Travail Demandé</span>
-                  </div>
-                </th>
-
-                {/* Arrêt Machine */}
-                <th
-                  onClick={() => toggleSort('arret_machine')}
-                  className="py-3.5 px-3 text-center cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[140px]"
-                  title="Cliquer pour trier par Arrêt Machine"
-                >
-                  <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
-                    <Power className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Arrêt Machine</span>
-                    {renderSortIcon('arret_machine')}
-                  </div>
-                </th>
-
-                {/* Priorité */}
-                <th
-                  onClick={() => toggleSort('priorite')}
-                  className="py-3.5 px-3 text-center cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[120px]"
-                  title="Cliquer pour trier par Priorité"
-                >
-                  <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
-                    <Flame className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Priorité</span>
-                    {renderSortIcon('priorite')}
-                  </div>
-                </th>
-
-                {/* Statut */}
-                <th
-                  onClick={() => toggleSort('statut')}
-                  className="py-3.5 px-3 text-center cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[130px]"
-                  title="Cliquer pour trier par Statut"
-                >
-                  <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
-                    <Radio className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Statut</span>
-                    {renderSortIcon('statut')}
-                  </div>
-                </th>
-
-                {/* Action Rapide */}
-                <th className="py-3.5 px-3.5 text-center select-none whitespace-nowrap min-w-[140px]">
-                  <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
-                    <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Action Rapide</span>
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200/80 font-sans">
-              {filteredDis.length === 0 ? (
-                <tr>
-                  <td colSpan="10" className="py-12 text-center text-slate-500 font-medium">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <Flame className="w-8 h-8 text-slate-300" />
-                      <span>Aucune demande d'intervention trouvée pour les filtres sélectionnés.</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                displayedDis.map((di, idx) => {
-                  const realIndex = startIndex + idx;
-                  if (di.__isEmptyPlaceholder) {
-                    return (
-                      <tr key={`empty-di-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                        <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
-                          {realIndex + 1}
-                        </td>
-                        <td colSpan={9} className="py-3 px-3 text-center text-slate-300 font-mono text-[11px]">
-                          —
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  const isPending =
-                    di.statut === 'DEMANDE' ||
-                    di.statut === 'DEMANDE_CREEE' ||
-                    di.statut === 'EN_ATTENTE_VALIDATION';
-                  const isArret = di.arret_machine === true || di.arret_machine === 'OUI';
-
-                  return (
-                    <tr
-                      key={`di-row-${di.id || 'di'}-${di.id_intervention || ''}-${realIndex}`}
-                      className="even:bg-slate-50/70 odd:bg-white hover:bg-amber-50/40 border-b border-slate-200/70 transition-colors"
-                    >
-                      {/* Row N° */}
-                      <td className="py-3 px-3 text-center font-mono text-[11px] font-bold text-slate-400 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
-                        {realIndex + 1}
-                      </td>
-
-                      {/* Machine */}
-                      <td className="py-3 px-4 font-bold text-slate-900 font-mono whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-700 flex items-center justify-center font-black text-[10px] border border-amber-200/60 shadow-2xs">
-                            {String(di.code_machine || 'MCH').slice(0, 3)}
-                          </span>
-                          <span>{di.code_machine}</span>
-                        </div>
-                      </td>
-
-                      {/* Date / Heure */}
-                      <td className="py-3 px-4 text-slate-600 font-mono whitespace-nowrap">
-                        <div className="font-semibold text-slate-800">{di.date_demande || di.date || '2026-03-24'}</div>
-                        <div className="text-[10.5px] text-slate-400">{di.heure_demande || di.heure || '08:00'}</div>
-                      </td>
-
-                      {/* Type Panne */}
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        <span className="px-2.5 py-1 rounded-md font-mono font-bold text-xs bg-slate-100 text-slate-800 border border-slate-200 shadow-2xs">
-                          {di.type_panne || 'M'}
-                        </span>
-                      </td>
-
-                      {/* Anomalie */}
-                      <td className="py-3 px-4 font-medium text-slate-800 max-w-xs truncate min-w-[160px]" title={di.anomalie}>
-                        <span className="font-bold text-slate-900">{di.anomalie || 'court_circuit'}</span>
-                      </td>
-
-                      {/* Demandeur / Travail */}
-                      <td className="py-3 px-4 text-slate-600 max-w-xs truncate min-w-[200px]" title={di.travail_a_faire}>
-                        <span className="font-semibold text-slate-800 mr-1.5 px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-[10.5px]">
-                          {di.demandeur || 'Production'}
-                        </span>
-                        <span className="text-slate-600">{di.travail_a_faire || 'Diagnostic en attente'}</span>
-                      </td>
-
-                      {/* Arrêt Machine */}
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        {isArret ? (
-                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-rose-100 text-rose-800 border border-rose-200 font-mono shadow-2xs">
-                            ARRÊT
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-slate-100 text-slate-500 font-mono">
-                            NON
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Priorité */}
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        <span
-                          className={`px-2.5 py-1 rounded-full font-bold text-[10.5px] font-mono shadow-2xs ${
-                            di.priorite === 'HAUTE'
-                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                              : di.priorite === 'BASSE'
-                              ? 'bg-slate-100 text-slate-600 border border-slate-200/60'
-                              : 'bg-amber-50 text-amber-700 border border-amber-200'
-                          }`}
-                        >
-                          {di.priorite || 'MOYENNE'}
-                        </span>
-                      </td>
-
-                      {/* Statut */}
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        {isPending ? (
-                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-amber-100 text-amber-900 border border-amber-300 font-mono animate-pulse shadow-2xs">
-                            EN ATTENTE
-                          </span>
-                        ) : di.statut === 'EN_COURS' ? (
-                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-blue-100 text-blue-900 border border-blue-300 font-mono shadow-2xs">
-                            BT ACTIF
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono shadow-2xs">
-                            CLÔTURÉ
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-3 px-4 text-center whitespace-nowrap">
-                        {isPending ? (
-                          <button
-                            onClick={() => handleOpenConvert(di)}
-                            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 mx-auto cursor-pointer shadow-2xs active:scale-95"
-                            title="Convertir en Bon de Travail (BT) et affecter un technicien"
-                          >
-                            <Wrench className="w-3.5 h-3.5" />
-                            <span>Générer BT</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </button>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 font-mono font-bold text-xs shadow-2xs">
-                            <Check className="w-3 h-3 text-indigo-600" />
-                            {di.num_bt || 'BT-OK'}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pagination Footer */}
-      <TablePaginationCard
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        pageSize={pageSize}
-        setPageSize={setPageSize}
-        totalItems={totalItems}
-        pageSizeOptions={[20, 25, 50, 100, 200, 0]}
-        color="amber"
+      {/* 3. Unified Industrial Data Grid */}
+      <GmaoIndustrialDataGrid
+        title="Tableau Demandes_Intervention • Ordre Excel Row 3 : A → J"
+        icon={<Flame className="w-4 h-4 text-amber-600" />}
+        excelMapping="Machine (A) | Date & Heure (C) | Type (I) | Anomalie Constatée (J) | Demandeur / Travail | Arrêt | Priorité | Statut | Action BT"
+        bannerColor="amber"
+        columns={diColumns}
+        data={displayedDis}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={toggleSort}
+        renderSortIcon={renderSortIcon}
+        startIndex={startIndex}
+        showRowNumber={true}
+        emptyIcon={<Flame className="w-8 h-8 text-slate-300" />}
+        emptyMessage="Aucune demande d'intervention trouvée pour les filtres sélectionnés."
+        pagination={{
+          currentPage,
+          setCurrentPage,
+          pageSize,
+          setPageSize,
+          totalItems,
+          pageSizeOptions: [20, 25, 50, 100, 200, 0],
+          color: 'amber',
+          itemLabel: 'demandes',
+        }}
       />
 
       {/* MODAL 1: Nouvelle Demande d'Intervention (DI) */}

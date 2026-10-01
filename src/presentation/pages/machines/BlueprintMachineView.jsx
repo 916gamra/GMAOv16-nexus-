@@ -11,8 +11,6 @@ import {
   Trash2,
   Edit2,
   AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
   SlidersHorizontal,
   ArrowUpDown,
   ChevronDown,
@@ -39,6 +37,7 @@ import { LayersIcon } from '../../components/common/icons/LayersIcon';
 import { HubIcon } from '../../components/common/icons/HubIcon';
 import { CategoryIcon } from '../../components/common/icons/CategoryIcon';
 import { SpokeIcon } from '../../components/common/icons/SpokeIcon';
+import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 
 const STATUS_OPTIONS = [
   { value: 'Approuvé', label: 'Approuvé' },
@@ -422,6 +421,83 @@ export default function BlueprintMachineView({
     link.click();
     document.body.removeChild(link);
   };
+
+  const blueprintColumns = useMemo(
+    () => [
+      {
+        key: 'id_blueprint',
+        label: 'CODE BLUEPRINT',
+        colLetter: 'A',
+        icon: FingerprintPattern,
+        sortable: true,
+      },
+      {
+        key: 'libelle',
+        label: 'LIBELLÉ DU PLAN (BOM)',
+        colLetter: 'B',
+        icon: FileText,
+        sortable: true,
+        headerClassName: 'min-w-[220px]',
+      },
+      {
+        key: 'id_family',
+        label: 'FAMILLE & MODÈLE',
+        colLetter: 'C+D',
+        sortable: true,
+        headerClassName: 'min-w-[170px]',
+      },
+      {
+        key: 'specs',
+        label: 'SPÉCIFICATIONS',
+        colLetter: 'Specs',
+        icon: Sliders,
+        headerClassName: 'min-w-[150px]',
+      },
+      {
+        key: 'composants',
+        label: 'COMPOSANTS',
+        colLetter: 'E',
+        icon: SpokeIcon,
+        align: 'center',
+      },
+      {
+        key: 'parts',
+        label: 'PARTS',
+        colLetter: 'F',
+        icon: LayersIcon,
+        align: 'center',
+      },
+      {
+        key: 'pdr',
+        label: 'PDR',
+        colLetter: 'G',
+        icon: CubeIcon,
+        align: 'center',
+      },
+      {
+        key: 'machines',
+        label: 'MACHINES',
+        colLetter: 'Flux',
+        icon: Factory,
+        align: 'center',
+      },
+      {
+        key: 'statut',
+        label: 'STATUT',
+        colLetter: 'H',
+        icon: Radio,
+        sortable: true,
+        align: 'center',
+      },
+      {
+        key: 'actions',
+        label: '•••',
+        align: 'center',
+        headerClassName: 'w-24 tracking-widest text-slate-400 font-bold',
+      },
+    ],
+    []
+  );
 
   return (
     <AnimatedPage className="space-y-5">
@@ -833,154 +909,46 @@ export default function BlueprintMachineView({
         )}
       </div>
 
-      {/* Main Blueprints Table Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out overflow-hidden">
-        {/* Table summary bar */}
-        <div className="bg-slate-100/80 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs text-slate-600 select-none">
-          <div className="flex items-center gap-2 font-medium">
-            <FingerprintPattern className="w-4 h-4 text-indigo-600 shrink-0" />
-            <span className="font-bold text-slate-800">Catalogue des Blueprints (Nomenclature BOM)</span>
-            <span className="text-slate-400 font-mono">({filteredBlueprints.length} plans)</span>
-          </div>
-          <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-            N° | Code Blueprint (A) | Libellé (B) | Famille & Modèle (C+D) | Specs | Composants (E) | Parts (F) | PDR (G) | Machines (Flux) | Statut (H) | •••
-          </div>
-        </div>
-
-        <div className="max-h-[62vh] overflow-y-auto overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse min-w-[1060px]">
-            <thead className="sticky top-0 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 z-10 shadow-2xs select-none">
-              <tr>
-                {/* Row N° */}
-                <th className="py-3 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0 select-none">
-                  N°
-                </th>
-
-                {/* Col 1: CODE BLUEPRINT (A) */}
-                <th
-                  onClick={() => handleSort('id_blueprint')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Code Blueprint"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <FingerprintPattern className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>CODE BLUEPRINT</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(A)</span>
-                    {renderSortIcon('id_blueprint')}
-                  </div>
-                </th>
-
-                {/* Col 2: LIBELLÉ DU PLAN (B) */}
-                <th
-                  onClick={() => handleSort('libelle')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group min-w-[220px]"
-                  title="Cliquer pour trier par Libellé du Plan"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>LIBELLÉ DU PLAN (BOM)</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(B)</span>
-                    {renderSortIcon('libelle')}
-                  </div>
-                </th>
-
-                {/* Col 3: FAMILLE & MODÈLE (C+D) */}
-                <th
-                  onClick={() => handleSort('id_family')}
-                  className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group min-w-[170px]"
-                  title="Cliquer pour trier par Famille & Modèle"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <div className="flex items-center -space-x-1">
-                      <HubIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <CategoryIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    </div>
-                    <span>FAMILLE & MODÈLE</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(C+D)</span>
-                    {renderSortIcon('id_family')}
-                  </div>
-                </th>
-
-                {/* Col 4: SPÉCIFICATIONS */}
-                <th className="py-3 px-3.5 min-w-[150px]">
-                  <div className="flex items-center gap-1.5">
-                    <Sliders className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>SPÉCIFICATIONS</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Specs)</span>
-                  </div>
-                </th>
-
-                {/* Col 5: COMPOSANTS (E) */}
-                <th className="py-3 px-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <SpokeIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>COMPOSANTS</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(E)</span>
-                  </div>
-                </th>
-
-                {/* Col 6: PARTS (F) */}
-                <th className="py-3 px-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <LayersIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>PARTS</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(F)</span>
-                  </div>
-                </th>
-
-                {/* Col 7: PDR (G) */}
-                <th className="py-3 px-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <CubeIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>PDR</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(G)</span>
-                  </div>
-                </th>
-
-                {/* Col 8: MACHINES LIÉES */}
-                <th className="py-3 px-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <Factory className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>MACHINES</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Flux)</span>
-                  </div>
-                </th>
-
-                {/* Col 9: STATUT (H) */}
-                <th
-                  onClick={() => handleSort('statut')}
-                  className="py-3 px-3 text-center cursor-pointer select-none hover:bg-slate-200/80 transition group"
-                  title="Cliquer pour trier par Statut"
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    <Radio className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>STATUT</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(H)</span>
-                    {renderSortIcon('statut')}
-                  </div>
-                </th>
-
-                {/* Col 10: Action (•••) */}
-                <th className="py-3 px-3 text-center font-bold text-slate-400 tracking-widest select-none w-24" title="Actions & Options">
-                  •••
-                </th>
+      {/* Unified Industrial Data Grid */}
+      <GmaoIndustrialDataGrid
+        title="Catalogue des Blueprints (Nomenclature BOM)"
+        icon={<FingerprintPattern className="w-4 h-4 text-indigo-600" />}
+        excelMapping="N° | Code Blueprint (A) | Libellé (B) | Famille & Modèle (C+D) | Specs | Composants (E) | Parts (F) | PDR (G) | Machines (Flux) | Statut (H) | •••"
+        bannerColor="slate"
+        columns={blueprintColumns}
+        data={paginatedBlueprints}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        renderSortIcon={renderSortIcon}
+        startIndex={startIndex}
+        showRowNumber={true}
+        emptyIcon={<FingerprintPattern className="w-8 h-8 text-slate-300" />}
+        emptyMessage="Aucun plan blueprint trouvé"
+        pagination={{
+          currentPage,
+          setCurrentPage,
+          pageSize,
+          setPageSize,
+          totalItems,
+          pageSizeOptions: [25, 50, 100, 200, 0],
+          color: 'indigo',
+          itemLabel: 'plans',
+        }}
+        renderRow={(bp, idx) => {
+          const rowNum = startIndex + idx + 1;
+          if (bp.__isEmptyPlaceholder) {
+            return (
+              <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+                <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
+                  {rowNum}
+                </td>
+                <td colSpan={10} className="py-3 px-4 text-center text-slate-300 font-mono text-[11px]">
+                  —
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200/80 font-medium text-slate-700">
-              {paginatedBlueprints.map((bp, idx) => {
-                const rowNum = startIndex + idx + 1;
-                if (bp.__isEmptyPlaceholder) {
-                  return (
-                    <tr key={`empty-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                      <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
-                        {rowNum}
-                      </td>
-                      <td colSpan={10} className="py-3 px-4 text-center text-slate-300 font-mono text-[11px]">
-                        —
-                      </td>
-                    </tr>
-                  );
-                }
+            );
+          }
 
                 const mchCount = blueprintMachineCountMap[bp.id_blueprint] || 0;
                 const compCount = bp.components_theoriques?.length || 0;
@@ -1183,67 +1151,8 @@ export default function BlueprintMachineView({
                     </td>
                   </tr>
                 );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pagination Footer */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-slate-600">Lignes par page :</span>
-          <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-            {[25, 50, 100, 200, 0].map((size) => (
-              <button
-                key={size}
-                onClick={() => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                  pageSize === size
-                    ? 'bg-white text-indigo-800 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out border border-slate-200/50'
-                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                }`}
-              >
-                {size === 0 ? 'Tout' : size}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-xs font-semibold text-slate-500">
-            Affichage <b className="text-slate-900">{totalItems === 0 ? 0 : startIndex + 1}</b> à{' '}
-            <b className="text-slate-900">{Math.min(startIndex + effectivePageSize, totalItems)}</b>{' '}
-            sur <b className="text-slate-900">{totalItems}</b>
-          </div>
-          {pageSize !== 0 && totalPages > 1 && (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Précédent
-              </button>
-              <span className="px-2 font-mono text-xs font-bold text-slate-600">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
-              >
-                Suivant
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+              }}
+      />
 
       {/* 4-Tab Inspect Drawer / Modal */}
       {selectedInspectBlueprint && (

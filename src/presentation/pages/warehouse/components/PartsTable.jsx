@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   Tag,
   Hash,
@@ -19,12 +20,12 @@ import {
   Edit2,
   Trash2,
 } from 'lucide-react';
-import TableSkeletonRows from '../../../components/common/TableSkeletonRows';
+import GmaoIndustrialDataGrid from '../../../components/common/GmaoIndustrialDataGrid.jsx';
 import { EntrepotItem } from '../../../../core/domain';
 
 export default function PartsTable({
   displayedData = [],
-  rawLength = 0,
+  rawLength: _rawLength = 0,
   isTableReady = true,
   startIndex = 0,
   sortField: _sortField = 'id_warehouse_item',
@@ -50,171 +51,118 @@ export default function PartsTable({
   onNavigateToZone,
   handleOpenAddModal,
 }) {
+  const columns = useMemo(
+    () => [
+      {
+        key: 'id_warehouse_item',
+        label: 'CODE PART & RÉFÉRENCE',
+        colLetter: 'A',
+        icon: Tag,
+        sortable: true,
+        headerClassName: 'whitespace-nowrap',
+      },
+      {
+        key: 'id_type',
+        label: 'TYPE DE PART & CLASSIFICATION',
+        colLetter: 'D',
+        icon: LayersIcon,
+        sortable: true,
+        headerClassName: 'whitespace-nowrap',
+      },
+      {
+        key: 'designation',
+        label: 'DÉSIGNATION DE LA PIÈCE',
+        colLetter: 'C',
+        icon: Package,
+        sortable: true,
+        headerClassName: 'min-w-[220px]',
+      },
+      {
+        key: 'rattachement_type',
+        label: 'RATTACHEMENT & MAGASIN PDR',
+        colLetter: 'E',
+        icon: MapPin,
+        sortable: true,
+        headerClassName: 'whitespace-nowrap',
+      },
+      {
+        key: 'technician',
+        label: 'RESPONSABLE',
+        colLetter: 'F',
+        icon: User,
+        sortable: true,
+        headerClassName: 'whitespace-nowrap',
+      },
+      {
+        key: 'statut',
+        label: 'STATUT',
+        colLetter: 'G',
+        icon: Activity,
+        sortable: true,
+        headerClassName: 'whitespace-nowrap',
+      },
+      {
+        key: 'stock',
+        label: 'STOCK ACTUEL (TWIN)',
+        colLetter: 'H',
+        icon: TrendingUp,
+        sortable: true,
+        align: 'right',
+        headerClassName: 'min-w-[130px]',
+      },
+      {
+        key: 'actions',
+        label: '•••',
+        align: 'center',
+        headerClassName: 'w-20 tracking-widest text-slate-400 font-bold',
+      },
+    ],
+    []
+  );
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out overflow-hidden">
-      {/* Top Info Header Bar inside Card (Parts Table Header) */}
-      <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-indigo-50/40 gap-2">
-        <div className="font-bold text-indigo-950 text-[13px] flex items-center gap-2">
-          <LayersIcon className="w-4 h-4 text-indigo-600" />
-          <span>Tableau Pièces de Rechange (Parts) • Twin PDR Stock (Roulements, Courroies, Joints...)</span>
-        </div>
-        <div className="font-mono text-[11px] text-indigo-700/80 hidden lg:block">
-          id_warehouse_item (A) | nature: PART (B) | designation (C) | type/diag (D) | rattachement/magasin (E) | responsable (F) | statut (G) | stock (H)
-        </div>
-      </div>
-
-      <div className="max-h-[62vh] overflow-y-auto overflow-x-auto">
-        <table className="w-full text-left text-xs border-collapse min-w-[980px]">
-          <thead className="sticky top-0 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 z-10 shadow-2xs select-none">
-            <tr>
-              {/* Row Number Column */}
-              <th className="py-3 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0">
-                N°
-              </th>
-
-              {/* Col 1: Code Part & Réf Fabricant (A) */}
-              <th
-                onClick={() => handleSort('id_warehouse_item')}
-                className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left whitespace-nowrap"
-                title="Cliquer pour trier par Code Part / Réf"
-              >
-                <div className="flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>CODE PART & RÉFÉRENCE</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(A)</span>
-                  {renderSortIcon('id_warehouse_item')}
-                </div>
-              </th>
-
-              {/* Col 2: Type de Part & Diagnostic / Désignation (D / B) */}
-              <th
-                onClick={() => handleSort('id_type')}
-                className="py-3 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left whitespace-nowrap"
-                title="Cliquer pour trier par Type de Part"
-              >
-                <div className="flex items-center gap-1.5">
-                  <LayersIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>TYPE DE PART & CLASSIFICATION</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(D)</span>
-                  {renderSortIcon('id_type')}
-                </div>
-              </th>
-
-              {/* Col 3: Désignation & Détails Techniques (C) */}
-              <th
-                onClick={() => handleSort('designation')}
-                className="py-3 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left min-w-[220px]"
-                title="Cliquer pour trier par Désignation"
-              >
-                <div className="flex items-center gap-1.5">
-                  <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>DÉSIGNATION DE LA PIÈCE</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(C)</span>
-                  {renderSortIcon('designation')}
-                </div>
-              </th>
-
-              {/* Col 4: Rattachement / Magasin PDR (E) */}
-              <th
-                onClick={() => handleSort('rattachement_type')}
-                className="py-3 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left whitespace-nowrap"
-                title="Cliquer pour trier par Emplacement / Rattachement"
-              >
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>RATTACHEMENT & MAGASIN PDR</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(E)</span>
-                  {renderSortIcon('rattachement_type')}
-                </div>
-              </th>
-
-              {/* Col 5: Responsable / Magasinier (F) */}
-              <th
-                onClick={() => handleSort('technician')}
-                className="py-3 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left whitespace-nowrap"
-                title="Cliquer pour trier par Magasinier / Responsable"
-              >
-                <div className="flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>RESPONSABLE</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(F)</span>
-                  {renderSortIcon('technician')}
-                </div>
-              </th>
-
-              {/* Col 6: Statut du Stock (G) */}
-              <th
-                onClick={() => handleSort('status')}
-                className="py-3 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group text-left whitespace-nowrap"
-                title="Cliquer pour trier par Statut Stock"
-              >
-                <div className="flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>STATUT</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(G)</span>
-                  {renderSortIcon('status')}
-                </div>
-              </th>
-
-              {/* Col 7: Stock Actuel & Seuil (H) */}
-              <th
-                onClick={() => handleSort('stockActuel')}
-                className="py-3 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group text-right whitespace-nowrap"
-                title="Cliquer pour trier par Quantité en Stock"
-              >
-                <div className="flex items-center justify-end gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>STOCK ACTUEL & SEUIL</span>
-                  <span className="text-slate-400 font-normal text-[10px]">(H)</span>
-                  {renderSortIcon('stockActuel')}
-                </div>
-              </th>
-
-              {/* Col 8: Action (•••) */}
-              <th className="py-3 px-3 text-center w-20 select-none font-bold text-slate-400 tracking-widest whitespace-nowrap">
-                •••
-              </th>
+    <GmaoIndustrialDataGrid
+      title="Tableau Pièces de Rechange (Parts) • Twin PDR Stock (Roulements, Courroies, Joints...)"
+      icon={<LayersIcon className="w-4 h-4 text-indigo-600" />}
+      excelMapping="id_warehouse_item (A) | nature: PART (B) | designation (C) | type/diag (D) | rattachement/magasin (E) | responsable (F) | statut (G) | stock (H)"
+      bannerColor="indigo"
+      columns={columns}
+      data={displayedData}
+      isLoading={!isTableReady}
+      loadingRowsCount={8}
+      sortField={_sortField}
+      sortOrder={_sortOrder}
+      onSort={handleSort}
+      renderSortIcon={renderSortIcon}
+      startIndex={startIndex}
+      showRowNumber={true}
+      minWidth="min-w-[980px]"
+      maxHeight="max-h-[62vh]"
+      emptyIcon={<LayersIcon className="w-10 h-10 text-indigo-300 stroke-1" />}
+      emptyMessage="Aucune pièce de rechange (part) trouvée"
+      emptyAction={
+        handleOpenAddModal ? (
+          <button
+            onClick={handleOpenAddModal}
+            className="mt-2 px-4 py-2 rounded-xl bg-indigo-50 text-indigo-700 font-bold hover:bg-indigo-100 border border-indigo-200 transition cursor-pointer"
+          >
+            Ajouter un Part
+          </button>
+        ) : null
+      }
+      renderRow={(item, idx) => {
+        const realIndex = startIndex + idx;
+        if (item.__isEmptyPlaceholder) {
+          return (
+            <tr key={`empty-part-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
+              <td className="py-2.5 px-3 text-center font-mono text-[10.5px] text-slate-300 bg-slate-100/30 border-r border-slate-200/60">
+                {realIndex + 1}
+              </td>
+              <td colSpan={8} className="py-2.5 px-3 text-center text-slate-300 font-mono text-[11px]">
+                —
+              </td>
             </tr>
-          </thead>
-
-          <tbody className="divide-y divide-slate-100 text-slate-700">
-            {!isTableReady ? (
-              <TableSkeletonRows cols={9} rows={8} color="indigo" />
-            ) : rawLength === 0 ? (
-              <tr>
-                <td colSpan={9} className="p-10 text-center text-slate-400 text-xs">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <LayersIcon className="w-10 h-10 text-indigo-300 stroke-1" />
-                    <p className="font-bold text-slate-700 text-sm">Aucune pièce de rechange (part) trouvée</p>
-                    <p className="text-xs text-slate-400 max-w-sm">
-                      Modifiez vos filtres de recherche ou ajoutez une nouvelle pièce de rechange (PDR).
-                    </p>
-                    {handleOpenAddModal && (
-                      <button
-                        onClick={handleOpenAddModal}
-                        className="mt-2 px-4 py-2 rounded-xl bg-indigo-50 text-indigo-700 font-bold hover:bg-indigo-100 border border-indigo-200 transition cursor-pointer"
-                      >
-                        Ajouter un Part
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              displayedData.map((item, idx) => {
-                const realIndex = startIndex + idx;
-                if (item.__isEmptyPlaceholder) {
-                  return (
-                    <tr key={`empty-part-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                      <td className="py-2.5 px-3 text-center font-mono text-[10.5px] text-slate-300 bg-slate-100/30 border-r border-slate-200/60">
-                        {realIndex + 1}
-                      </td>
-                      <td colSpan={8} className="py-2.5 px-3 text-center text-slate-300 font-mono text-[11px]">
-                        —
-                      </td>
-                    </tr>
-                  );
-                }
+          );
+        }
                 const domainItem = new EntrepotItem(item);
                 const typeObj = types.find((t) => t.id_type === item.id_type);
                 const diagObj = diagnostics.find((d) => d.id_diag === item.id_diag);
@@ -561,11 +509,7 @@ export default function PartsTable({
                     </td>
                   </tr>
                 );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+              }}
+    />
   );
 }

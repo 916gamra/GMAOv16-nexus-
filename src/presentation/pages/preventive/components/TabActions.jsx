@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Plus,
   Search,
@@ -18,6 +18,7 @@ import {
   Table,
 } from 'lucide-react';
 import Action3DButton from '../../../components/common/Action3DButton';
+import TablePaginationCard from '../../../components/common/TablePaginationCard';
 
 const ICON_MAP = {
   Eye: Eye,
@@ -99,6 +100,10 @@ export default function TabActions({
   const [editingAction, setEditingAction] = useState(null);
   const [displayMode, setDisplayMode] = useState('grid'); // 'grid' | 'excel'
 
+  // Pagination states
+  const [pageSize, setPageSize] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
+
   const [formData, setFormData] = useState({
     code: '',
     ref: '',
@@ -109,15 +114,27 @@ export default function TabActions({
     outils: '',
   });
 
-  const filteredActions = actions.filter((act) => {
-    const q = search.toLowerCase();
-    return (
-      act.code.toLowerCase().includes(q) ||
-      act.libelle.toLowerCase().includes(q) ||
-      act.ref.toLowerCase().includes(q) ||
-      act.description.toLowerCase().includes(q)
-    );
-  });
+  const filteredActions = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return actions;
+    return actions.filter((act) => {
+      return (
+        act.code.toLowerCase().includes(q) ||
+        act.libelle.toLowerCase().includes(q) ||
+        (act.ref && act.ref.toLowerCase().includes(q)) ||
+        (act.description && act.description.toLowerCase().includes(q))
+      );
+    });
+  }, [actions, search]);
+
+  const totalItems = filteredActions.length;
+  const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
+  const startIndex = (currentPage - 1) * effectivePageSize;
+
+  const paginatedActions = useMemo(() => {
+    if (pageSize === 0) return filteredActions;
+    return filteredActions.slice(startIndex, startIndex + effectivePageSize);
+  }, [filteredActions, pageSize, startIndex, effectivePageSize]);
 
   const handleOpenAdd = () => {
     setEditingAction(null);
@@ -202,7 +219,10 @@ export default function TabActions({
             type="text"
             placeholder="Rechercher une action (Code, Libellé, Réf...)"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
           />
         </div>
@@ -237,7 +257,7 @@ export default function TabActions({
       {/* RENDER GRID MODE */}
       {displayMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredActions.map((act) => {
+          {paginatedActions.map((act) => {
             const lightStyle = getLightUIStyle(act.code);
             const IconComponent = ICON_MAP[act.icone] || CheckCircle;
 
@@ -359,15 +379,15 @@ export default function TabActions({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200/80">
-                {filteredActions.length === 0 ? (
+                {paginatedActions.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="p-8 text-center text-slate-400 font-medium">
                       Aucune action ne correspond à vos filtres de recherche.
                     </td>
                   </tr>
                 ) : (
-                  filteredActions.map((act, idx) => {
-                    const rowNum = idx + 1;
+                  paginatedActions.map((act, idx) => {
+                    const rowNum = startIndex + idx + 1;
                     const lightStyle = getLightUIStyle(act.code);
                     const IconComponent = ICON_MAP[act.icone] || CheckCircle;
                     return (
@@ -450,6 +470,18 @@ export default function TabActions({
           </div>
         </div>
       )}
+
+      {/* Standardized Table Pagination Footer */}
+      <TablePaginationCard
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        totalItems={totalItems}
+        pageSizeOptions={[25, 50, 100, 200, 0]}
+        color="indigo"
+        itemLabel="actions"
+      />
 
       {/* ========================================================================= */}
       {/* MODAL: AJOUTER / MODIFIER ACTION */}

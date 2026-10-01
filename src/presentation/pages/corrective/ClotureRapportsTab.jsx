@@ -26,7 +26,7 @@ import {
 import { CorrectiveCalculationService } from '../../../domain/corrective/services/CorrectiveCalculationService';
 import * as XLSX from 'xlsx';
 import CustomSelect from '../../components/common/CustomSelect';
-import TablePaginationCard from '../../components/common/TablePaginationCard';
+import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 
 export default function ClotureRapportsTab({
   interventions = [],
@@ -309,6 +309,171 @@ export default function ClotureRapportsTab({
       showToast?.('Erreur lors de l\'export Excel', 'error');
     }
   };
+
+  const reportColumns = useMemo(
+    () => [
+      {
+        key: 'num_bt',
+        label: 'N° BT',
+        colLetter: 'Col B',
+        icon: Wrench,
+        sortable: true,
+        render: (item) => (
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <span className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-700 flex items-center justify-center font-black text-[10px] border border-emerald-200/60 shadow-2xs font-mono">
+              BT
+            </span>
+            <span className="font-bold text-emerald-900 font-mono">
+              {item.num_bt || `BT-${String(item.id || 'OK').slice(-4)}`}
+            </span>
+          </div>
+        ),
+      },
+      {
+        key: 'code_machine',
+        label: 'Machine',
+        colLetter: 'Col A',
+        icon: Factory,
+        sortable: true,
+        render: (item) => (
+          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 text-xs font-mono font-bold whitespace-nowrap">
+            {item.code_machine}
+          </span>
+        ),
+      },
+      {
+        key: 'intervenant',
+        label: 'Intervenant',
+        colLetter: 'Col D',
+        icon: User,
+        sortable: true,
+        render: (item) => (
+          <div className="flex items-center gap-1.5 whitespace-nowrap min-w-[140px]">
+            <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="font-semibold text-slate-800">{resolveTechNom(item)}</span>
+          </div>
+        ),
+      },
+      {
+        key: 'date_demande',
+        label: 'Date Demande',
+        colLetter: 'Col C',
+        icon: Calendar,
+        sortable: true,
+        render: (item) => (
+          <span className="font-semibold text-slate-800 font-mono whitespace-nowrap">
+            {item.date_demande || item.date || '2026-03-24'}
+          </span>
+        ),
+      },
+      {
+        key: 'temps_intervention_calc',
+        label: 'Temps Ouvré',
+        colLetter: 'Col G',
+        icon: Clock,
+        sortable: true,
+        render: (item) => (
+          <div className="flex items-center gap-1.5 font-mono font-bold text-emerald-700 whitespace-nowrap">
+            <Clock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span>{item.temps_intervention_calc || item.temps_intervention || '00:45'}</span>
+          </div>
+        ),
+      },
+      {
+        key: 'arret_machine',
+        label: 'Arrêt (H)',
+        icon: AlertTriangle,
+        align: 'center',
+        sortable: true,
+        render: (item) => {
+          const isArret = item.arret_machine === true || item.arret_machine === 'OUI';
+          return isArret ? (
+            <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-purple-100 text-purple-800 border border-purple-200 font-mono shadow-2xs">
+              ARRÊT
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-slate-100 text-slate-500 font-mono">
+              NON
+            </span>
+          );
+        },
+      },
+      {
+        key: 'type_panne',
+        label: 'Type',
+        colLetter: 'Col I',
+        icon: Layers,
+        sortable: true,
+        render: (item) => (
+          <span className="px-2.5 py-1 rounded-md font-mono font-bold text-xs bg-slate-100 text-slate-800 border border-slate-200 shadow-2xs">
+            {item.type_panne || 'M'}
+          </span>
+        ),
+      },
+      {
+        key: 'anomalie',
+        label: 'Anomalie',
+        colLetter: 'Col J',
+        icon: Radio,
+        sortable: true,
+        render: (item) => (
+          <span className="font-bold text-slate-900 max-w-xs truncate block" title={item.anomalie}>
+            {item.anomalie || 'court_circuit'}
+          </span>
+        ),
+      },
+      {
+        key: 'action_realisee',
+        label: 'Travail Réalisé',
+        colLetter: 'Col K',
+        icon: FileText,
+        render: (item) => (
+          <span className="text-slate-700 max-w-xs truncate block" title={item.action_realisee || item.travail_a_faire}>
+            {item.action_realisee || item.travail_a_faire || 'Dépannage et remise en route'}
+          </span>
+        ),
+      },
+      {
+        key: 'pdr',
+        label: 'PDR & Marque',
+        colLetter: 'Col L/M',
+        icon: Package,
+        render: (item) => {
+          const pdrObj = resolvePdrDisplay(item);
+          return pdrObj ? (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-50 text-cyan-800 border border-cyan-200 text-xs font-mono font-bold shadow-2xs"
+              title={pdrObj.designation}
+            >
+              <Package className="w-3 h-3 text-cyan-600 shrink-0" />
+              <span className="truncate">
+                {pdrObj.ref} {item.marque ? `(${item.marque})` : ''}
+              </span>
+            </span>
+          ) : (
+            <span className="text-slate-300 font-mono text-[11px]">—</span>
+          );
+        },
+      },
+      {
+        key: 'actions',
+        label: 'Fiche',
+        icon: Eye,
+        align: 'center',
+        headerClassName: 'w-24 text-center whitespace-nowrap',
+        render: (item) => (
+          <button
+            onClick={() => setPreviewItem(item)}
+            className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 text-slate-600 hover:text-emerald-800 transition cursor-pointer shadow-2xs active:scale-95"
+            title="Consulter la fiche technique d'intervention"
+          >
+            <Eye className="w-3.5 h-3.5" />
+          </button>
+        ),
+      },
+    ],
+    [technicians, stockItems]
+  );
 
   return (
     <div className="space-y-6">
@@ -873,317 +1038,32 @@ export default function ClotureRapportsTab({
         )}
       </div>
 
-      {/* 3. Excel-Grade Clean Industrial Data Table */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] overflow-hidden">
-        {/* Subheader info bar */}
-        <div className="bg-slate-50/80 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs font-bold text-slate-600">
-          <div className="flex items-center gap-2">
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>Tableau Rapport_Correctif • Ordre Excel Row 3 : A → N</span>
-          </div>
-          <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-            N° | N° BT (B) | Machine (A) | Intervenant (D) | Date (C) | Temps Ouvré (G) | Arrêt (H) | Type (I) | Anomalie (J) | Travail Réalisé (K) | PDR (L/M) | Fiche
-          </div>
-        </div>
-
-        <div className="h-[1150px] overflow-y-auto overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs min-w-[1450px]">
-            <thead className="sticky top-0 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 z-10 shadow-2xs select-none">
-              <tr>
-                {/* Row N° Column Header */}
-                <th className="py-3.5 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0 select-none whitespace-nowrap">
-                  N°
-                </th>
-
-                {/* N° BT (Col B) */}
-                <th
-                  onClick={() => toggleSort('num_bt')}
-                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[130px]"
-                  title="Cliquer pour trier par N° BT"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>N° BT</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col B)</span>
-                    {renderSortIcon('num_bt')}
-                  </div>
-                </th>
-
-                {/* Machine (Col A) */}
-                <th
-                  onClick={() => toggleSort('code_machine')}
-                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[140px]"
-                  title="Cliquer pour trier par Machine"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <Factory className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Machine</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col A)</span>
-                    {renderSortIcon('code_machine')}
-                  </div>
-                </th>
-
-                {/* Intervenant (Col D) */}
-                <th
-                  onClick={() => toggleSort('intervenant')}
-                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[160px]"
-                  title="Cliquer pour trier par Intervenant"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Intervenant</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col D)</span>
-                    {renderSortIcon('intervenant')}
-                  </div>
-                </th>
-
-                {/* Date Demande (Col C) */}
-                <th
-                  onClick={() => toggleSort('date_demande')}
-                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[150px]"
-                  title="Cliquer pour trier par Date"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Date Demande</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col C)</span>
-                    {renderSortIcon('date_demande')}
-                  </div>
-                </th>
-
-                {/* Temps Ouvré (Col G) */}
-                <th
-                  onClick={() => toggleSort('temps_intervention_calc')}
-                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[140px]"
-                  title="Cliquer pour trier par Temps Ouvré"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Temps Ouvré</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col G)</span>
-                    {renderSortIcon('temps_intervention_calc')}
-                  </div>
-                </th>
-
-                {/* Arrêt Machine (Col H) */}
-                <th
-                  onClick={() => toggleSort('arret_machine')}
-                  className="py-3.5 px-3 text-center cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[110px]"
-                  title="Cliquer pour trier par Arrêt"
-                >
-                  <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
-                    <AlertTriangle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Arrêt (H)</span>
-                    {renderSortIcon('arret_machine')}
-                  </div>
-                </th>
-
-                {/* Type Panne (Col I) */}
-                <th
-                  onClick={() => toggleSort('type_panne')}
-                  className="py-3.5 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[110px]"
-                  title="Cliquer pour trier par Type de Panne"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Type</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col I)</span>
-                    {renderSortIcon('type_panne')}
-                  </div>
-                </th>
-
-                {/* Anomalie (Col J) */}
-                <th
-                  onClick={() => toggleSort('anomalie')}
-                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[180px]"
-                  title="Cliquer pour trier par Anomalie"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <Radio className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Anomalie</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col J)</span>
-                    {renderSortIcon('anomalie')}
-                  </div>
-                </th>
-
-                {/* Action / Travail Réalisé (Col K) */}
-                <th className="py-3.5 px-3.5 select-none whitespace-nowrap min-w-[220px]">
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Travail Réalisé</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col K)</span>
-                  </div>
-                </th>
-
-                {/* PDR / Marque (Col L/M) */}
-                <th className="py-3.5 px-3.5 select-none whitespace-nowrap min-w-[180px]">
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>PDR & Marque</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col L/M)</span>
-                  </div>
-                </th>
-
-                {/* Action Fiche */}
-                <th className="py-3.5 px-3.5 text-center select-none whitespace-nowrap min-w-[90px]">
-                  <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
-                    <Eye className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Fiche</span>
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200/80 font-sans">
-              {filteredInterventions.length === 0 ? (
-                <tr>
-                  <td colSpan="12" className="py-12 text-center text-slate-500 font-medium">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <FileSpreadsheet className="w-8 h-8 text-slate-300" />
-                      <span>Aucun rapport d'intervention trouvé pour les filtres sélectionnés.</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                displayedInterventions.map((item, idx) => {
-                  const realIndex = startIndex + idx;
-                  if (item.__isEmptyPlaceholder) {
-                    return (
-                      <tr key={`empty-cr-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                        <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
-                          {realIndex + 1}
-                        </td>
-                        <td colSpan={11} className="py-3 px-3 text-center text-slate-300 font-mono text-[11px]">
-                          —
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  const isArret = item.arret_machine === true || item.arret_machine === 'OUI';
-
-                  return (
-                    <tr
-                      key={`cr-row-${item.id || 'cr'}-${item.id_intervention || ''}-${realIndex}`}
-                      className="even:bg-slate-50/70 odd:bg-white hover:bg-emerald-50/40 border-b border-slate-200/70 transition-colors"
-                    >
-                      {/* Row N° */}
-                      <td className="py-3 px-3 text-center font-mono text-[11px] font-bold text-slate-400 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
-                        {realIndex + 1}
-                      </td>
-
-                      {/* N° BT */}
-                      <td className="py-3 px-3.5 font-bold text-emerald-900 font-mono whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-700 flex items-center justify-center font-black text-[10px] border border-emerald-200/60 shadow-2xs">
-                            BT
-                          </span>
-                          <span>{item.num_bt || `BT-${String(item.id || 'OK').slice(-4)}`}</span>
-                        </div>
-                      </td>
-
-                      {/* Machine */}
-                      <td className="py-3 px-3.5 font-bold text-slate-800 font-mono whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 text-xs">
-                          {item.code_machine}
-                        </span>
-                      </td>
-
-                      {/* Intervenant */}
-                      <td className="py-3 px-3.5 text-slate-700 font-medium whitespace-nowrap min-w-[150px]">
-                        <div className="flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="font-semibold text-slate-800">{resolveTechNom(item)}</span>
-                        </div>
-                      </td>
-
-                      {/* Date Demande */}
-                      <td className="py-3 px-3.5 text-slate-600 font-mono whitespace-nowrap">
-                        <span className="font-semibold text-slate-800">{item.date_demande || item.date || '2026-03-24'}</span>
-                      </td>
-
-                      {/* Temps Ouvré */}
-                      <td className="py-3 px-3.5 font-mono font-bold text-emerald-700 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          <span>{item.temps_intervention_calc || item.temps_intervention || '00:45'}</span>
-                        </div>
-                      </td>
-
-                      {/* Arrêt */}
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        {isArret ? (
-                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-purple-100 text-purple-800 border border-purple-200 font-mono shadow-2xs">
-                            ARRÊT
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-slate-100 text-slate-500 font-mono">
-                            NON
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Type Panne */}
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        <span className="px-2.5 py-1 rounded-md font-mono font-bold text-xs bg-slate-100 text-slate-800 border border-slate-200 shadow-2xs">
-                          {item.type_panne || 'M'}
-                        </span>
-                      </td>
-
-                      {/* Anomalie */}
-                      <td className="py-3 px-3.5 font-medium text-slate-800 max-w-xs truncate min-w-[170px]" title={item.anomalie}>
-                        <span className="font-bold text-slate-900">{item.anomalie || 'court_circuit'}</span>
-                      </td>
-
-                      {/* Travail Réalisé */}
-                      <td className="py-3 px-3.5 text-slate-600 max-w-xs truncate min-w-[200px]" title={item.action_realisee || item.travail_a_faire}>
-                        <span className="text-slate-700">{item.action_realisee || item.travail_a_faire || 'Dépannage et remise en route'}</span>
-                      </td>
-
-                      {/* PDR */}
-                      <td className="py-3 px-3.5 text-slate-600 max-w-xs truncate min-w-[160px]">
-                        {resolvePdrDisplay(item) ? (
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-50 text-cyan-800 border border-cyan-200 text-xs font-mono font-bold shadow-2xs"
-                            title={resolvePdrDisplay(item).designation}
-                          >
-                            <Package className="w-3 h-3 text-cyan-600 shrink-0" />
-                            <span className="truncate">
-                              {resolvePdrDisplay(item).ref} {item.marque ? `(${item.marque})` : ''}
-                            </span>
-                          </span>
-                        ) : (
-                          <span className="text-slate-300 font-mono text-[11px]">—</span>
-                        )}
-                      </td>
-
-                      {/* View Modal Trigger */}
-                      <td className="py-3 px-3.5 text-center whitespace-nowrap">
-                        <button
-                          onClick={() => setPreviewItem(item)}
-                          className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 text-slate-600 hover:text-emerald-800 transition cursor-pointer shadow-2xs active:scale-95"
-                          title="Consulter la fiche technique d'intervention"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pagination Footer */}
-      <TablePaginationCard
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        pageSize={pageSize}
-        setPageSize={setPageSize}
-        totalItems={totalItems}
-        pageSizeOptions={[20, 25, 50, 100, 200, 0]}
-        color="emerald"
+      {/* 3. Unified Industrial Data Grid */}
+      <GmaoIndustrialDataGrid
+        title="Tableau Rapport_Correctif • Ordre Excel Row 3 : A → N"
+        icon={<FileSpreadsheet className="w-4 h-4 text-emerald-600" />}
+        excelMapping="N° | N° BT (B) | Machine (A) | Intervenant (D) | Date (C) | Temps Ouvré (G) | Arrêt (H) | Type (I) | Anomalie (J) | Travail Réalisé (K) | PDR (L/M) | Fiche"
+        bannerColor="emerald"
+        columns={reportColumns}
+        data={displayedInterventions}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={toggleSort}
+        renderSortIcon={renderSortIcon}
+        startIndex={startIndex}
+        showRowNumber={true}
+        emptyIcon={<FileSpreadsheet className="w-8 h-8 text-slate-300" />}
+        emptyMessage="Aucun rapport d'intervention trouvé pour les filtres sélectionnés."
+        pagination={{
+          currentPage,
+          setCurrentPage,
+          pageSize,
+          setPageSize,
+          totalItems,
+          pageSizeOptions: [20, 25, 50, 100, 200, 0],
+          color: 'emerald',
+          itemLabel: 'rapports',
+        }}
       />
 
       {/* Technical Report Preview Modal */}

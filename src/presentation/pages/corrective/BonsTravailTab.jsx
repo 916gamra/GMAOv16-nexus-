@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import CustomSelect from '../../components/common/CustomSelect';
-import TablePaginationCard from '../../components/common/TablePaginationCard';
+import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 
 export default function BonsTravailTab({
   interventions = [],
@@ -294,6 +294,151 @@ export default function BonsTravailTab({
       showToast?.('Erreur lors de l\'export Excel', 'error');
     }
   };
+
+  const btColumns = useMemo(
+    () => [
+      {
+        key: 'num_bt',
+        label: 'N° BT',
+        colLetter: 'Col B',
+        icon: Wrench,
+        sortable: true,
+        render: (bt) => (
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <span className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-700 flex items-center justify-center font-black text-[10px] border border-blue-200/60 shadow-2xs font-mono">
+              BT
+            </span>
+            <span className="font-bold text-blue-900 font-mono">{bt.num_bt}</span>
+          </div>
+        ),
+      },
+      {
+        key: 'code_machine',
+        label: 'Machine',
+        colLetter: 'Col A',
+        icon: Factory,
+        sortable: true,
+        render: (bt) => (
+          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 text-xs font-mono font-bold whitespace-nowrap">
+            {bt.code_machine}
+          </span>
+        ),
+      },
+      {
+        key: 'intervenant',
+        label: 'Intervenant',
+        colLetter: 'Col D',
+        icon: User,
+        sortable: true,
+        render: (bt) => (
+          <div className="flex items-center gap-1.5 whitespace-nowrap min-w-[150px]">
+            <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="font-semibold text-slate-800">{resolveTechNom(bt)}</span>
+          </div>
+        ),
+      },
+      {
+        key: 'type_panne',
+        label: 'Type',
+        colLetter: 'Col I',
+        icon: Layers,
+        sortable: true,
+        render: (bt) => (
+          <span className="px-2.5 py-1 rounded-md font-mono font-bold text-xs bg-slate-100 text-slate-800 border border-slate-200 shadow-2xs">
+            {bt.type_panne || 'M'}
+          </span>
+        ),
+      },
+      {
+        key: 'anomalie',
+        label: 'Anomalie',
+        colLetter: 'Col J',
+        icon: AlertTriangle,
+        sortable: true,
+        render: (bt) => (
+          <span className="font-bold text-slate-900 max-w-xs truncate block" title={bt.anomalie}>
+            {bt.anomalie || 'court_circuit'}
+          </span>
+        ),
+      },
+      {
+        key: 'travail_a_faire',
+        label: 'Travail à Faire',
+        colLetter: 'Col K',
+        icon: FileText,
+        render: (bt) => (
+          <span className="text-slate-700 max-w-xs truncate block" title={bt.travail_a_faire}>
+            {bt.travail_a_faire || bt.action_realisee || 'Intervention standard'}
+          </span>
+        ),
+      },
+      {
+        key: 'pdr',
+        label: 'PDR Prévue',
+        colLetter: 'Col L',
+        icon: Package,
+        render: (bt) => {
+          const pdrObj = resolvePdrDisplay(bt);
+          return pdrObj ? (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-50 text-cyan-800 border border-cyan-200 text-xs font-mono font-bold shadow-2xs"
+              title={pdrObj.designation}
+            >
+              <Package className="w-3 h-3 text-cyan-600 shrink-0" />
+              <span className="truncate">{pdrObj.ref}</span>
+            </span>
+          ) : (
+            <span className="text-slate-300 font-mono text-[11px]">—</span>
+          );
+        },
+      },
+      {
+        key: 'statut',
+        label: 'Statut',
+        icon: Radio,
+        align: 'center',
+        sortable: true,
+        render: (bt) => {
+          const isClosed = bt.statut === 'CLOTURE';
+          return isClosed ? (
+            <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono shadow-2xs">
+              CLÔTURÉ
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-blue-100 text-blue-900 border border-blue-300 font-mono animate-pulse shadow-2xs">
+              EN COURS
+            </span>
+          );
+        },
+      },
+      {
+        key: 'actions',
+        label: 'Action Directe',
+        icon: Play,
+        align: 'center',
+        headerClassName: 'w-36 text-center whitespace-nowrap',
+        render: (bt) => {
+          const isClosed = bt.statut === 'CLOTURE';
+          return !isClosed ? (
+            <button
+              onClick={() => handleStartLiveIntervention(bt)}
+              className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 mx-auto cursor-pointer shadow-2xs active:scale-95"
+              title="Lancer le Chrono Live et déduire automatiquement les pauses"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Chrono Live</span>
+            </button>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-mono font-bold text-xs shadow-2xs">
+              <CheckCircle className="w-3 h-3 text-emerald-600" />
+              {bt.temps_intervention_calc || bt.temps_intervention || '00:45'}
+            </span>
+          );
+        },
+      },
+    ],
+    [technicians, stockItems]
+  );
 
   return (
     <div className="space-y-6">
@@ -865,282 +1010,32 @@ export default function BonsTravailTab({
         )}
       </div>
 
-      {/* 3. Excel-Grade Clean Industrial Data Table */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] overflow-hidden">
-        {/* Subheader info bar */}
-        <div className="bg-slate-50/80 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between text-xs font-bold text-slate-600">
-          <div className="flex items-center gap-2">
-            <FileSpreadsheet className="w-4 h-4 text-blue-600" />
-            <span>Tableau Bons_de_Travail • Ordre Excel Row 3 : B → L</span>
-          </div>
-          <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-            N° | N° BT (B) | Machine (A) | Intervenant (D) | Type (I) | Anomalie (J) | Travail (K) | PDR (L) | Statut | Action
-          </div>
-        </div>
-
-        <div className="h-[1150px] overflow-y-auto overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs min-w-[1350px]">
-            <thead className="sticky top-0 bg-slate-100 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 z-10 shadow-2xs select-none">
-              <tr>
-                {/* Row N° Column Header */}
-                <th className="py-3.5 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/60 border-r border-slate-200 shrink-0 select-none whitespace-nowrap">
-                  N°
-                </th>
-
-                {/* N° BT (Col B) */}
-                <th
-                  onClick={() => toggleSort('num_bt')}
-                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[140px]"
-                  title="Cliquer pour trier par N° BT"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>N° BT</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col B)</span>
-                    {renderSortIcon('num_bt')}
-                  </div>
-                </th>
-
-                {/* Machine (Col A) */}
-                <th
-                  onClick={() => toggleSort('code_machine')}
-                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[150px]"
-                  title="Cliquer pour trier par Machine"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <Factory className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Machine</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col A)</span>
-                    {renderSortIcon('code_machine')}
-                  </div>
-                </th>
-
-                {/* Intervenant (Col D) */}
-                <th
-                  onClick={() => toggleSort('intervenant')}
-                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[170px]"
-                  title="Cliquer pour trier par Intervenant"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Intervenant</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col D)</span>
-                    {renderSortIcon('intervenant')}
-                  </div>
-                </th>
-
-                {/* Type Panne (Col I) */}
-                <th
-                  onClick={() => toggleSort('type_panne')}
-                  className="py-3.5 px-3 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[110px]"
-                  title="Cliquer pour trier par Type de Panne"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Type</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col I)</span>
-                    {renderSortIcon('type_panne')}
-                  </div>
-                </th>
-
-                {/* Anomalie (Col J) */}
-                <th
-                  onClick={() => toggleSort('anomalie')}
-                  className="py-3.5 px-3.5 cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[200px]"
-                  title="Cliquer pour trier par Anomalie"
-                >
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <AlertTriangle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Anomalie</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col J)</span>
-                    {renderSortIcon('anomalie')}
-                  </div>
-                </th>
-
-                {/* Travail à Faire (Col K) */}
-                <th className="py-3.5 px-3.5 select-none whitespace-nowrap min-w-[240px]">
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Travail à Faire</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col K)</span>
-                  </div>
-                </th>
-
-                {/* PDR Prévue (Col L) */}
-                <th className="py-3.5 px-3.5 select-none whitespace-nowrap min-w-[180px]">
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>PDR Prévue</span>
-                    <span className="text-slate-400 font-normal text-[10px]">(Col L)</span>
-                  </div>
-                </th>
-
-                {/* Statut */}
-                <th
-                  onClick={() => toggleSort('statut')}
-                  className="py-3.5 px-3 text-center cursor-pointer select-none hover:bg-slate-200/80 transition group whitespace-nowrap min-w-[130px]"
-                  title="Cliquer pour trier par Statut"
-                >
-                  <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
-                    <Radio className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Statut</span>
-                    {renderSortIcon('statut')}
-                  </div>
-                </th>
-
-                {/* Action Directe */}
-                <th className="py-3.5 px-3.5 text-center select-none whitespace-nowrap min-w-[140px]">
-                  <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
-                    <Play className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>Action Directe</span>
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200/80 font-sans">
-              {filteredBts.length === 0 ? (
-                <tr>
-                  <td colSpan="10" className="py-12 text-center text-slate-500 font-medium">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <Wrench className="w-8 h-8 text-slate-300" />
-                      <span>Aucun Bon de Travail (BT) trouvé pour les filtres sélectionnés.</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                displayedBts.map((bt, idx) => {
-                  const realIndex = startIndex + idx;
-                  if (bt.__isEmptyPlaceholder) {
-                    return (
-                      <tr key={`empty-bt-${realIndex}-${idx}`} className="border-b border-slate-100 bg-white/40 select-none">
-                        <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-300 bg-slate-100/40 border-r border-slate-200/80">
-                          {realIndex + 1}
-                        </td>
-                        <td colSpan={9} className="py-3 px-3 text-center text-slate-300 font-mono text-[11px]">
-                          —
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  const isClosed = bt.statut === 'CLOTURE';
-
-                  return (
-                    <tr
-                      key={`bt-row-${bt.id || 'bt'}-${bt.id_intervention || ''}-${realIndex}`}
-                      className="even:bg-slate-50/70 odd:bg-white hover:bg-blue-50/40 border-b border-slate-200/70 transition-colors"
-                    >
-                      {/* Row N° */}
-                      <td className="py-3 px-3 text-center font-mono text-[11px] font-bold text-slate-400 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
-                        {realIndex + 1}
-                      </td>
-
-                      {/* N° BT */}
-                      <td className="py-3 px-3.5 font-bold text-blue-900 font-mono whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-700 flex items-center justify-center font-black text-[10px] border border-blue-200/60 shadow-2xs">
-                            BT
-                          </span>
-                          <span>{bt.num_bt}</span>
-                        </div>
-                      </td>
-
-                      {/* Machine */}
-                      <td className="py-3 px-3.5 font-bold text-slate-800 font-mono whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 text-xs">
-                          {bt.code_machine}
-                        </span>
-                      </td>
-
-                      {/* Intervenant */}
-                      <td className="py-3 px-3.5 text-slate-700 font-medium whitespace-nowrap min-w-[160px]">
-                        <div className="flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="font-semibold text-slate-800">{resolveTechNom(bt)}</span>
-                        </div>
-                      </td>
-
-                      {/* Type Panne */}
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        <span className="px-2.5 py-1 rounded-md font-mono font-bold text-xs bg-slate-100 text-slate-800 border border-slate-200 shadow-2xs">
-                          {bt.type_panne || 'M'}
-                        </span>
-                      </td>
-
-                      {/* Anomalie */}
-                      <td className="py-3 px-3.5 font-medium text-slate-800 max-w-xs truncate min-w-[180px]" title={bt.anomalie}>
-                        <span className="font-bold text-slate-900">{bt.anomalie || 'court_circuit'}</span>
-                      </td>
-
-                      {/* Travail à Faire */}
-                      <td className="py-3 px-3.5 text-slate-600 max-w-xs truncate min-w-[200px]" title={bt.travail_a_faire}>
-                        <span className="text-slate-700">{bt.travail_a_faire || bt.action_realisee || 'Intervention standard'}</span>
-                      </td>
-
-                      {/* PDR */}
-                      <td className="py-3 px-3.5 text-slate-600 max-w-xs truncate min-w-[160px]">
-                        {resolvePdrDisplay(bt) ? (
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-50 text-cyan-800 border border-cyan-200 text-xs font-mono font-bold shadow-2xs"
-                            title={resolvePdrDisplay(bt).designation}
-                          >
-                            <Package className="w-3 h-3 text-cyan-600 shrink-0" />
-                            <span className="truncate">{resolvePdrDisplay(bt).ref}</span>
-                          </span>
-                        ) : (
-                          <span className="text-slate-300 font-mono text-[11px]">—</span>
-                        )}
-                      </td>
-
-                      {/* Statut */}
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        {isClosed ? (
-                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono shadow-2xs">
-                            CLÔTURÉ
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-blue-100 text-blue-900 border border-blue-300 font-mono animate-pulse shadow-2xs">
-                            EN COURS
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Action */}
-                      <td className="py-3 px-3.5 text-center whitespace-nowrap">
-                        {!isClosed ? (
-                          <button
-                            onClick={() => handleStartLiveIntervention(bt)}
-                            className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition flex items-center justify-center gap-1.5 mx-auto cursor-pointer shadow-2xs active:scale-95"
-                            title="Lancer le Chrono Live et déduire automatiquement les pauses"
-                          >
-                            <Play className="w-3.5 h-3.5 fill-current" />
-                            <span>Chrono Live</span>
-                          </button>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-mono font-bold text-xs shadow-2xs">
-                            <CheckCircle className="w-3 h-3 text-emerald-600" />
-                            {bt.temps_intervention_calc || bt.temps_intervention || '00:45'}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Pagination Footer */}
-      <TablePaginationCard
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        pageSize={pageSize}
-        setPageSize={setPageSize}
-        totalItems={totalItems}
-        pageSizeOptions={[20, 25, 50, 100, 200, 0]}
-        color="blue"
+      {/* 3. Unified Industrial Data Grid */}
+      <GmaoIndustrialDataGrid
+        title="Tableau Bons_de_Travail • Ordre Excel Row 3 : B → L"
+        icon={<FileSpreadsheet className="w-4 h-4 text-blue-600" />}
+        excelMapping="N° | N° BT (B) | Machine (A) | Intervenant (D) | Type (I) | Anomalie (J) | Travail (K) | PDR (L) | Statut | Action"
+        bannerColor="blue"
+        columns={btColumns}
+        data={displayedBts}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={toggleSort}
+        renderSortIcon={renderSortIcon}
+        startIndex={startIndex}
+        showRowNumber={true}
+        emptyIcon={<Wrench className="w-8 h-8 text-slate-300" />}
+        emptyMessage="Aucun Bon de Travail (BT) trouvé pour les filtres sélectionnés."
+        pagination={{
+          currentPage,
+          setCurrentPage,
+          pageSize,
+          setPageSize,
+          totalItems,
+          pageSizeOptions: [20, 25, 50, 100, 200, 0],
+          color: 'blue',
+          itemLabel: 'bons',
+        }}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import TablePaginationCard from '../../../components/common/TablePaginationCard';
+import GmaoIndustrialDataGrid from '../../../components/common/GmaoIndustrialDataGrid.jsx';
 import {
   ShieldAlert,
   Plus,
@@ -70,12 +71,6 @@ export default function PannesCatalogTab({
     }
   };
 
-  const emptyRowsCount = useMemo(() => {
-    if (pageSize === 0 || pageSize === 'ALL') return 0;
-    const count = effectivePageSize - paginatedPannes.length;
-    return count > 0 ? Math.min(count, 20) : 0;
-  }, [effectivePageSize, paginatedPannes.length, pageSize]);
-
   // Handlers for Add/Edit/Delete
   const handleOpenAddModal = () => {
     setFormCategory(selectedCategory !== 'ALL' ? selectedCategory : 'E');
@@ -128,6 +123,122 @@ export default function PannesCatalogTab({
   const categoryKeys = Object.keys(CATEGORY_META).length > 0
     ? Object.keys(CATEGORY_META)
     : ['E', 'M', 'H', 'P', 'E_M', 'E_H', 'E_P', 'M_P', 'M_H', 'AUTRE'];
+
+  const panneColumns = useMemo(
+    () => [
+      {
+        key: 'category',
+        label: 'CATÉGORIE',
+        colLetter: 'Col A',
+        icon: ShieldAlert,
+        align: 'center',
+        render: (panne) => {
+          const meta = CATEGORY_META[panne.category] || {
+            label: panne.category,
+            color: 'bg-slate-100 text-slate-800 border-slate-300',
+          };
+          return (
+            <span className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold border ${meta.color} whitespace-nowrap`}>
+              {panne.category} • {meta.label}
+            </span>
+          );
+        },
+      },
+      {
+        key: 'code',
+        label: 'CODE ANOMALIE',
+        colLetter: 'Col B',
+        icon: Radio,
+        align: 'center',
+        render: (panne) => (
+          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-bold border border-slate-200 text-[11px] font-mono whitespace-nowrap">
+            {panne.code}
+          </span>
+        ),
+      },
+      {
+        key: 'name',
+        label: 'DÉSIGNATION / LIBELLÉ DE LA PANNE',
+        colLetter: 'Col C',
+        icon: BookOpen,
+        render: (panne) => (
+          <span className="font-black text-slate-900 text-xs">
+            {panne.name}
+          </span>
+        ),
+      },
+      {
+        key: 'actions_types',
+        label: 'SOLUTIONS & ACTIONS TYPES',
+        colLetter: 'Col D',
+        icon: Wrench,
+        render: (panne) => {
+          const hasActions = panne.actions && panne.actions.length > 0;
+          return hasActions ? (
+            <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
+              {panne.actions.map((act, actIdx) => (
+                <div
+                  key={actIdx}
+                  className="text-[11px] text-slate-700 bg-amber-50/60 p-1 rounded-lg border border-amber-200/50 flex items-start gap-1"
+                >
+                  <span className="text-amber-700 font-bold">•</span>
+                  <span className="leading-tight">{act}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <span className="text-[10.5px] text-slate-400 italic">Aucune action définie</span>
+          );
+        },
+      },
+      {
+        key: 'actions_gmao',
+        label: 'ACTIONS GMAO',
+        colLetter: 'Col E',
+        icon: Zap,
+        align: 'center',
+        render: (panne) => (
+          <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof onAddDemandeWithPreset === 'function') {
+                  onAddDemandeWithPreset({
+                    type_panne: panne.category,
+                    anomalie: panne.code,
+                  });
+                }
+              }}
+              className="px-2 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10.5px] transition inline-flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+              title="Créer une Demande d'Intervention directe"
+            >
+              <Plus className="w-3 h-3" />
+              <span>DI</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleOpenEditModal(panne)}
+              className="p-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 transition cursor-pointer border border-slate-200/80"
+              title="Modifier le code de l'anomalie"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPanneToDelete(panne)}
+              className="p-1 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 transition cursor-pointer border border-slate-200/80"
+              title="Supprimer cette anomalie du catalogue"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [CATEGORY_META, onAddDemandeWithPreset]
+  );
 
   return (
     <div className="space-y-4 font-sans select-none">
@@ -206,173 +317,28 @@ export default function PannesCatalogTab({
 
       {/* 2. MAIN CONTENT DISPLAY: EXCEL SPREADSHEET TABLE MODE */}
       {displayMode === 'excel' && (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16)] transition-all duration-300 ease-out">
-          <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-slate-50/50 gap-2">
-            <div className="font-bold text-slate-800 text-[13px] flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-amber-600" />
-              <span>Tableau Pannes_Cataloguées • Ordre Excel Row 3 : A → F</span>
-            </div>
-            <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-              N° | Catégorie (A) | Code Anomalie (B) | Désignation / Libellé (C) | Solutions Types (D) | Actions (E)
-            </div>
-          </div>
-
-          <div className="overflow-x-auto max-h-[65vh] overflow-y-auto">
-            <table className="w-full text-left text-xs border-collapse min-w-[950px]">
-              <thead className="bg-slate-100 text-[11px] font-black uppercase text-slate-700 tracking-wider border-b border-slate-200 sticky top-0 z-20 font-mono shadow-2xs">
-                <tr>
-                  <th className="py-3 px-3 text-center w-12 bg-slate-200/70 border-r border-slate-200/90">
-                    N°
-                  </th>
-                  <th className="py-3 px-3.5 text-center w-36 border-r border-slate-200/90 whitespace-nowrap">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                      <span>CATÉGORIE</span>
-                    </div>
-                  </th>
-                  <th className="py-3 px-3.5 text-center w-44 border-r border-slate-200/90 whitespace-nowrap font-mono">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <Radio className="w-3.5 h-3.5 text-blue-600" />
-                      <span>CODE ANOMALIE</span>
-                    </div>
-                  </th>
-                  <th className="py-3 px-4 border-r border-slate-200/90 whitespace-nowrap">
-                    <div className="flex items-center gap-1.5">
-                      <BookOpen className="w-3.5 h-3.5 text-slate-600" />
-                      <span>DÉSIGNATION / LIBELLÉ DE LA PANNE</span>
-                    </div>
-                  </th>
-                  <th className="py-3 px-4 border-r border-slate-200/90 whitespace-nowrap">
-                    <div className="flex items-center gap-1.5">
-                      <Wrench className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>SOLUTIONS & ACTIONS TYPES</span>
-                    </div>
-                  </th>
-                  <th className="py-3 px-3.5 text-center w-48 whitespace-nowrap">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 text-amber-600" />
-                      <span>ACTIONS GMAO</span>
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100/90">
-                {paginatedPannes.map((panne, relativeIdx) => {
-                  const absoluteIdx = startIndex + relativeIdx;
-                  const meta = CATEGORY_META[panne.category] || {
-                    label: panne.category,
-                    color: 'bg-slate-100 text-slate-800 border-slate-300',
-                  };
-                  const hasActions = panne.actions && panne.actions.length > 0;
-
-                  return (
-                    <tr
-                      key={panne.id}
-                      className="odd:bg-white even:bg-slate-50/60 hover:bg-amber-50/40 transition-colors group/row"
-                    >
-                      {/* Row Index */}
-                      <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-400 bg-slate-100/60 border-r border-slate-200/60 text-[11px]">
-                        {absoluteIdx + 1}
-                      </td>
-
-                      {/* Category Badge */}
-                      <td className="py-2.5 px-3.5 text-center border-r border-slate-200/60 whitespace-nowrap">
-                        <span className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold border ${meta.color}`}>
-                          {panne.category} • {meta.label}
-                        </span>
-                      </td>
-
-                      {/* Code Badge */}
-                      <td className="py-2.5 px-3.5 text-center font-mono border-r border-slate-200/60 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-bold border border-slate-200 text-[11px]">
-                          {panne.code}
-                        </span>
-                      </td>
-
-                      {/* Name */}
-                      <td className="py-2.5 px-4 font-black text-slate-900 text-xs border-r border-slate-200/60">
-                        {panne.name}
-                      </td>
-
-                      {/* Recommended Actions */}
-                      <td className="py-2.5 px-4 border-r border-slate-200/60">
-                        {hasActions ? (
-                          <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
-                            {panne.actions.map((act, actIdx) => (
-                              <div
-                                key={actIdx}
-                                className="text-[11px] text-slate-700 bg-amber-50/60 p-1 rounded-lg border border-amber-200/50 flex items-start gap-1"
-                              >
-                                <span className="text-amber-700 font-bold">•</span>
-                                <span className="leading-tight">{act}</span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-[10.5px] text-slate-400 italic">Aucune action définie</span>
-                        )}
-                      </td>
-
-                      {/* Action Buttons: Créer DI + Modifier + Supprimer */}
-                      <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (typeof onAddDemandeWithPreset === 'function') {
-                                onAddDemandeWithPreset({
-                                  type_panne: panne.category,
-                                  anomalie: panne.code,
-                                });
-                              }
-                            }}
-                            className="px-2 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10.5px] transition inline-flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
-                            title="Créer une Demande d'Intervention directe"
-                          >
-                            <Plus className="w-3 h-3" />
-                            <span>DI</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditModal(panne)}
-                            className="p-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 transition cursor-pointer border border-slate-200/80"
-                            title="Modifier le code de l'anomalie"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => setPanneToDelete(panne)}
-                            className="p-1 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 transition cursor-pointer border border-slate-200/80"
-                            title="Supprimer cette anomalie du catalogue"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {/* Placeholder rows */}
-                {Array.from({ length: emptyRowsCount }).map((_, idx) => (
-                  <tr key={`empty-${idx}`} className="h-10 opacity-30 select-none pointer-events-none">
-                    <td className="py-2.5 px-3 text-center font-mono text-[10px] text-slate-300 bg-slate-50 border-r border-slate-100">
-                      -
-                    </td>
-                    <td className="border-r border-slate-100 text-center text-[10px] text-slate-300">-</td>
-                    <td className="border-r border-slate-100 text-center text-[10px] text-slate-300">-</td>
-                    <td className="border-r border-slate-100 text-[10px] text-slate-300 px-4">-</td>
-                    <td className="border-r border-slate-100 text-[10px] text-slate-300 px-4">-</td>
-                    <td className="text-center text-[10px] text-slate-300">-</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <GmaoIndustrialDataGrid
+          title="Tableau Pannes_Cataloguées • Ordre Excel Row 3 : A → E"
+          icon={<ShieldAlert className="w-4 h-4 text-amber-600" />}
+          excelMapping="N° | Catégorie (A) | Code Anomalie (B) | Désignation / Libellé (C) | Solutions Types (D) | Actions (E)"
+          bannerColor="amber"
+          columns={panneColumns}
+          data={paginatedPannes}
+          startIndex={startIndex}
+          showRowNumber={true}
+          emptyIcon={<ShieldAlert className="w-8 h-8 text-slate-300" />}
+          emptyMessage="Aucune anomalie trouvée pour cette recherche."
+          pagination={{
+            currentPage: safeCurrentPage,
+            setCurrentPage: handlePageChange,
+            pageSize,
+            setPageSize,
+            totalItems,
+            pageSizeOptions: [20, 25, 50, 100, 200, 0],
+            color: 'amber',
+            itemLabel: 'pannes',
+          }}
+        />
       )}
 
       {/* 3. GRID / CARDS DISPLAY MODE */}
@@ -499,16 +465,18 @@ export default function PannesCatalogTab({
         </div>
       )}
 
-      {/* 5. FOOTER PAGINATION BAR */}
-      <TablePaginationCard
-        currentPage={safeCurrentPage}
-        setCurrentPage={handlePageChange}
-        pageSize={pageSize}
-        setPageSize={setPageSize}
-        totalItems={totalItems}
-        pageSizeOptions={[20, 25, 50, 100, 200, 0]}
-        color="amber"
-      />
+      {/* 5. FOOTER PAGINATION BAR (For Grid Mode) */}
+      {displayMode === 'grid' && (
+        <TablePaginationCard
+          currentPage={safeCurrentPage}
+          setCurrentPage={handlePageChange}
+          pageSize={pageSize}
+          setPageSize={setPageSize}
+          totalItems={totalItems}
+          pageSizeOptions={[20, 25, 50, 100, 200, 0]}
+          color="amber"
+        />
+      )}
 
       {/* 6. MODAL: AJOUTER UNE PANNE */}
       {isAddModalOpen && (

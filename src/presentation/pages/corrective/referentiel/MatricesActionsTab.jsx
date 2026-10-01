@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import TablePaginationCard from '../../../components/common/TablePaginationCard';
+import GmaoIndustrialDataGrid from '../../../components/common/GmaoIndustrialDataGrid.jsx';
 import {
   Wrench,
   Plus,
@@ -78,12 +79,6 @@ export default function MatricesActionsTab({
     }
   };
 
-  const emptyRowsCount = useMemo(() => {
-    if (pageSize === 0 || pageSize === 'ALL') return 0;
-    const count = effectivePageSize - paginatedMatrix.length;
-    return count > 0 ? Math.min(count, 20) : 0;
-  }, [effectivePageSize, paginatedMatrix.length, pageSize]);
-
   // Modal Handlers
   const handleOpenAddModal = (defaultPanne = '') => {
     setTargetPanneForAdd(defaultPanne || (allAvailablePannes[0] || ''));
@@ -132,6 +127,148 @@ export default function MatricesActionsTab({
     }
     setActionToDelete(null);
   };
+
+  const formattedMatrix = useMemo(
+    () => filteredActionsMatrix.map(([panneKey, actions], idx) => ({ id: panneKey, panneKey, actions, rawIndex: idx })),
+    [filteredActionsMatrix]
+  );
+  const paginatedFormattedMatrix = useMemo(
+    () => formattedMatrix.slice(startIndex, endIndex),
+    [formattedMatrix, startIndex, endIndex]
+  );
+
+  const matrixColumns = useMemo(
+    () => [
+      {
+        key: 'panneKey',
+        label: 'ANOMALIE / PANNE CIBLÉE',
+        colLetter: 'Col A',
+        icon: ShieldAlert,
+        render: (item) => {
+          const panneKey = item.panneKey;
+          const label = formatPanneName(panneKey);
+          return (
+            <div className="space-y-0.5 max-w-xs">
+              <span className="font-mono font-bold text-[11px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 block truncate" title={panneKey}>
+                {panneKey}
+              </span>
+              <span className="text-[11px] font-bold text-slate-700 block truncate" title={label}>
+                {label}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        key: 'actions',
+        label: 'ACTIONS & SOLUTIONS TYPES DÉFINIES',
+        colLetter: 'Col B',
+        icon: Wrench,
+        render: (item) => {
+          const panneKey = item.panneKey;
+          const actions = item.actions;
+          return actions.length > 0 ? (
+            <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+              {actions.map((act, actIdx) => (
+                <div
+                  key={actIdx}
+                  className="p-1.5 bg-slate-50 rounded-lg border border-slate-200/60 flex items-start justify-between gap-2 group/act"
+                >
+                  <div className="flex items-start gap-1.5 min-w-0">
+                    <span className="font-mono text-emerald-600 font-bold text-[10px] shrink-0 mt-0.5">
+                      #{actIdx + 1}
+                    </span>
+                    <span className="text-slate-700 text-xs leading-snug">{act}</span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover/act:opacity-100 transition">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyText(act, `${panneKey}-${actIdx}`)}
+                      className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded cursor-pointer"
+                      title="Copier"
+                    >
+                      {copiedIndex === `${panneKey}-${actIdx}` ? (
+                        <Check className="w-3 h-3 text-emerald-600" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditAction(panneKey, actIdx, act)}
+                      className="p-1 text-slate-400 hover:text-blue-700 hover:bg-blue-50 rounded cursor-pointer"
+                      title="Modifier"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActionToDelete({ panneKey, actionIndex: actIdx, actionText: act })}
+                      className="p-1 text-slate-400 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
+                      title="Supprimer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <span className="text-slate-400 italic text-xs">Aucune action définie</span>
+          );
+        },
+      },
+      {
+        key: 'nb_actions',
+        label: 'NB ACTIONS',
+        colLetter: 'Col C',
+        icon: Wrench,
+        align: 'center',
+        render: (item) => (
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black bg-emerald-50 text-emerald-900 border border-emerald-200">
+            {item.actions.length}
+          </span>
+        ),
+      },
+      {
+        key: 'actions_gmao',
+        label: 'ACTIONS GMAO',
+        colLetter: 'Col D',
+        icon: Zap,
+        align: 'center',
+        render: (item) => (
+          <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
+            <button
+              type="button"
+              onClick={() => handleOpenAddModal(item.panneKey)}
+              className="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[10.5px] border border-emerald-200 transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+              title="Ajouter une action à cette anomalie"
+            >
+              <Plus className="w-3 h-3" />
+              <span>Action</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof onAddDemandeWithPreset === 'function') {
+                  onAddDemandeWithPreset({
+                    anomalie: item.panneKey,
+                    travail_demande: item.actions[0] || '',
+                  });
+                }
+              }}
+              className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10.5px] transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+              title="Créer une Demande d'Intervention directe"
+            >
+              <Plus className="w-3 h-3" />
+              <span>DI</span>
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [copiedIndex, formatPanneName, handleCopyText, onAddDemandeWithPreset]
+  );
 
   return (
     <div className="space-y-4 font-sans select-none">
@@ -209,165 +346,28 @@ export default function MatricesActionsTab({
 
       {/* 2. MAIN CONTENT DISPLAY: EXCEL SPREADSHEET TABLE MODE */}
       {displayMode === 'excel' && (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16)] transition-all duration-300 ease-out">
-          <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between text-xs text-slate-500 bg-slate-50/50 gap-2">
-            <div className="font-bold text-slate-800 text-[13px] flex items-center gap-2">
-              <Wrench className="w-4 h-4 text-emerald-600" />
-              <span>Tableau Actions_Par_Panne • Ordre Excel Row 3 : Anomalie → Solutions Types → Actions</span>
-            </div>
-            <div className="font-mono text-[11px] text-slate-400 hidden lg:block">
-              N° | Anomalie / Panne (A) | Actions & Solutions Types d'Atelier (B) | Total (C) | Actions (D)
-            </div>
-          </div>
-
-          <div className="overflow-x-auto max-h-[65vh] overflow-y-auto">
-            <table className="w-full text-left text-xs border-collapse min-w-[900px]">
-              <thead className="bg-slate-100 text-[11px] font-black uppercase text-slate-700 tracking-wider border-b border-slate-200 sticky top-0 z-20 font-mono shadow-2xs">
-                <tr>
-                  <th className="py-3 px-3 text-center w-12 bg-slate-200/70 border-r border-slate-200/90">
-                    N°
-                  </th>
-                  <th className="py-3 px-3.5 border-r border-slate-200/90 w-64 whitespace-nowrap">
-                    <div className="flex items-center gap-1.5">
-                      <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                      <span>ANOMALIE / PANNE CIBLÉE</span>
-                    </div>
-                  </th>
-                  <th className="py-3 px-4 border-r border-slate-200/90 whitespace-nowrap">
-                    <div className="flex items-center gap-1.5">
-                      <Wrench className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>ACTIONS & SOLUTIONS TYPES DÉFINIES</span>
-                    </div>
-                  </th>
-                  <th className="py-3 px-3 text-center w-28 border-r border-slate-200/90 whitespace-nowrap font-mono">
-                    NB ACTIONS
-                  </th>
-                  <th className="py-3 px-3.5 text-center w-48 whitespace-nowrap">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>ACTIONS GMAO</span>
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100/90">
-                {paginatedMatrix.map(([panneKey, actionsList = []], relativeIdx) => {
-                  const absoluteIdx = startIndex + relativeIdx;
-                  const formattedKey = formatPanneName(panneKey);
-                  const count = Array.isArray(actionsList) ? actionsList.length : 0;
-
-                  return (
-                    <tr
-                      key={panneKey}
-                      className="odd:bg-white even:bg-slate-50/60 hover:bg-emerald-50/40 transition-colors group/row"
-                    >
-                      {/* Row Index */}
-                      <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-400 bg-slate-100/60 border-r border-slate-200/60 text-[11px]">
-                        {absoluteIdx + 1}
-                      </td>
-
-                      {/* Panne Target Badge & Name */}
-                      <td className="py-2.5 px-3.5 border-r border-slate-200/60">
-                        <div className="font-bold text-slate-900 text-xs">{formattedKey}</div>
-                        <div className="text-[10px] font-mono text-slate-400 mt-0.5">{panneKey}</div>
-                      </td>
-
-                      {/* Actions List with Edit/Delete buttons */}
-                      <td className="py-2.5 px-4 border-r border-slate-200/60">
-                        {count > 0 ? (
-                          <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-                            {actionsList.map((action, aIdx) => (
-                              <div
-                                key={aIdx}
-                                className="text-[11px] text-slate-700 bg-emerald-50/60 p-1.5 rounded-lg border border-emerald-200/50 flex items-center justify-between gap-1.5 group/action"
-                              >
-                                <div className="flex items-start gap-1 min-w-0">
-                                  <span className="text-emerald-700 font-bold">•</span>
-                                  <span className="leading-tight truncate">{action}</span>
-                                </div>
-                                <div className="flex items-center gap-1 opacity-80 group-hover/action:opacity-100 shrink-0">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenEditAction(panneKey, aIdx, action)}
-                                    className="p-0.5 rounded text-slate-400 hover:text-blue-700 hover:bg-white cursor-pointer"
-                                    title="Modifier cette action"
-                                  >
-                                    <Edit2 className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setActionToDelete({ panneKey, actionIndex: aIdx, actionText: action })}
-                                    className="p-0.5 rounded text-slate-400 hover:text-rose-700 hover:bg-white cursor-pointer"
-                                    title="Supprimer cette action"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-[10.5px] text-slate-400 italic">Aucune action définie</span>
-                        )}
-                      </td>
-
-                      {/* Number of Actions Badge */}
-                      <td className="py-2.5 px-3 text-center border-r border-slate-200/60 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded-full text-[10.5px] font-mono font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
-                          {count} action{count > 1 ? 's' : ''}
-                        </span>
-                      </td>
-
-                      {/* Action Buttons: Add Action + Créer DI */}
-                      <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenAddModal(panneKey)}
-                            className="px-2 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-[10.5px] transition flex items-center gap-1 cursor-pointer border border-emerald-300"
-                            title="Ajouter une action à cette panne"
-                          >
-                            <Plus className="w-3 h-3" />
-                            <span>Action</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (typeof onAddDemandeWithPreset === 'function') {
-                                onAddDemandeWithPreset({
-                                  anomalie: panneKey,
-                                });
-                              }
-                            }}
-                            className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10.5px] transition inline-flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
-                            title="Créer une Demande d'Intervention"
-                          >
-                            <Plus className="w-3 h-3" />
-                            <span>DI</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {/* Placeholder rows */}
-                {Array.from({ length: emptyRowsCount }).map((_, idx) => (
-                  <tr key={`empty-${idx}`} className="h-10 opacity-30 select-none pointer-events-none">
-                    <td className="py-2.5 px-3 text-center font-mono text-[10px] text-slate-300 bg-slate-50 border-r border-slate-100">
-                      -
-                    </td>
-                    <td className="border-r border-slate-100 text-[10px] text-slate-300 px-3">-</td>
-                    <td className="border-r border-slate-100 text-[10px] text-slate-300 px-4">-</td>
-                    <td className="border-r border-slate-100 text-center text-[10px] text-slate-300">-</td>
-                    <td className="text-center text-[10px] text-slate-300">-</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <GmaoIndustrialDataGrid
+          title="Tableau Actions_Par_Panne • Ordre Excel Row 3 : Anomalie → Solutions Types → Actions"
+          icon={<Wrench className="w-4 h-4 text-emerald-600" />}
+          excelMapping="N° | Anomalie / Panne (A) | Actions & Solutions Types d'Atelier (B) | Total (C) | Actions (D)"
+          bannerColor="emerald"
+          columns={matrixColumns}
+          data={paginatedFormattedMatrix}
+          startIndex={startIndex}
+          showRowNumber={true}
+          emptyIcon={<Wrench className="w-8 h-8 text-slate-300" />}
+          emptyMessage="Aucune matrice d'actions trouvée."
+          pagination={{
+            currentPage: safeCurrentPage,
+            setCurrentPage: handlePageChange,
+            pageSize,
+            setPageSize,
+            totalItems,
+            pageSizeOptions: [20, 25, 50, 100, 200, 0],
+            color: 'emerald',
+            itemLabel: 'matrices',
+          }}
+        />
       )}
 
       {/* 3. GRID / CARDS DISPLAY MODE */}
@@ -501,16 +501,18 @@ export default function MatricesActionsTab({
         </div>
       )}
 
-      {/* 5. FOOTER PAGINATION BAR */}
-      <TablePaginationCard
-        currentPage={safeCurrentPage}
-        setCurrentPage={handlePageChange}
-        pageSize={pageSize}
-        setPageSize={setPageSize}
-        totalItems={totalItems}
-        pageSizeOptions={[20, 25, 50, 100, 200, 0]}
-        color="emerald"
-      />
+      {/* 5. FOOTER PAGINATION BAR (For Grid Mode) */}
+      {displayMode === 'grid' && (
+        <TablePaginationCard
+          currentPage={safeCurrentPage}
+          setCurrentPage={handlePageChange}
+          pageSize={pageSize}
+          setPageSize={setPageSize}
+          totalItems={totalItems}
+          pageSizeOptions={[20, 25, 50, 100, 200, 0]}
+          color="emerald"
+        />
+      )}
 
       {/* 6. MODAL: AJOUTER UNE ACTION CORRECTIVE */}
       {isAddModalOpen && (
