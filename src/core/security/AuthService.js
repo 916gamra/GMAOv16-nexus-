@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
-import CryptoJS from 'crypto-js';
 import { storageService } from '../../utils/storageService';
+import { SecurityService } from './SecurityService';
 
 const USERS_KEY = 'gmao_auth_accounts_v2';
 const SESSION_KEY = 'gmao_session_v2';
@@ -12,6 +12,26 @@ export class AuthService {
     if (AuthService.instance) return AuthService.instance;
     this.initDefaultUsers();
     AuthService.instance = this;
+  }
+
+  /**
+   * Encrypt and sign session with HMAC-SHA256
+   */
+  saveSignedSession(sessionPayload) {
+    const payload = {
+      ...sessionPayload,
+      loginTime: sessionPayload.loginTime || Date.now()
+    };
+    delete payload.passwordHash;
+    delete payload.defaultPass;
+
+    const token = SecurityService.generateToken(payload);
+    const sessionEnvelope = {
+      token,
+      payload
+    };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(sessionEnvelope));
+    return payload;
   }
 
   getDefaultUsersList() {
@@ -222,15 +242,11 @@ export class AuthService {
     if (!user) {
       throw new Error(`Compte "${usernameOrId}" introuvable.`);
     }
-    const session = {
+    const sessionPayload = {
       ...user,
-      authMethod: 'ADMIN_SWITCH',
-      token: CryptoJS.lib.WordArray.random(16).toString(),
-      loginTime: Date.now()
+      authMethod: 'ADMIN_SWITCH'
     };
-    delete session.passwordHash;
-    delete session.defaultPass;
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    const session = this.saveSignedSession(sessionPayload);
     window.dispatchEvent(new Event('storage'));
     return session;
   }
@@ -240,19 +256,16 @@ export class AuthService {
   }
 
   createAdminSession(role = 'ADMIN', authMethod = 'PASSWORD') {
-    const session = {
+    const sessionPayload = {
       id: 'admin',
       username: 'admin',
       role: role,
       name: 'Administrateur',
       titleFr: `Administrateur Système (${role})`,
       avatar: 'AD',
-      authMethod: authMethod,
-      token: CryptoJS.lib.WordArray.random(16).toString(),
-      loginTime: Date.now()
+      authMethod: authMethod
     };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    return session;
+    return this.saveSignedSession(sessionPayload);
   }
 
   async loginWithPin(pin) {
@@ -283,7 +296,7 @@ export class AuthService {
       throw new Error("Veuillez saisir votre mot de passe ou code PIN.");
     }
 
-    // Check if configured Admin PIN from Settings matches (supports BCrypt/SHA256 from settings)
+    // Check if configured Admin PIN from Settings matches
     const storedAdminPin = localStorage.getItem('gmao_admin_pin');
     const isPinMatch = storedAdminPin ? storageService.verifyPin(cleanPassword, storedAdminPin) : false;
 
@@ -308,16 +321,11 @@ export class AuthService {
         (user.role === 'ADMIN' && isPinMatch);
 
       if (isPasswordValid) {
-        const session = {
+        const sessionPayload = {
           ...user,
-          authMethod: 'PASSWORD',
-          token: CryptoJS.lib.WordArray.random(16).toString(),
-          loginTime: Date.now()
+          authMethod: 'PASSWORD'
         };
-        delete session.passwordHash;
-        delete session.defaultPass;
-        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-        return session;
+        return this.saveSignedSession(sessionPayload);
       }
     }
 
@@ -331,8 +339,26 @@ export class AuthService {
   getCurrentUser() {
     try {
       const sessionStr = localStorage.getItem(SESSION_KEY);
-      return sessionStr ? JSON.parse(sessionStr) : null;
+      if (!sessionStr) return null;
+
+      const parsed = JSON.parse(sessionStr);
+
+      // Verify HMAC token signature if wrapped envelope
+      if (parsed.token && parsed.payload) {
+        const verifiedPayload = SecurityService.verifyToken(parsed.token);
+        return verifiedPayload;
+      }
+
+      // Legacy plain session upgrade: sign and convert
+      if (parsed.username && parsed.role) {
+        const signed = this.saveSignedSession(parsed);
+        return signed;
+      }
+
+      return null;
     } catch {
+      // Clear tampered session
+      this.logout();
       return null;
     }
   }

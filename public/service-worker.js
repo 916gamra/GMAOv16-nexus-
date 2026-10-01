@@ -60,6 +60,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Ignorer les requêtes de développement Vite, HMR et WebSockets
+  if (
+    url.pathname.includes('/@vite') ||
+    url.pathname.includes('/@id/') ||
+    url.pathname.includes('/@fs/') ||
+    url.pathname.includes('node_modules') ||
+    url.pathname.includes('__vite_ping') ||
+    url.protocol === 'ws:' ||
+    url.protocol === 'wss:'
+  ) {
+    return;
+  }
+
   // Pour les fichiers statiques : Cache First avec mise à jour en tâche de fond
   if (isStaticAsset(request)) {
     event.respondWith(

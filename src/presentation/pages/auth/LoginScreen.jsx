@@ -13,7 +13,6 @@ import {
   Hash,
   LogIn,
   Users,
-  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -52,20 +51,6 @@ export default function LoginScreen() {
     setSelectedUserKey(acc.username);
     setUsername(acc.username);
     setPassword('');
-    setErrorMsg(null);
-  };
-
-  // Quick fill default demo credentials for fast testing
-  const handleQuickFill = () => {
-    const acc = accounts.find((a) => a.username === username) || accounts[0];
-    if (acc) {
-      setPassword(acc.defaultPass || `${acc.username}123`);
-      setErrorMsg(null);
-    }
-  };
-
-  const handleQuickFillPin = () => {
-    setPinCode('1234');
     setErrorMsg(null);
   };
 
@@ -331,19 +316,9 @@ export default function LoginScreen() {
 
               {/* Password Field with Show/Hide & Quick Demo Fill */}
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider font-mono">
-                    Mot de passe
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleQuickFill}
-                    className="text-[10.5px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer transition"
-                  >
-                    <Sparkles className="w-3 h-3 text-emerald-600" />
-                    <span>Remplir démo</span>
-                  </button>
-                </div>
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider font-mono mb-1.5">
+                  Mot de passe
+                </label>
 
                 <div className="relative">
                   <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
@@ -390,29 +365,18 @@ export default function LoginScreen() {
                     <span>Moteur BCrypt (Paramètres)</span>
                   </span>
                   <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-mono font-bold">
-                    {hasConfiguredPin ? 'PIN Personnalisé Configuré' : 'PIN Standard (admin123)'}
+                    {hasConfiguredPin ? 'PIN Personnalisé Configuré' : 'PIN Administrateur'}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-normal">
-                  Ce mode utilise l'algorithme BCrypt configuré dans l'onglet Paramètres pour valider le code d'accès administrateur sans mot de passe complexe.
+                  Ce mode utilise l'algorithme BCrypt configuré dans l'onglet Paramètres pour valider le code d'accès administrateur.
                 </p>
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider font-mono">
-                    Code PIN Chiffré
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleQuickFillPin}
-                    className="text-[10.5px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded flex items-center gap-1 cursor-pointer transition"
-                  >
-                    <Sparkles className="w-3 h-3 text-emerald-600" />
-                    <span>PIN Démo (1234)</span>
-                  </button>
-                </div>
-
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider font-mono mb-1.5">
+                  Code PIN Chiffré
+                </label>
                 <div className="relative">
                   <Hash className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
@@ -423,7 +387,7 @@ export default function LoginScreen() {
                       setPinCode(e.target.value);
                       if (errorMsg) setErrorMsg(null);
                     }}
-                    placeholder="Saisir le code PIN (ex: 1234 ou admin123)..."
+                    placeholder="Saisir votre code PIN..."
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-10 py-2.5 text-xs font-mono text-slate-900 tracking-widest focus:outline-none focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition"
                   />
                   <button
@@ -448,31 +412,6 @@ export default function LoginScreen() {
               </button>
             </form>
           )}
-
-          {/* Demonstration Accounts Summary Grid */}
-          <div className="pt-3 border-t border-slate-100">
-            <div className="text-[11px] font-bold text-slate-600 font-mono mb-2">
-              Comptes & Mots de passe disponibles :
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] font-mono">
-              <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                <span className="font-bold text-slate-700">👑 admin</span>
-                <span className="text-slate-500">admin123</span>
-              </div>
-              <div className="p-2 rounded-xl bg-amber-50/70 border border-amber-200 flex items-center justify-between">
-                <span className="font-bold text-amber-900">📦 magasinier</span>
-                <span className="text-amber-700">magasin123</span>
-              </div>
-              <div className="p-2 rounded-xl bg-blue-50/70 border border-blue-200 flex items-center justify-between">
-                <span className="font-bold text-blue-900">🔧 tech</span>
-                <span className="text-blue-700">tech123</span>
-              </div>
-              <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                <span className="font-bold text-slate-700">👁️ viewer</span>
-                <span className="text-slate-500">viewer123</span>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Footer info */}

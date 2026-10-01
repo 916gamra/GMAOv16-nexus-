@@ -16,10 +16,25 @@ import { Logger } from '../logger/LoggerService.js';
  */
 export class SecurityService {
   /**
-   * المفتاح السري الافتراضي للتشفير والتوقيع الرقمي
-   * @type {string}
+   * المفتاح السري الديناميكي للتشفير والتوقيع الرقمي
+   * @returns {string}
    */
-  static SECRET_KEY = import.meta.env.VITE_SECRET_KEY || 'your-secret-key-change-in-production';
+  static get SECRET_KEY() {
+    if (import.meta.env.VITE_SECRET_KEY) {
+      return import.meta.env.VITE_SECRET_KEY;
+    }
+    
+    try {
+      let instanceKey = localStorage.getItem('_gmao_sec_instance_key');
+      if (!instanceKey) {
+        instanceKey = CryptoJS.lib.WordArray.random(32).toString(CryptoJS.enc.Hex);
+        localStorage.setItem('_gmao_sec_instance_key', instanceKey);
+      }
+      return instanceKey;
+    } catch {
+      return 'gmao_vault_fallback_key_99018231';
+    }
+  }
 
   /**
    * تجشيم (Hash) كلمة السر باستخدام مكتبة bcrypt لضمان عدم تخزينها كنص صريح
