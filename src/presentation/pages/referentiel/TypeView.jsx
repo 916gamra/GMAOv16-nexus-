@@ -183,7 +183,6 @@ export default function TypeView({
   }, [filtered, sortField, sortOrder, designations, stockItems]);
 
   const totalItems = sortedData.length;
-  const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / pageSize);
   const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
   const startIndex = (currentPage - 1) * effectivePageSize;
   const rawDisplayedData =

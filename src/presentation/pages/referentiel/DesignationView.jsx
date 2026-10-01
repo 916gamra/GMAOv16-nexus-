@@ -2,7 +2,6 @@ import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import AnimatedPage from '../../components/common/AnimatedPage';
 import Action3DButton from '../../components/common/Action3DButton';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
-import TablePaginationCard from '../../components/common/TablePaginationCard';
 import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import CustomSelect from '../../components/common/CustomSelect';
 import SequentialCodePicker from '../../components/common/SequentialCodePicker';
@@ -323,7 +322,6 @@ export default function DesignationView({
   }, [filtered, sortField, sortOrder, stockItems]);
 
   const totalItems = sortedData.length;
-  const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / pageSize);
   const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
   const startIndex = (currentPage - 1) * effectivePageSize;
   const rawDisplayedData =

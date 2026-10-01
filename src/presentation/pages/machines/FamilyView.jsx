@@ -13,8 +13,6 @@ import {
   Trash2,
   Edit2,
   AlertTriangle,
-  ChevronLeft,
-  ChevronRight,
   SlidersHorizontal,
   ArrowUpDown,
   ChevronDown,
@@ -161,7 +159,6 @@ export default function FamilyView({
   }, [filtered, sortField, sortOrder]);
 
   const totalItems = sortedData.length;
-  const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / pageSize);
   const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
   const startIndex = (currentPage - 1) * effectivePageSize;
   const rawDisplayedData =

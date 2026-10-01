@@ -129,7 +129,6 @@ export default function MatrixWeeksView({
   const totalMachines = machineGroups.length;
   const totalTasks = tasks.length;
   const effectivePageSize = pageSize === 0 ? totalMachines : pageSize;
-  const totalPages = pageSize === 0 ? 1 : Math.max(1, Math.ceil(totalMachines / effectivePageSize));
   const startIndex = (currentPage - 1) * effectivePageSize;
 
   const displayedMachineGroups = useMemo(() => {

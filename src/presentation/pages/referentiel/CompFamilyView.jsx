@@ -13,8 +13,6 @@ import {
   Trash2,
   Edit2,
   Warehouse,
-  ChevronLeft,
-  ChevronRight,
   SlidersHorizontal,
   ArrowUpDown,
   ArrowUp,
@@ -120,7 +118,6 @@ export default function CompFamilyView({
   }, [filtered, sortField, sortOrder]);
 
   const totalItems = sortedData.length;
-  const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / pageSize);
   const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
   const startIndex = (currentPage - 1) * effectivePageSize;
   const rawDisplayedData =

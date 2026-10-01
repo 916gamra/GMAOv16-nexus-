@@ -257,7 +257,6 @@ export default function StockView({
 
   const totalItems = sortedStock.length;
   const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
-  const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / effectivePageSize) || 1;
   const startIndex = (currentPage - 1) * effectivePageSize;
   const rawDisplayedStock =
     pageSize === 0 ? sortedStock : sortedStock.slice(startIndex, startIndex + effectivePageSize);

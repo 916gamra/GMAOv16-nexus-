@@ -1015,7 +1015,6 @@ export default function MouvementsJournalTable({
   // Pagination Slice
   const totalItems = sortedMouvements.length;
   const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
-  const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / effectivePageSize) || 1;
   const startIndex = (currentPage - 1) * effectivePageSize;
   const displayedMouvements = useMemo(() => {
     const raw = pageSize === 0 ? sortedMouvements : sortedMouvements.slice(startIndex, startIndex + effectivePageSize);

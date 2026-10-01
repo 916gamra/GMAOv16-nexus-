@@ -252,7 +252,6 @@ export default function BlueprintMachineView({
 
   const totalItems = sortedBlueprints.length;
   const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
-  const totalPages = pageSize === 0 ? 1 : Math.max(1, Math.ceil(totalItems / (pageSize || 1)));
   const startIndex = (currentPage - 1) * effectivePageSize;
   
   const paginatedBlueprints = useMemo(() => {
