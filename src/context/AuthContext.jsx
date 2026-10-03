@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
         titleFr: 'Administrateur Système',
         avatar: 'AD',
         badgeColor: 'emerald',
-        passwordHash: bcrypt.hashSync('admin123', BCRYPT_ROUNDS),
+        passwordHash: bcrypt.hashSync(cleanPin, BCRYPT_ROUNDS),
         description: 'Supervision complète, paramétrage & sécurité'
       },
       {
@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }) => {
         titleFr: 'Responsable Magasin (RMG)',
         avatar: 'RM',
         badgeColor: 'amber',
-        passwordHash: bcrypt.hashSync('magasin123', BCRYPT_ROUNDS),
+        passwordHash: bcrypt.hashSync(`${cleanPin}#mag`, BCRYPT_ROUNDS),
         description: 'Gestion du stock, réapprovisionnement & PDR'
       },
       {
@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }) => {
         titleFr: 'Technicien Maintenance (TC)',
         avatar: 'TC',
         badgeColor: 'blue',
-        passwordHash: bcrypt.hashSync('tech123', BCRYPT_ROUNDS),
+        passwordHash: bcrypt.hashSync(`${cleanPin}#tech`, BCRYPT_ROUNDS),
         description: 'Bons de sortie, pannes & interventions'
       },
       {
@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }) => {
         titleFr: 'Observateur / Consultation',
         avatar: 'OB',
         badgeColor: 'slate',
-        passwordHash: bcrypt.hashSync('viewer123', BCRYPT_ROUNDS),
+        passwordHash: bcrypt.hashSync(`${cleanPin}#view`, BCRYPT_ROUNDS),
         description: 'Accès lecture seule aux KPIs et tables'
       },
     ];
@@ -225,7 +225,11 @@ export const AuthProvider = ({ children }) => {
         setUser(sessionUser);
         setIsVaultUnlocked(true);
         setAccounts(vault.accounts.map(({ passwordHash: _passwordHash, ...rest }) => rest));
-        localStorage.setItem('gmao_session_v2', JSON.stringify(sessionUser));
+        if (authService?.saveSignedSession) {
+          authService.saveSignedSession(sessionUser);
+        } else {
+          localStorage.setItem('gmao_session_v2', JSON.stringify(sessionUser));
+        }
         await accessLogService.recordLogin(sessionUser);
         return sessionUser;
       }
@@ -263,7 +267,11 @@ export const AuthProvider = ({ children }) => {
         setUser(sessionUser);
         setIsVaultUnlocked(true);
         setAccounts(vault.accounts.map(({ passwordHash: _passwordHash, ...rest }) => rest));
-        localStorage.setItem('gmao_session_v2', JSON.stringify(sessionUser));
+        if (authService?.saveSignedSession) {
+          authService.saveSignedSession(sessionUser);
+        } else {
+          localStorage.setItem('gmao_session_v2', JSON.stringify(sessionUser));
+        }
         await accessLogService.recordLogin(sessionUser);
         return sessionUser;
       } catch {
@@ -341,7 +349,11 @@ export const AuthProvider = ({ children }) => {
         loginTime: Date.now(),
       };
       setUser(session);
-      localStorage.setItem('gmao_session_v2', JSON.stringify(session));
+      if (authService?.saveSignedSession) {
+        authService.saveSignedSession(session);
+      } else {
+        localStorage.setItem('gmao_session_v2', JSON.stringify(session));
+      }
       return session;
     }
 

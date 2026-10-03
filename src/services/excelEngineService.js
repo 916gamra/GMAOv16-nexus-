@@ -5,6 +5,7 @@
  */
 import ExcelJS from 'exceljs';
 import { Logger } from '../core/logger/LoggerService.js';
+import { GmaoFormulaSanitizer } from '../utils/gmaoAdvancedEngine.js';
 
 class ExcelEngineService {
   /**
@@ -241,17 +242,17 @@ class ExcelEngineService {
       const formulaAlerte = `IF(H${rowNum}<=I${rowNum},"ALERTE","OK")`;
 
       const row = wsStock.addRow({
-        ref,
-        designation: s.designation || '',
-        id_type: s.id_type || '',
-        id_diag: s.id_diag || '',
+        ref: GmaoFormulaSanitizer.sanitize(ref),
+        designation: GmaoFormulaSanitizer.sanitize(s.designation || ''),
+        id_type: GmaoFormulaSanitizer.sanitize(s.id_type || ''),
+        id_diag: GmaoFormulaSanitizer.sanitize(s.id_diag || ''),
         stockInitial,
         entrees: { formula: formulaEntrees, result: cachedEntrees },
         sorties: { formula: formulaSorties, result: cachedSorties },
         stockActuel: { formula: formulaActuel, result: cachedActuel },
         seuil,
         alerte: { formula: formulaAlerte, result: cachedActuel <= seuil ? 'ALERTE' : 'OK' },
-        emplacement: s.emplacement || 'Magasin PDR',
+        emplacement: GmaoFormulaSanitizer.sanitize(s.emplacement || 'Magasin PDR'),
       });
 
       row.height = 20;

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { vaultService } from '@/utils/vaultService.js';
+import { SecurityService } from '@/core/security/SecurityService.js';
 import * as bcrypt from 'bcryptjs';
 
 describe('Auth & Vault Infrastructure Unit Tests', () => {
@@ -29,4 +30,37 @@ describe('Auth & Vault Infrastructure Unit Tests', () => {
     expect(isValid).toBe(true);
     expect(isInvalid).toBe(false);
   });
+
+  it('يجب توليد والتحقق من توكن HMAC بنجاح', () => {
+    const payload = { id: 'admin-1', username: 'admin', role: 'ADMIN' };
+    const token = SecurityService.generateToken(payload);
+    
+    expect(token).toBeDefined();
+    expect(token).toContain('.');
+
+    const verified = SecurityService.verifyToken(token);
+    expect(verified.username).toBe('admin');
+    expect(verified.role).toBe('ADMIN');
+  });
+
+  it('يجب كشف انتهاء صلاحية التوكن بشكل آمن عند انتهاء المدة', () => {
+    const payload = { id: 'tech-1', username: 'tech' };
+    // Generate token that expired 10 seconds ago
+    const expiredToken = SecurityService.generateToken(payload, -10);
+
+    expect(() => {
+      SecurityService.verifyToken(expiredToken);
+    }).toThrow('Token expired');
+  });
+
+  it('يجب رفض التوكن إذا تم التلاعب بالتوقيع', () => {
+    const payload = { id: 'user-1', role: 'VIEWER' };
+    const token = SecurityService.generateToken(payload);
+    const tamperedToken = token.slice(0, -4) + 'abcd';
+
+    expect(() => {
+      SecurityService.verifyToken(tamperedToken);
+    }).toThrow('Invalid token signature');
+  });
 });
+

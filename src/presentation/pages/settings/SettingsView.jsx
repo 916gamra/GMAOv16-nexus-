@@ -1312,8 +1312,8 @@ export default function SettingsView({
             },
             {
               id: 'appearance',
-              label: 'المظهر (Appearance)',
-              sub: 'Thème, Sidebar & Layout',
+              label: 'Apparence',
+              sub: 'Thème, disposition & interface',
               icon: Palette,
               color: 'text-purple-600',
               activeBg: 'bg-purple-50/70',

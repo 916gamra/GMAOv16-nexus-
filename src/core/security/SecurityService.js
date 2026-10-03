@@ -114,22 +114,24 @@ export class SecurityService {
    * توليد توكن توثيق آمن موثق بتوقيع HMAC-SHA256 (مشابه لـ JWT)
    * 
    * @param {Object} payload - البيانات المراد تضمينها بالرمز
+   * @param {number} [expiresInSeconds=2592000] - مدة صلاحية الرمز بالثواني (الافتراضي: 30 يوماً لدعم بيئات الصيانة بدون انقطاع)
    * @returns {string} الرمز المولد بالصيغة `encodedHeaderPayload.signature`
    * @throws {Error} عند فشل عملية الإنشاء
    */
-  static generateToken(payload) {
+  static generateToken(payload, expiresInSeconds = 30 * 24 * 60 * 60) {
     try {
       const header = {
         alg: 'HS256',
         typ: 'JWT'
       };
 
+      const now = Math.floor(Date.now() / 1000);
       const token = {
         header,
         payload: {
           ...payload,
-          iat: Math.floor(Date.now() / 1000),
-          exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
+          iat: now,
+          exp: now + expiresInSeconds
         }
       };
 
@@ -139,7 +141,7 @@ export class SecurityService {
       Logger.debug('Token generated successfully');
       return `${encoded}.${signature}`;
     } catch (error) {
-      Logger.error('Token generation failed', error);
+      Logger.warn('[SecurityService] Token generation failed:', error?.message || error);
       throw error;
     }
   }
@@ -148,30 +150,51 @@ export class SecurityService {
    * فحص وتأكيد توقيع رمز التوثيق وصلاحية تاريخ الانتهاء
    * 
    * @param {string} token - الرمز المراد فصحه
+   * @param {Object} [options] - خيارات التحقق
+   * @param {boolean} [options.ignoreExpiration=false] - تجاهل انتهاء الصلاحية لفحص المحتوى فقط
    * @returns {Object} الحمولة الأصلية المفككة
    * @throws {Error} إذا كان التوقيع ملغياً أو صلاحية الرمز منتهية
    */
-  static verifyToken(token) {
+  static verifyToken(token, { ignoreExpiration = false } = {}) {
+    if (!token || typeof token !== 'string') {
+      throw new Error('Invalid token: token must be a non-empty string');
+    }
+
+    const parts = token.split('.');
+    if (parts.length !== 2) {
+      throw new Error('Invalid token structure: missing signature part');
+    }
+
+    const [encoded, signature] = parts;
+    const expectedSignature = CryptoJS.HmacSHA256(encoded, this.SECRET_KEY).toString();
+    
+    if (signature !== expectedSignature) {
+      Logger.warn('[SecurityService] Invalid token signature detected');
+      throw new Error('Invalid token signature');
+    }
+
+    let decoded;
     try {
-      const [encoded, signature] = token.split('.');
-      const expectedSignature = CryptoJS.HmacSHA256(encoded, this.SECRET_KEY).toString();
-      
-      if (signature !== expectedSignature) {
-        throw new Error('Invalid token signature');
-      }
+      decoded = JSON.parse(atob(encoded));
+    } catch {
+      throw new Error('Invalid token payload: base64 decode or JSON parse failed');
+    }
 
-      const decoded = JSON.parse(atob(encoded));
-      
-      if (decoded.payload.exp < Math.floor(Date.now() / 1000)) {
-        throw new Error('Token expired');
-      }
+    if (!decoded || typeof decoded !== 'object' || !decoded.payload) {
+      throw new Error('Invalid token payload structure');
+    }
 
-      Logger.debug('Token verified successfully');
-      return decoded.payload;
-    } catch (error) {
-      Logger.error('Token verification failed', error);
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (!ignoreExpiration && decoded.payload.exp && decoded.payload.exp < nowSec) {
+      Logger.info('[SecurityService] Session token expired naturally');
+      const error = new Error('Token expired');
+      error.name = 'TokenExpiredError';
+      error.isExpired = true;
       throw error;
     }
+
+    Logger.debug('Token verified successfully');
+    return decoded.payload;
   }
 
   /**

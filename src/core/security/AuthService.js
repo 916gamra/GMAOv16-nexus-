@@ -173,9 +173,7 @@ export class AuthService {
     // Update active session if it corresponds to this user
     const currentSession = this.getCurrentUser();
     if (currentSession && (currentSession.username === users[idx].username || currentSession.id === users[idx].id)) {
-      delete currentSession.passwordHash;
-      delete currentSession.defaultPass;
-      localStorage.setItem(SESSION_KEY, JSON.stringify(currentSession));
+      this.saveSignedSession(currentSession);
     }
 
     window.dispatchEvent(new Event('storage'));
@@ -205,8 +203,7 @@ export class AuthService {
     const currentSession = this.getCurrentUser();
     if (currentSession && (currentSession.username === users[idx].username || currentSession.id === users[idx].id)) {
       const updatedSession = { ...currentSession, ...updates };
-      delete updatedSession.passwordHash;
-      localStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
+      this.saveSignedSession(updatedSession);
     }
 
     window.dispatchEvent(new Event('storage'));
@@ -341,23 +338,40 @@ export class AuthService {
       const sessionStr = localStorage.getItem(SESSION_KEY);
       if (!sessionStr) return null;
 
-      const parsed = JSON.parse(sessionStr);
+      let parsed;
+      try {
+        parsed = JSON.parse(sessionStr);
+      } catch {
+        this.logout();
+        return null;
+      }
 
       // Verify HMAC token signature if wrapped envelope
-      if (parsed.token && parsed.payload) {
-        const verifiedPayload = SecurityService.verifyToken(parsed.token);
-        return verifiedPayload;
+      if (parsed && parsed.token && parsed.payload) {
+        try {
+          const verifiedPayload = SecurityService.verifyToken(parsed.token);
+          // Sliding session renewal: auto-refresh if token is older than 24 hours
+          const nowSec = Math.floor(Date.now() / 1000);
+          if (verifiedPayload.iat && nowSec - verifiedPayload.iat > 24 * 60 * 60) {
+            return this.saveSignedSession(verifiedPayload);
+          }
+          return verifiedPayload;
+        } catch {
+          // Token expired naturally or invalid signature: clear expired session cleanly
+          this.logout();
+          return null;
+        }
       }
 
       // Legacy plain session upgrade: sign and convert
-      if (parsed.username && parsed.role) {
+      if (parsed && parsed.username && parsed.role) {
         const signed = this.saveSignedSession(parsed);
         return signed;
       }
 
       return null;
     } catch {
-      // Clear tampered session
+      // Clear corrupt session
       this.logout();
       return null;
     }
