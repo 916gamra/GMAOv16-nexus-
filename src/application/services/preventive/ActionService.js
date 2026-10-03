@@ -1,15 +1,13 @@
 import { INITIAL_ACTIONS } from './INITIAL_ACTIONS.js';
+import { storageService } from '../../../utils/storageService.js';
 
 export const STORAGE_KEY_ACTIONS = 'gmao_preventive_actions_v2';
 
 export class ActionService {
   static getActions() {
     try {
-      const data = localStorage.getItem(STORAGE_KEY_ACTIONS);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
+      const data = storageService.getItem(STORAGE_KEY_ACTIONS);
+      if (data && Array.isArray(data) && data.length > 0) return data;
     } catch {
       // fallback
     }
@@ -19,7 +17,7 @@ export class ActionService {
 
   static saveActions(actions) {
     try {
-      localStorage.setItem(STORAGE_KEY_ACTIONS, JSON.stringify(actions));
+      storageService.setItem(STORAGE_KEY_ACTIONS, actions);
     } catch {
       // storage error handling
     }

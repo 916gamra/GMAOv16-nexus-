@@ -1,26 +1,69 @@
-export const ROLES = {
-  ADMIN: 'ADMIN',
-  RESPONSABLE: 'RESPONSABLE',
-  TECHNICIEN: 'TECHNICIEN',
-  MAGASINIER: 'MAGASINIER',
-  VIEWER: 'VIEWER'
-};
+import { ROLES, normalizeRole } from './Roles.js';
+
+export { ROLES, normalizeRole };
 
 export const PERMISSIONS = {
-  'stock.view': [ROLES.ADMIN, ROLES.RESPONSABLE, ROLES.TECHNICIEN, ROLES.MAGASINIER, ROLES.VIEWER],
-  'stock.create': [ROLES.ADMIN, ROLES.RESPONSABLE, ROLES.MAGASINIER],
-  'stock.update': [ROLES.ADMIN, ROLES.RESPONSABLE, ROLES.MAGASINIER],
-  'stock.delete': [ROLES.ADMIN],
-  'machine.view': [ROLES.ADMIN, ROLES.RESPONSABLE, ROLES.TECHNICIEN, ROLES.VIEWER],
-  'machine.create': [ROLES.ADMIN, ROLES.RESPONSABLE],
-  'machine.update': [ROLES.ADMIN, ROLES.RESPONSABLE],
-  'machine.delete': [ROLES.ADMIN]
+  'stock.view': [
+    ROLES.ADMIN,
+    ROLES.RESPONSABLE_MAINTENANCE,
+    ROLES.RESPONSABLE_MAGASIN,
+    ROLES.TECHNICIEN,
+    ROLES.OPERATEUR,
+    ROLES.VIEWER,
+  ],
+  'stock.create': [
+    ROLES.ADMIN,
+    ROLES.RESPONSABLE_MAINTENANCE,
+    ROLES.RESPONSABLE_MAGASIN,
+  ],
+  'stock.update': [
+    ROLES.ADMIN,
+    ROLES.RESPONSABLE_MAINTENANCE,
+    ROLES.RESPONSABLE_MAGASIN,
+  ],
+  'stock.delete': [
+    ROLES.ADMIN,
+  ],
+  'machine.view': [
+    ROLES.ADMIN,
+    ROLES.RESPONSABLE_MAINTENANCE,
+    ROLES.RESPONSABLE_MAGASIN,
+    ROLES.TECHNICIEN,
+    ROLES.OPERATEUR,
+    ROLES.VIEWER,
+  ],
+  'machine.create': [
+    ROLES.ADMIN,
+    ROLES.RESPONSABLE_MAINTENANCE,
+  ],
+  'machine.update': [
+    ROLES.ADMIN,
+    ROLES.RESPONSABLE_MAINTENANCE,
+    ROLES.TECHNICIEN,
+  ],
+  'machine.delete': [
+    ROLES.ADMIN,
+  ],
+  'corrective.manage': [
+    ROLES.ADMIN,
+    ROLES.RESPONSABLE_MAINTENANCE,
+    ROLES.TECHNICIEN,
+  ],
+  'preventive.manage': [
+    ROLES.ADMIN,
+    ROLES.RESPONSABLE_MAINTENANCE,
+  ],
+  'settings.manage': [
+    ROLES.ADMIN,
+  ],
 };
 
 export class RBACService {
   static hasPermission(userRole, permission) {
     const allowedRoles = PERMISSIONS[permission];
     if (!allowedRoles) return false;
-    return allowedRoles.includes(userRole);
+    const normalized = normalizeRole(userRole);
+    return allowedRoles.includes(normalized);
   }
 }
+

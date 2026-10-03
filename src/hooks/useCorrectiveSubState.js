@@ -528,9 +528,9 @@ export function useCorrectiveSubState(groupedState = {}) {
   useEffect(() => {
     try {
       if (activeLiveId) {
-        localStorage.setItem(ACTIVE_LIVE_KEY, activeLiveId);
+        storageService.setItem(ACTIVE_LIVE_KEY, activeLiveId);
       } else {
-        localStorage.removeItem(ACTIVE_LIVE_KEY);
+        storageService.removeItem(ACTIVE_LIVE_KEY);
       }
     } catch {}
   }, [activeLiveId]);

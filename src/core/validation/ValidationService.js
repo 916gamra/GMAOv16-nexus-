@@ -91,11 +91,14 @@ export class ValidationService {
   static validate(data, schema) {
     try {
       const validated = schema.parse(data);
-      return { success: true, isValid: true, data: validated };
+      return { success: true, valid: true, isValid: true, data: validated, errors: [] };
     } catch (error) {
-      const errorMessages = error.errors ? error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ') : error.message;
+      const formattedErrors = error.errors || [];
+      const errorMessages = formattedErrors.length > 0
+        ? formattedErrors.map(err => `${err.path.join('.')}: ${err.message}`).join(', ')
+        : error.message;
       Logger.warn('⚠️ Validation failed', { error: errorMessages });
-      return { success: false, isValid: false, errors: error.errors, error: errorMessages };
+      return { success: false, valid: false, isValid: false, errors: formattedErrors, error: errorMessages, data: null };
     }
   }
 
@@ -104,7 +107,7 @@ export class ValidationService {
    */
   static validateArray(dataArray, schema) {
     if (!Array.isArray(dataArray)) {
-      return { success: false, validData: [], errors: [{ error: 'Input is not an array' }] };
+      return { success: false, valid: false, isValid: false, validData: [], errors: [{ error: 'Input is not an array' }] };
     }
 
     const errors = [];
@@ -121,6 +124,8 @@ export class ValidationService {
 
     return {
       success: errors.length === 0,
+      valid: errors.length === 0,
+      isValid: errors.length === 0,
       validData,
       errors
     };
@@ -145,6 +150,13 @@ export class ValidationService {
    */
   static validateMovement(data) {
     return this.validate(data, this.movementSchema);
+  }
+
+  /**
+   * Validate Mouvement (Alias for validateMovement)
+   */
+  static validateMouvement(data) {
+    return this.validateMovement(data);
   }
 
   /**

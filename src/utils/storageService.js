@@ -1,6 +1,7 @@
 import CryptoJS from 'crypto-js';
 import bcrypt from 'bcryptjs';
 import { Logger } from '../core/logger/LoggerService.js';
+import { indexedDBService } from '../infrastructure/database/IndexedDBService.js';
 
 // Cache configuration
 const MAX_CACHE_SIZE = 50;
@@ -401,11 +402,23 @@ export const storageService = {
     } catch (e) {
       Logger.warn(`localStorage unexpected error for ${key}:`, e, 'storageService');
     }
+
+    // L3 Master Storage Sync: Mirror automatically to IndexedDB in background
+    if (key.startsWith('gmao_')) {
+      try {
+        if (value === null || value === undefined) {
+          indexedDBService.removeItem(key).catch(() => {});
+        } else {
+          indexedDBService.setItem(key, value).catch(() => {});
+        }
+      } catch {}
+    }
+
     return true;
   },
 
   /**
-   * Remove item from memory cache and localStorage
+   * Remove item from memory cache, localStorage, and IndexedDB
    */
   removeItem(key) {
     memoryCache.delete(key);
@@ -414,7 +427,31 @@ export const storageService = {
         localStorage.removeItem(key);
       }
     } catch {}
+
+    if (key.startsWith('gmao_')) {
+      try {
+        indexedDBService.removeItem(key).catch(() => {});
+      } catch {}
+    }
+
     return true;
+  },
+
+  /**
+   * Hydrate a key from IndexedDB if not found or evicted in localStorage
+   * Implements L3 -> L2 -> L1 healing flow.
+   */
+  async hydrateFromIndexedDB(key, fallback = null) {
+    try {
+      const idbVal = await indexedDBService.getItem(key, null);
+      if (idbVal !== null && idbVal !== undefined) {
+        this.setItem(key, idbVal);
+        return idbVal;
+      }
+    } catch (err) {
+      Logger.warn(`[StorageService] Hydrate error for ${key}:`, err);
+    }
+    return fallback;
   },
 
   /**

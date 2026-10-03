@@ -734,10 +734,10 @@ export default function SettingsView({
 
   // Settings modification handlers
   const handleSaveSettings = () => {
-    localStorage.setItem('gmao_shared_folder_path', sharedFolderPath);
-    localStorage.setItem('gmao_auto_write_excel', String(autoWriteExcel));
-    localStorage.setItem('gmao_polling_interval', pollingInterval);
-    localStorage.setItem('gmao_start_mode', isDemoMode ? 'demo' : 'empty');
+    storageService.setItem('gmao_shared_folder_path', sharedFolderPath);
+    storageService.setItem('gmao_auto_write_excel', String(autoWriteExcel));
+    storageService.setItem('gmao_polling_interval', pollingInterval);
+    storageService.setItem('gmao_start_mode', isDemoMode ? 'demo' : 'empty');
     showToast('Parametres systeme mis a jour !', 'success');
   };
 
@@ -3729,8 +3729,8 @@ export default function SettingsView({
                         const vault = await vaultService.decryptVault(currentMasterPin);
                         await vaultService.encryptVault(vault, tempPin);
                         await vaultService.setPinHash(tempPin);
-                        localStorage.setItem('gmao_admin_pin', storageService.hashPin(tempPin));
-                        localStorage.setItem('gmao_admin_role', tempRole.trim());
+                        storageService.setItem('gmao_admin_pin', storageService.hashPin(tempPin));
+                        storageService.setItem('gmao_admin_role', tempRole.trim());
                         showToast('Master PIN modifié — Coffre-fort re-chiffré avec la nouvelle clé !', 'success');
                         setCurrentMasterPin('');
                         setTempPin('');

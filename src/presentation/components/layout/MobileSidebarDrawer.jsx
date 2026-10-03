@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { storageService } from '../../../utils/storageService';
 import SortieEntreeIcon from '../common/SortieEntreeIcon';
 import PWAInstallButton from '../common/PWAInstallButton';
 import {
@@ -46,13 +47,13 @@ export default function MobileSidebarDrawer({
   handleExportExcel,
   onLogout,
 }) {
-  // Sidebar Dark / Light Theme state (persisted in localStorage)
+  // Sidebar Dark / Light Theme state (persisted in storageService)
   const [sidebarTheme, setSidebarTheme] = useState(() => {
-    return localStorage.getItem('gmao_sidebar_theme') || 'dark';
+    return storageService.getItem('gmao_sidebar_theme') || 'dark';
   });
 
   useEffect(() => {
-    localStorage.setItem('gmao_sidebar_theme', sidebarTheme);
+    storageService.setItem('gmao_sidebar_theme', sidebarTheme);
   }, [sidebarTheme]);
 
   // Accessibility: Close mobile drawer on Escape key

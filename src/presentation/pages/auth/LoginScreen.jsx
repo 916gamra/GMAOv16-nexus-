@@ -32,10 +32,10 @@ export default function LoginScreen() {
   // Available accounts from AuthService
   const accounts = useMemo(() => {
     return getAvailableAccounts ? getAvailableAccounts() : [
-      { id: 'admin', username: 'admin', name: 'Administrateur', role: 'ADMIN', titleFr: 'Administrateur Système', avatar: 'AD', defaultPass: 'admin123', badgeColor: 'emerald' },
-      { id: 'magasinier', username: 'magasinier', name: 'Responsable Magasin', role: 'RESPONSABLE_MAGASIN', titleFr: 'Responsable Magasin (RMG)', avatar: 'RM', defaultPass: 'magasin123', badgeColor: 'amber' },
-      { id: 'tech', username: 'tech', name: 'Technicien Maintenance', role: 'TECHNICIEN', titleFr: 'Technicien (TC)', avatar: 'TC', defaultPass: 'tech123', badgeColor: 'blue' },
-      { id: 'viewer', username: 'viewer', name: 'Observateur', role: 'VIEWER', titleFr: 'Observateur', avatar: 'OB', defaultPass: 'viewer123', badgeColor: 'slate' },
+      { id: 'admin', username: 'admin', name: 'Administrateur', role: 'ADMIN', titleFr: 'Administrateur Système', avatar: 'AD', badgeColor: 'emerald' },
+      { id: 'magasinier', username: 'magasinier', name: 'Responsable Magasin', role: 'RESPONSABLE_MAGASIN', titleFr: 'Responsable Magasin (RMG)', avatar: 'RM', badgeColor: 'amber' },
+      { id: 'tech', username: 'tech', name: 'Technicien Maintenance', role: 'TECHNICIEN', titleFr: 'Technicien (TC)', avatar: 'TC', badgeColor: 'blue' },
+      { id: 'viewer', username: 'viewer', name: 'Observateur', role: 'VIEWER', titleFr: 'Observateur', avatar: 'OB', badgeColor: 'slate' },
     ];
   }, [getAvailableAccounts]);
 

@@ -1,5 +1,6 @@
 import { Logger } from '../logger/LoggerService.js';
 import { indexedDBService } from '../../utils/indexedDBService.js';
+import { storageService } from '../../utils/storageService.js';
 
 export const BACKUP_STORAGE_KEY = 'gmao_snapshots_history';
 export const MAX_SNAPSHOTS = 12;
@@ -164,29 +165,25 @@ export class AutoBackupService {
    */
   static safeSetLocalStorage(key, value) {
     try {
-      localStorage.setItem(key, value);
-      return true;
+      const parsedVal = typeof value === 'string' ? (() => { try { return JSON.parse(value); } catch { return value; } })() : value;
+      return storageService.setItem(key, parsedVal);
     } catch (e) {
       Logger.warn(`[AutoBackupService] LocalStorage quota pressure on '${key}'. Purging legacy history...`, e);
       try {
-        const rawHistory = localStorage.getItem(BACKUP_STORAGE_KEY);
-        if (rawHistory) {
-          const parsed = JSON.parse(rawHistory);
-          if (Array.isArray(parsed)) {
-            const stripped = parsed.map((s) => ({
-              id: s.id,
-              timestamp: s.timestamp,
-              dateStr: s.dateStr,
-              reason: s.reason,
-              isManual: s.isManual,
-              counts: s.counts,
-              version: s.version || '3.0.0',
-            }));
-            localStorage.setItem(BACKUP_STORAGE_KEY, JSON.stringify(stripped.slice(0, 5)));
-          }
+        const rawHistory = storageService.getItem(BACKUP_STORAGE_KEY, []);
+        if (Array.isArray(rawHistory)) {
+          const stripped = rawHistory.map((s) => ({
+            id: s.id,
+            timestamp: s.timestamp,
+            dateStr: s.dateStr,
+            reason: s.reason,
+            isManual: s.isManual,
+            counts: s.counts,
+            version: s.version || '3.0.0',
+          }));
+          storageService.setItem(BACKUP_STORAGE_KEY, stripped.slice(0, 5));
         }
-        localStorage.setItem(key, value);
-        return true;
+        return storageService.setItem(key, value);
       } catch (retryErr) {
         Logger.warn('[AutoBackupService] LocalStorage write failed after recovery attempt', retryErr);
         return false;
@@ -411,9 +408,9 @@ export class AutoBackupService {
       for (const [key, value] of Object.entries(snapshot.data)) {
         if (value !== undefined && value !== null) {
           try {
-            localStorage.setItem(key, JSON.stringify(value));
+            storageService.setItem(key, value);
           } catch (storageErr) {
-            Logger.warn(`[AutoBackupService] Could not write ${key} to localStorage`, storageErr);
+            Logger.warn(`[AutoBackupService] Could not write ${key} to storageService`, storageErr);
           }
         }
       }

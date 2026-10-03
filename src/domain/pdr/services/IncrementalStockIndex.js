@@ -1,6 +1,7 @@
 /**
  * IncrementalStockIndex.js
  * إدارة تزايدية لفهرس حركات المخزون بـ O(1) للعمليات اليومية و O(M) للإقلاع والاستيراد
+ * يحفظ القيمة الفيزيائية الحقيقية (stockPhysique: init + entrees - sorties) مع كشف التناقضات السلبية.
  */
 export class IncrementalStockIndex {
   constructor() {
@@ -52,9 +53,7 @@ export class IncrementalStockIndex {
    */
   updateDelta({ ref, oldType, oldQty, newType, newQty }) {
     if (!ref) return;
-    // 1. عكس القديم
     this._accumulate(ref, oldType, -Number(oldQty || 0));
-    // 2. تطبيق الجديد
     this._accumulate(ref, newType, Number(newQty || 0));
   }
 
@@ -70,14 +69,57 @@ export class IncrementalStockIndex {
   }
 
   /**
-   * حساب الرصيد الحالي الفوري لصنف معين بـ O(1)
+   * حساب الرصيد الفيزيائي الحقيقي غير المكبوت (Real Physical Stock)
    * @param {string} ref
    * @param {number} initialStock
    * @returns {number}
    */
-  calculateCurrentStock(ref, initialStock = 0) {
+  calculatePhysicalStock(ref, initialStock = 0) {
     const { entrees, sorties } = this.getTotals(ref);
-    return Math.max(0, Number(initialStock || 0) + entrees - sorties);
+    return Number(initialStock || 0) + entrees - sorties;
+  }
+
+  /**
+   * حساب الرصيد الحالي المتاح (Clamped for display if needed)
+   * @param {string} ref
+   * @param {number} initialStock
+   * @param {{ allowNegative?: boolean }} [options]
+   * @returns {number}
+   */
+  calculateCurrentStock(ref, initialStock = 0, options = {}) {
+    const physicalStock = this.calculatePhysicalStock(ref, initialStock);
+    if (options && options.allowNegative) {
+      return physicalStock;
+    }
+    return Math.max(0, physicalStock);
+  }
+
+  /**
+   * مؤشر وجود عجز أو تناقض سلبي في المخزون
+   * @param {string} ref
+   * @param {number} initialStock
+   * @returns {boolean}
+   */
+  hasNegativeDiscrepancy(ref, initialStock = 0) {
+    return this.calculatePhysicalStock(ref, initialStock) < 0;
+  }
+
+  /**
+   * تقرير سلامة مخزون الصنف
+   * @param {string} ref
+   * @param {number} initialStock
+   */
+  getStockIntegrity(ref, initialStock = 0) {
+    const totals = this.getTotals(ref);
+    const physicalStock = this.calculatePhysicalStock(ref, initialStock);
+    return {
+      physicalStock,
+      availableStock: Math.max(0, physicalStock),
+      hasNegativeDiscrepancy: physicalStock < 0,
+      hasDiscrepancy: physicalStock < 0,
+      entrees: totals.entrees,
+      sorties: totals.sorties,
+    };
   }
 
   /**
@@ -100,10 +142,10 @@ export class IncrementalStockIndex {
     }
 
     const t = String(rawType || '').toLowerCase();
-    if (t.includes('entr') || t === 'in') {
-      entry.entrees = Math.max(0, entry.entrees + qty);
-    } else if (t.includes('sort') || t === 'out') {
-      entry.sorties = Math.max(0, entry.sorties + qty);
+    if (t.includes('entr') || t === 'in' || t === 'reception' || t === 'retour') {
+      entry.entrees += qty;
+    } else if (t.includes('sort') || t === 'out' || t === 'bon de sortie' || t === 'consommation') {
+      entry.sorties += qty;
     }
   }
 }

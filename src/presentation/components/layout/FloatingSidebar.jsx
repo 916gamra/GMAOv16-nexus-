@@ -3,6 +3,7 @@ import { Settings, LogOut, Sun, Moon, LayoutDashboard } from 'lucide-react';
 import { PARENT_MODULES, getParentModuleForTab } from './navConfig';
 import { useTranslation } from '../../../i18n/I18nContext';
 import { analytics } from '../../../services/AnalyticsService';
+import { storageService } from '../../../utils/storageService';
 
 const MODULE_THEME = {
   dashboard: {
@@ -168,7 +169,7 @@ export default function FloatingSidebar({
 }) {
   const { t } = useTranslation();
   const [sidebarTheme, setSidebarTheme] = useState(() => {
-    return localStorage.getItem('gmao_sidebar_theme') || 'light';
+    return storageService.getItem('gmao_sidebar_theme') || 'light';
   });
   const [isExpanded, setIsExpanded] = useState(false);
   const [isTranslucent, setIsTranslucent] = useState(false);
@@ -176,12 +177,12 @@ export default function FloatingSidebar({
   const translucencyTimerRef = useRef(null);
 
   useEffect(() => {
-    localStorage.setItem('gmao_sidebar_theme', sidebarTheme);
+    storageService.setItem('gmao_sidebar_theme', sidebarTheme);
   }, [sidebarTheme]);
 
   useEffect(() => {
     const handleAppearanceChanged = () => {
-      const savedTheme = localStorage.getItem('gmao_sidebar_theme') || localStorage.getItem('gmao_theme') || 'light';
+      const savedTheme = storageService.getItem('gmao_sidebar_theme') || storageService.getItem('gmao_theme') || 'light';
       setSidebarTheme(savedTheme);
     };
 

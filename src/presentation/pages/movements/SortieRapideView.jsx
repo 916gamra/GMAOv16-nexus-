@@ -257,6 +257,8 @@ export default function SortieRapideView({
   mouvements = [],
   stockItems = [],
   warehouseItems = [],
+  machineElementsLedger = [],
+  updateMachineElement = null,
   quickSortiePreset = null,
   setQuickSortiePreset,
   _families = [],
@@ -1267,6 +1269,24 @@ export default function SortieRapideView({
 
       if (onAddMouvement) {
         onAddMouvement(mvtRecord);
+      }
+
+      // If this is a Sortie destined for a Machine, auto-update the Machine BOM Ledger
+      if (isSortie && form.id_machine_registered && machineElementsLedger && updateMachineElement) {
+        const matchingBom = machineElementsLedger.find(
+          (b) =>
+            String(b.id_machine_registered).trim() === String(form.id_machine_registered).trim() &&
+            (String(b.ref_element || b.ref).trim() === String(item.ref).trim())
+        );
+        if (matchingBom) {
+          updateMachineElement(matchingBom.id, {
+            ...matchingBom,
+            heures_actuelles: 0,
+            date_installation: form.date || new Date().toISOString().slice(0, 10),
+            technicien: mvtTech || matchingBom.technicien || 'Technicien',
+            statut: 'OPERATIONNEL',
+          });
+        }
       }
 
       // If this is an Entrée Interne directly to Entrepôt, synchronize or track with warehouse

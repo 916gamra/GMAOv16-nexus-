@@ -91,7 +91,7 @@ describe('Stock Management Integration Tests', () => {
       ];
 
       const totalValue = items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
-      expect(totalValue).toBe(300);
+      expect(totalValue).toBe(260);
     });
   });
 

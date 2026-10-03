@@ -46,6 +46,8 @@ export function useAppExcelOperations({
     setPartTypes,
     partDesignations,
     setPartDesignations,
+    machineElementsLedger,
+    setMachineElementsLedger,
     setSortiesExterne,
     setPreventiveTasks,
     setCorrectiveInterventions,
@@ -271,6 +273,11 @@ export function useAppExcelOperations({
       appendSheetWithAutofit('Blueprints', blueprints);
     }
 
+    // 21. Machine_BOM_Ledger (Nomenclature & Pièces Montées)
+    if (machineElementsLedger && machineElementsLedger.length > 0) {
+      appendSheetWithAutofit('Machine_BOM_Ledger', machineElementsLedger);
+    }
+
     return wb;
   }, [
     stockItems,
@@ -460,6 +467,12 @@ export function useAppExcelOperations({
           if (importedData.Part_Designations && importedData.Part_Designations.length > 0)
             setPartDesignations(sanitizeObject(importedData.Part_Designations));
 
+          // Nomenclature & Pièces montées (Machine BOM Ledger)
+          const bomData = importedData.Machine_BOM_Ledger || importedData.Elements_Machines || importedData.BOM;
+          if (bomData && Array.isArray(bomData) && bomData.length > 0 && typeof setMachineElementsLedger === 'function') {
+            setMachineElementsLedger(sanitizeObject(bomData));
+          }
+
           // Entités opérationnelles avancées (Sorties Ext., Préventif, Correctif)
           if (importedData.Sortie_Externe && importedData.Sortie_Externe.length > 0 && typeof setSortiesExterne === 'function') {
             setSortiesExterne(sanitizeObject(importedData.Sortie_Externe));
@@ -647,12 +660,63 @@ export function useAppExcelOperations({
     }
   }, [showToast]);
 
+  // 3-WORKBOOK INDUSTRIAL TOPOLOGY DEDICATED EXPORTERS
+  // 1. Master Topology & Assets (Topology.xlsx)
+  const exportMasterTopologyWorkbook = useCallback(() => {
+    try {
+      const wb = XLSX.utils.book_new();
+      const usersData = (technicians || []).map((t) => ({ ID: t.id_technicien || t.id, Nom: t.nom || t.name, Role: t.role || 'Technicien' }));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(usersData), 'Utilisateurs');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(zones || []), 'Zones');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(families || []), 'Family_Machines');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(templates || []), 'Templates_Machines');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(machines || []), 'Machines_Registered');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(machineElementsLedger || []), 'Machine_BOM_Ledger');
+      XLSX.writeFile(wb, 'GMAO_Topology_Master.xlsx');
+      showToast?.('Classeur 1: GMAO_Topology_Master.xlsx exporté avec succès !', 'success');
+    } catch {
+      showToast?.("Erreur lors de l'export du classeur de topologie.", 'error');
+    }
+  }, [technicians, zones, families, templates, machines, machineElementsLedger, showToast]);
+
+  // 2. Inventory & Materials (Inventory.xlsx)
+  const exportInventoryMaterialsWorkbook = useCallback(() => {
+    try {
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stockItems || rawStock || []), 'PDR_Articles');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(warehouseItems || []), 'Warehouse_Components');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(partTypes || []), 'Part_Types');
+      XLSX.writeFile(wb, 'GMAO_Inventory_Materials.xlsx');
+      showToast?.('Classeur 2: GMAO_Inventory_Materials.xlsx exporté avec succès !', 'success');
+    } catch {
+      showToast?.("Erreur lors de l'export du classeur d'inventaire.", 'error');
+    }
+  }, [stockItems, rawStock, warehouseItems, partTypes, showToast]);
+
+  // 3. Unified Movements & Gateway (Movements.xlsx)
+  const exportMovementsUnifiedWorkbook = useCallback(() => {
+    try {
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mouvements || []), 'Mouvements');
+      if (state.sortiesExterne && state.sortiesExterne.length > 0) {
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(state.sortiesExterne), 'Sortie_Externe');
+      }
+      XLSX.writeFile(wb, 'GMAO_Movements_Unified.xlsx');
+      showToast?.('Classeur 3: GMAO_Movements_Unified.xlsx exporté avec succès !', 'success');
+    } catch {
+      showToast?.("Erreur lors de l'export du classeur de mouvements.", 'error');
+    }
+  }, [mouvements, state.sortiesExterne, showToast]);
+
   return {
     linkedFileHandle,
     linkedFileName,
     buildWorkbook,
     handleExportExcel,
     handleDownloadBlankTemplate,
+    exportMasterTopologyWorkbook,
+    exportInventoryMaterialsWorkbook,
+    exportMovementsUnifiedWorkbook,
     handleImportFile,
     handleDirectFileLink,
     handleDirectSave,

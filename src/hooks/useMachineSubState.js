@@ -5,9 +5,10 @@ import initialTemplates from '../data/machines/seedTemplates.json';
 import initialBlueprints from '../data/machines/seedBlueprints.json';
 import initialMachines from '../data/machines/seedMachines.json';
 import initialZones from '../data/machines/seedZones.json';
+import initialMachineBomLedger from '../data/machines/seedMachineBomLedger.json';
 
 /**
- * Hook managing Machine hierarchy: Families, Templates, Blueprints, Machines, and Zones
+ * Hook managing Machine hierarchy: Families, Templates, Blueprints, Machines, Zones, and BOM Ledger
  * Implements Dedicated Clean Seed Architecture (Standard Corrective Pattern)
  */
 export function useMachineSubState(groupedState = {}) {
@@ -106,6 +107,71 @@ export function useMachineSubState(groupedState = {}) {
     return initialZones;
   });
 
+  const [machineElementsLedger, setMachineElementsLedger] = useState(() => {
+    if (groupedState.machineElementsLedger && Array.isArray(groupedState.machineElementsLedger) && groupedState.machineElementsLedger.length > 0) {
+      return groupedState.machineElementsLedger;
+    }
+    const candidate = storageService.getItem('gmao_machine_bom_ledger_v1');
+    if (Array.isArray(candidate) && candidate.length > 0) {
+      return candidate;
+    }
+    return initialMachineBomLedger;
+  });
+
+  const addMachineElement = useCallback((element) => {
+    setMachineElementsLedger((prev) => {
+      const id = element.id || `BOM-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+      const newEntry = { ...element, id };
+      const updated = [newEntry, ...prev];
+      storageService.setItem('gmao_machine_bom_ledger_v1', updated);
+      return updated;
+    });
+  }, []);
+
+  const updateMachineElement = useCallback((id, updates) => {
+    setMachineElementsLedger((prev) => {
+      const updated = prev.map((item) => (item.id === id ? { ...item, ...updates } : item));
+      storageService.setItem('gmao_machine_bom_ledger_v1', updated);
+      return updated;
+    });
+  }, []);
+
+  const deleteMachineElement = useCallback((id) => {
+    setMachineElementsLedger((prev) => {
+      const updated = prev.filter((item) => item.id !== id);
+      storageService.setItem('gmao_machine_bom_ledger_v1', updated);
+      return updated;
+    });
+  }, []);
+
+  const duplicateBOMToTwins = useCallback((sourceMachineId, targetMachineIds = []) => {
+    setMachineElementsLedger((prev) => {
+      const sourceElements = prev.filter((e) => e.id_machine_registered === sourceMachineId);
+      if (sourceElements.length === 0 || !Array.isArray(targetMachineIds) || targetMachineIds.length === 0) {
+        return prev;
+      }
+      const cloned = [];
+      targetMachineIds.forEach((targetId) => {
+        // Avoid duplicates on target
+        sourceElements.forEach((src) => {
+          const exists = prev.some((e) => e.id_machine_registered === targetId && e.ref_element === src.ref_element);
+          if (!exists) {
+            cloned.push({
+              ...src,
+              id: `BOM-${targetId}-${Math.random().toString(36).substring(2, 7)}`,
+              id_machine_registered: targetId,
+              date_installation: new Date().toISOString().split('T')[0],
+              heures_actuelles: 0,
+            });
+          }
+        });
+      });
+      const updated = [...cloned, ...prev];
+      storageService.setItem('gmao_machine_bom_ledger_v1', updated);
+      return updated;
+    });
+  }, []);
+
   return {
     families,
     setFamilies,
@@ -117,6 +183,12 @@ export function useMachineSubState(groupedState = {}) {
     setMachines,
     zones,
     setZones,
+    machineElementsLedger,
+    setMachineElementsLedger,
+    addMachineElement,
+    updateMachineElement,
+    deleteMachineElement,
+    duplicateBOMToTwins,
     isValidMachineFamilies,
     isValidMachineTemplates,
   };

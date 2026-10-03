@@ -35,11 +35,18 @@ export class AuthService {
   }
 
   getDefaultUsersList() {
+    // Zero hardcoded plaintext credentials (Enterprise Security Standard)
+    const storedPinHash = localStorage.getItem('gmao_admin_pin');
+    const getInitHash = (roleKey) => {
+      if (storedPinHash) return storedPinHash;
+      return bcrypt.hashSync(`GMAO_SECURE_INIT_${roleKey}_${Date.now().toString(36)}`, 10);
+    };
+
     return [
       {
         id: 'admin',
         username: 'admin',
-        passwordHash: bcrypt.hashSync('admin123', 10),
+        passwordHash: getInitHash('ADMIN'),
         role: 'ADMIN',
         name: 'Administrateur',
         titleFr: 'Administrateur Système',
@@ -50,7 +57,7 @@ export class AuthService {
       {
         id: 'magasinier',
         username: 'magasinier',
-        passwordHash: bcrypt.hashSync('magasin123', 10),
+        passwordHash: getInitHash('MAGASINIER'),
         role: 'RESPONSABLE_MAGASIN',
         name: 'Responsable Magasin',
         titleFr: 'Responsable Magasin (RMG)',
@@ -61,7 +68,7 @@ export class AuthService {
       {
         id: 'tech',
         username: 'tech',
-        passwordHash: bcrypt.hashSync('tech123', 10),
+        passwordHash: getInitHash('TECHNICIEN'),
         role: 'TECHNICIEN',
         name: 'Technicien Maintenance',
         titleFr: 'Technicien Maintenance (TC)',
@@ -72,7 +79,7 @@ export class AuthService {
       {
         id: 'viewer',
         username: 'viewer',
-        passwordHash: bcrypt.hashSync('viewer123', 10),
+        passwordHash: getInitHash('VIEWER'),
         role: 'VIEWER',
         name: 'Observateur',
         titleFr: 'Observateur / Consultation',

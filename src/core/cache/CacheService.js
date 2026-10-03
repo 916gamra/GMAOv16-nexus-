@@ -204,4 +204,47 @@ export class CacheService {
       return null;
     }
   }
+
+  // ==========================================
+  // Static Delegation Methods
+  // ==========================================
+
+  static getInstance(options) {
+    if (!CacheService.instance) {
+      new CacheService(options);
+    }
+    return CacheService.instance;
+  }
+
+  static get(key) {
+    return CacheService.getInstance().get(key);
+  }
+
+  static set(key, value, ttl, tagsOrPersist) {
+    const tags = Array.isArray(tagsOrPersist) ? tagsOrPersist : [];
+    return CacheService.getInstance().set(key, value, ttl, tags);
+  }
+
+  static has(key) {
+    return CacheService.getInstance().has(key);
+  }
+
+  static delete(key) {
+    return CacheService.getInstance().delete(key);
+  }
+
+  static clear() {
+    return CacheService.getInstance().clear();
+  }
+
+  static getStats() {
+    return CacheService.getInstance().getStats();
+  }
+
+  static invalidateByTag(tag) {
+    return CacheService.getInstance().invalidateByTag(tag);
+  }
 }
+
+export const cache = CacheService;
+export default CacheService;

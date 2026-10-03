@@ -117,11 +117,52 @@ export class IncrementalStockIndex {
     );
   }
 
-  calculateCurrentStock(ref: string, overrideInitial?: number): number {
+  calculateCurrentStock(ref: string, overrideInitial?: number, options?: { allowNegative?: boolean }): number {
+    const physicalStock = this.calculatePhysicalStock(ref, overrideInitial);
+    if (options?.allowNegative) {
+      return physicalStock;
+    }
+    return Math.max(0, physicalStock); // Clamped display value
+  }
+
+  /**
+   * Calculates the exact un-clamped physical stock (preserves negative values for discrepancy tracking)
+   */
+  calculatePhysicalStock(ref: string, overrideInitial?: number): number {
     const key = this._key(ref);
     const init = overrideInitial ?? this.initialStocks.get(key) ?? 0;
     const { entrees, sorties } = this.getTotals(ref);
-    return Math.max(0, init + entrees - sorties); // Clamping strictly happens at calculation time
+    return init + entrees - sorties;
+  }
+
+  /**
+   * Flags whether there is an inventory discrepancy where sorties exceed physical stock
+   */
+  hasNegativeDiscrepancy(ref: string, overrideInitial?: number): boolean {
+    return this.calculatePhysicalStock(ref, overrideInitial) < 0;
+  }
+
+  /**
+   * Returns comprehensive stock integrity metrics for industrial auditing
+   */
+  getStockIntegrity(ref: string, overrideInitial?: number): {
+    physicalStock: number;
+    availableStock: number;
+    hasDiscrepancy: boolean;
+    entrees: number;
+    sorties: number;
+    commandes: number;
+  } {
+    const totals = this.getTotals(ref);
+    const physicalStock = this.calculatePhysicalStock(ref, overrideInitial);
+    return {
+      physicalStock,
+      availableStock: Math.max(0, physicalStock),
+      hasDiscrepancy: physicalStock < 0,
+      entrees: totals.entrees,
+      sorties: totals.sorties,
+      commandes: totals.commandes,
+    };
   }
 
   private _key(ref: string): string {

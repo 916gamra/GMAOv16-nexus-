@@ -138,4 +138,33 @@ describe('4. Security & Hardening Tests', () => {
       expect(res2.status).toBe(200);
     });
   });
+
+  describe('Zero-Downtime Vault Master PIN Rotation', () => {
+    it('should rotate Master PIN, re-encrypt vault with new salt and IV, and authenticate with new PIN', async () => {
+      const { vaultService } = await import('../../utils/vaultService.js');
+      const initialPin = '1234';
+      const newPin = '9876';
+
+      // 1. Initial vault encryption
+      const sampleVault = { secretToken: 'GMAO-SECURE-KEY-2026', accounts: [{ user: 'admin' }] };
+      await vaultService.encryptVault(sampleVault, initialPin);
+      await vaultService.setPinHash(initialPin);
+
+      // Verify decrypted with initialPin
+      const decryptedBefore = await vaultService.decryptVault(initialPin);
+      expect(decryptedBefore.secretToken).toBe('GMAO-SECURE-KEY-2026');
+
+      // 2. Rotate to newPin
+      const rotationResult = await vaultService.changeMasterPin(initialPin, newPin);
+      expect(rotationResult.success).toBe(true);
+
+      // 3. Old PIN must fail
+      await expect(vaultService.decryptVault(initialPin)).rejects.toThrow();
+
+      // 4. New PIN must successfully decrypt exact data
+      const decryptedAfter = await vaultService.decryptVault(newPin);
+      expect(decryptedAfter.secretToken).toBe('GMAO-SECURE-KEY-2026');
+      expect(decryptedAfter.accounts).toHaveLength(1);
+    });
+  });
 });

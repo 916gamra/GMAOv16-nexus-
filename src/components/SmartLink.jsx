@@ -10,6 +10,7 @@
  * @param {string} [props.className] - Optional custom CSS classes
  */
 import { Logger } from '../core/logger/LoggerService.js';
+import { storageService } from '../utils/storageService.js';
 
 function SmartLink({ id, table, children, onClick, className = '' }) {
   const handleClick = (e) => {
@@ -18,10 +19,10 @@ function SmartLink({ id, table, children, onClick, className = '' }) {
     
     if (id) {
       try {
-        localStorage.setItem('activeFilter', id);
-        localStorage.setItem('gmao_smart_filter', JSON.stringify({ table, filterId: id, timestamp: Date.now() }));
+        storageService.setItem('activeFilter', id);
+        storageService.setItem('gmao_smart_filter', { table, filterId: id, timestamp: Date.now() });
       } catch (err) {
-        Logger.warn('⚠️ Could not save smart filter to localStorage:', err);
+        Logger.warn('⚠️ Could not save smart filter to storageService:', err);
       }
     }
     

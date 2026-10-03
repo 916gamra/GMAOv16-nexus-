@@ -1,4 +1,5 @@
 import { TaskService } from './TaskService.js';
+import { storageService } from '../../../utils/storageService.js';
 
 export const STORAGE_KEY_PLANS = 'gmao_preventive_plans_v2';
 export const INITIAL_PLANS = [];
@@ -6,11 +7,8 @@ export const INITIAL_PLANS = [];
 export class PlanService {
   static getPlans() {
     try {
-      const data = localStorage.getItem(STORAGE_KEY_PLANS);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
+      const data = storageService.getItem(STORAGE_KEY_PLANS);
+      if (data && Array.isArray(data) && data.length > 0) return data;
     } catch {
       // fallback
     }
@@ -20,7 +18,7 @@ export class PlanService {
 
   static savePlans(plans) {
     try {
-      localStorage.setItem(STORAGE_KEY_PLANS, JSON.stringify(plans));
+      storageService.setItem(STORAGE_KEY_PLANS, plans);
     } catch {
       // storage error
     }

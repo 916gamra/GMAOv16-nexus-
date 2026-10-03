@@ -16,6 +16,7 @@ import ErrorBoundary from './presentation/components/common/ErrorBoundary';
 import RuntimeErrorModal from './presentation/components/common/RuntimeErrorModal';
 
 import { backupService } from './utils/BackupService';
+import { storageService } from './utils/storageService';
 import { Logger } from './core/logger/LoggerService';
 import { monitor } from './utils/PerformanceMonitor';
 
@@ -57,7 +58,7 @@ export default function App() {
   // Navigation Tab State - Defaults to 'dashboard', persists active tab while logged in
   const [currentTab, setCurrentTab] = useState(() => {
     try {
-      return localStorage.getItem('gmao_active_tab') || 'dashboard';
+      return storageService.getItem('gmao_active_tab') || 'dashboard';
     } catch {
       return 'dashboard';
     }
@@ -66,7 +67,7 @@ export default function App() {
   useEffect(() => {
     try {
       if (currentTab) {
-        localStorage.setItem('gmao_active_tab', currentTab);
+        storageService.setItem('gmao_active_tab', currentTab);
       }
     } catch {
       /* ignore storage error */
@@ -154,6 +155,12 @@ export default function App() {
     handleDeleteCorrectiveIntervention,
     handleBulkImportCorrective,
     handleResetCorrectiveToSeed,
+    // Machine BOM Ledger
+    machineElementsLedger,
+    addMachineElement,
+    updateMachineElement,
+    deleteMachineElement,
+    duplicateBOMToTwins,
   } = gmaoState;
 
   // Auto Backup and Performance Monitor Initialization
@@ -260,6 +267,9 @@ export default function App() {
     linkedFileName,
     handleExportExcel,
     handleDownloadBlankTemplate,
+    exportMasterTopologyWorkbook,
+    exportInventoryMaterialsWorkbook,
+    exportMovementsUnifiedWorkbook,
     handleImportFile,
     handleDirectFileLink,
     handleDirectSave,
@@ -298,6 +308,11 @@ export default function App() {
     designations,
     families,
     templates,
+    machineElementsLedger,
+    addMachineElement,
+    updateMachineElement,
+    deleteMachineElement,
+    duplicateBOMToTwins,
     preventiveTasks,
     preventiveActions,
     preventiveGuides,
@@ -416,6 +431,9 @@ export default function App() {
         fileInputRef={fileInputRef}
         handleImportFile={handleImportFile}
         handleExportExcel={handleExportExcel}
+        exportMasterTopologyWorkbook={exportMasterTopologyWorkbook}
+        exportInventoryMaterialsWorkbook={exportInventoryMaterialsWorkbook}
+        exportMovementsUnifiedWorkbook={exportMovementsUnifiedWorkbook}
         linkedFileName={linkedFileName}
         onDirectLink={handleDirectFileLink}
         onDirectSave={handleDirectSave}

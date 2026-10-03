@@ -2,749 +2,915 @@ import { useState, useMemo } from 'react';
 import AnimatedPage from '../../components/common/AnimatedPage';
 import {
   GitBranch,
-  Layers,
-  ArrowRight,
-  Package,
-  Cpu,
-  MapPin,
-  Tag,
-  Users,
   Wrench,
   Boxes,
-  FingerprintPattern,
-  Factory,
+  Plus,
+  Trash2,
+  Edit2,
+  Copy,
+  AlertTriangle,
+  CheckCircle2,
+  Search,
+  FileSpreadsheet,
   Zap,
-  ExternalLink,
-  ShieldCheck,
-  ArrowUpRight,
+  MapPin,
+  Cpu,
+  ShieldAlert,
+  X,
 } from 'lucide-react';
-import { HubIcon } from '../../components/common/icons/HubIcon';
-import { CategoryIcon } from '../../components/common/icons/CategoryIcon';
-import { SpokeIcon } from '../../components/common/icons/SpokeIcon';
-import { CubeIcon } from '../../components/common/icons/CubeIcon';
-import { LayersIcon } from '../../components/common/icons/LayersIcon';
-import { Machine } from '../../../core/domain';
+import * as XLSX from 'xlsx';
 
-// Helper: Check if 2 machines/BOMs are identical (Twins)
-
+/**
+ * NexusView — Registre Central des Éléments & BOM Machines
+ * Architecture Single Source of Truth (SSOT) pour la nomenclature des machines
+ */
 export default function NexusView({
-  types = [],
-  diagnostics = [],
-  families = [],
-  templates = [],
-  blueprints = [],
-  zones = [],
-  technicians = [],
-  operations = [],
   machines = [],
+  zones = [],
+  families = [],
+  _templates = [],
   stockItems = [],
-  compFamilies = [],
-  compTemplates = [],
-  partTypes = [],
   warehouseItems = [],
-  mouvements = [],
+  partTypes = [],
+  _mouvements = [],
+  machineElementsLedger = [],
+  onAddMachineElement,
+  onUpdateMachineElement,
+  onDeleteMachineElement,
+  onDuplicateBOMToTwins,
   onNavigate = () => {},
+  showToast,
 }) {
-  const [selectedMachineCode, setSelectedMachineCode] = useState('');
+  const [selectedMachineId, setSelectedMachineId] = useState(() => {
+    return machines[0]?.id_machine_registered || 'DET-01';
+  });
 
-  // Find active selected machine for the Nexus Inspector
-  const selectedMachine = useMemo(() => {
-    if (!selectedMachineCode && machines.length > 0) {
-      return machines[0];
-    }
-    return machines.find((m) => m.id_machine_registered === selectedMachineCode) || machines[0] || null;
-  }, [selectedMachineCode, machines]);
+  const [machineSearch, setMachineSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('ALL'); // 'ALL' | 'PDR' | 'COMPONENT' | 'PART' | 'CRITICAL' | 'ALERT'
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingElement, setEditingElement] = useState(null);
 
-  // Extract machine's real lifecycle PDR consumptions from Mouvements
-  const machinePdrHistory = useMemo(() => {
-    if (!selectedMachine) return [];
-    
-    // Domain-Driven Design: Let the Machine instance figure out its own PDR history
-    const machineInstance = new Machine(selectedMachine);
-    const relatedMvts = machineInstance.getPDRHistory(mouvements);
+  // Formulaire d'ajout / modification d'un élément
+  const [formData, setFormData] = useState({
+    element_type: 'PDR',
+    ref_element: '',
+    designation: '',
+    qte_montee: 1,
+    unite: 'U',
+    criticalite: 'CRITIQUE',
+    duree_vie_estimee_heures: 5000,
+    heures_actuelles: 0,
+    date_installation: new Date().toISOString().split('T')[0],
+    emplacement_machine: '',
+    technicien: 'tech',
+    statut: 'OPERATIONNEL',
+    remarques: '',
+  });
 
-    const map = new Map();
-    relatedMvts.forEach((m) => {
-      const ref = m.ref || m.id_article || 'PDR-REF';
-      const existing = map.get(ref) || { ref, count: 0, totalQty: 0, lastDate: m.date };
-      existing.count += 1;
-      existing.totalQty += Math.abs(Number(m.quantite || m.qte) || 1);
-      if (m.date && m.date > existing.lastDate) existing.lastDate = m.date;
-      map.set(ref, existing);
-    });
-    return Array.from(map.values()).sort((a, b) => b.totalQty - a.totalQty);
-  }, [selectedMachine, mouvements]);
+  // Machine active sélectionnée
+  const activeMachine = useMemo(() => {
+    return machines.find((m) => m.id_machine_registered === selectedMachineId) || machines[0] || null;
+  }, [selectedMachineId, machines]);
 
-  // Find linked blueprint for selected machine
-  const linkedBlueprint = useMemo(() => {
-    if (!selectedMachine) return null;
-    return (
-      blueprints.find((b) => b.id_blueprint === selectedMachine.id_blueprint) ||
-      blueprints.find((b) => b.id_templates === selectedMachine.id_templates) ||
-      null
-    );
-  }, [selectedMachine, blueprints]);
+  // Zone et famille de la machine active
+  const activeZone = useMemo(() => {
+    if (!activeMachine) return null;
+    return zones.find((z) => z.id_zone === activeMachine.id_zone_default || z.code_zone === activeMachine.id_zone_default);
+  }, [activeMachine, zones]);
 
-  // Find potential twin machines for selected machine
-  const twinMachines = useMemo(() => {
-    if (!selectedMachine) return [];
+  const activeFamily = useMemo(() => {
+    if (!activeMachine) return null;
+    return families.find((f) => f.id_family === activeMachine.id_family);
+  }, [activeMachine, families]);
+
+  // Liste filtrée des machines pour le sélecteur
+  const filteredMachinesList = useMemo(() => {
+    if (!machineSearch.trim()) return machines;
+    const q = machineSearch.toLowerCase();
     return machines.filter(
       (m) =>
-        m.id_machine_registered !== selectedMachine.id_machine_registered &&
-        (m.id_blueprint === selectedMachine.id_blueprint ||
-          (m.id_templates === selectedMachine.id_templates && m.id_family === selectedMachine.id_family))
+        (m.id_machine_registered && m.id_machine_registered.toLowerCase().includes(q)) ||
+        (m.designation && m.designation.toLowerCase().includes(q)) ||
+        (m.id_zone_default && m.id_zone_default.toLowerCase().includes(q))
     );
-  }, [selectedMachine, machines]);
+  }, [machines, machineSearch]);
+
+  // Éléments du BOM Ledger rattachés à la machine active
+  const currentMachineElements = useMemo(() => {
+    if (!activeMachine) return [];
+    return machineElementsLedger.filter(
+      (item) => item.id_machine_registered === activeMachine.id_machine_registered
+    );
+  }, [activeMachine, machineElementsLedger]);
+
+  // Filtrage selon le type et la recherche
+  const displayedElements = useMemo(() => {
+    return currentMachineElements.filter((item) => {
+      // Type filter
+      if (typeFilter === 'PDR' && item.element_type !== 'PDR') return false;
+      if (typeFilter === 'COMPONENT' && item.element_type !== 'COMPONENT') return false;
+      if (typeFilter === 'PART' && item.element_type !== 'PART') return false;
+      if (typeFilter === 'CRITICAL' && item.criticalite !== 'CRITIQUE') return false;
+      if (typeFilter === 'ALERT' && item.statut !== 'A_REMPLACER') return false;
+
+      // Search term
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase();
+        const matchRef = (item.ref_element || '').toLowerCase().includes(q);
+        const matchDesig = (item.designation || '').toLowerCase().includes(q);
+        const matchLoc = (item.emplacement_machine || '').toLowerCase().includes(q);
+        if (!matchRef && !matchDesig && !matchLoc) return false;
+      }
+
+      return true;
+    });
+  }, [currentMachineElements, typeFilter, searchTerm]);
+
+  // Machines jumelles (Twins) partageant le même template ou famille
+  const twinMachines = useMemo(() => {
+    if (!activeMachine) return [];
+    return machines.filter(
+      (m) =>
+        m.id_machine_registered !== activeMachine.id_machine_registered &&
+        m.id_templates === activeMachine.id_templates &&
+        m.id_family === activeMachine.id_family
+    );
+  }, [activeMachine, machines]);
+
+  // KPI globaux et pour la machine active
+  const kpis = useMemo(() => {
+    const totalMounted = currentMachineElements.length;
+    const criticalCount = currentMachineElements.filter((e) => e.criticalite === 'CRITIQUE').length;
+    const alertCount = currentMachineElements.filter((e) => e.statut === 'A_REMPLACER').length;
+    const totalWorkshopElements = machineElementsLedger.length;
+
+    return {
+      totalMounted,
+      criticalCount,
+      alertCount,
+      totalWorkshopElements,
+    };
+  }, [currentMachineElements, machineElementsLedger]);
+
+  // Suggestions automatiques lors du choix de référence
+  const referenceOptions = useMemo(() => {
+    if (formData.element_type === 'PDR') {
+      return stockItems.map((s) => ({
+        ref: s.ref || s.id_article,
+        designation: s.designation || s.nom || '',
+        stock: s.stockActuel ?? s.stock_actuel ?? s.qte ?? 0,
+      }));
+    }
+    if (formData.element_type === 'COMPONENT') {
+      return warehouseItems.map((w) => ({
+        ref: w.id_warehouse_item || w.ref || '',
+        designation: w.designation || '',
+        stock: w.quantite ?? 1,
+      }));
+    }
+    return partTypes.map((p) => ({
+      ref: p.id_part_type || p.code || '',
+      designation: p.designation || p.libelle || '',
+      stock: 1,
+    }));
+  }, [formData.element_type, stockItems, warehouseItems, partTypes]);
+
+  // Ouvrir modal d'ajout
+  const handleOpenAddModal = () => {
+    setEditingElement(null);
+    setFormData({
+      element_type: 'PDR',
+      ref_element: '',
+      designation: '',
+      qte_montee: 1,
+      unite: 'U',
+      criticalite: 'CRITIQUE',
+      duree_vie_estimee_heures: 5000,
+      heures_actuelles: 0,
+      date_installation: new Date().toISOString().split('T')[0],
+      emplacement_machine: '',
+      technicien: 'tech',
+      statut: 'OPERATIONNEL',
+      remarques: '',
+    });
+    setIsAddModalOpen(true);
+  };
+
+  // Ouvrir modal de modification
+  const handleOpenEditModal = (element) => {
+    setEditingElement(element);
+    setFormData({
+      element_type: element.element_type || 'PDR',
+      ref_element: element.ref_element || '',
+      designation: element.designation || '',
+      qte_montee: element.qte_montee || 1,
+      unite: element.unite || 'U',
+      criticalite: element.criticalite || 'CRITIQUE',
+      duree_vie_estimee_heures: element.duree_vie_estimee_heures || 5000,
+      heures_actuelles: element.heures_actuelles || 0,
+      date_installation: element.date_installation || new Date().toISOString().split('T')[0],
+      emplacement_machine: element.emplacement_machine || '',
+      technicien: element.technicien || 'tech',
+      statut: element.statut || 'OPERATIONNEL',
+      remarques: element.remarques || '',
+    });
+    setIsAddModalOpen(true);
+  };
+
+  // Sauvegarder élément (Ajout ou Mise à jour)
+  const handleSaveElement = (e) => {
+    e.preventDefault();
+    if (!formData.ref_element.trim()) {
+      showToast?.('Veuillez sélectionner ou saisir une référence valide.', 'error');
+      return;
+    }
+
+    if (editingElement) {
+      onUpdateMachineElement?.(editingElement.id, formData);
+      showToast?.(`Élément ${formData.ref_element} mis à jour avec succès.`, 'success');
+    } else {
+      onAddMachineElement?.({
+        ...formData,
+        id_machine_registered: activeMachine.id_machine_registered,
+      });
+      showToast?.(`Élément ${formData.ref_element} rattaché à la machine ${activeMachine.id_machine_registered}.`, 'success');
+    }
+
+    setIsAddModalOpen(false);
+  };
+
+  // Duplication vers les machines jumelles
+  const handleCloneToTwins = () => {
+    if (!twinMachines.length) {
+      showToast?.('Aucune machine jumelle détectée pour ce modèle.', 'info');
+      return;
+    }
+    const twinIds = twinMachines.map((m) => m.id_machine_registered);
+    onDuplicateBOMToTwins?.(activeMachine.id_machine_registered, twinIds);
+    showToast?.(`Nomenclature dupliquée avec succès vers ${twinIds.length} machines jumelles (${twinIds.join(', ')}).`, 'success');
+  };
+
+  // Exporter la nomenclature de la machine ou du registre entier en Excel
+  const handleExportBOMExcel = () => {
+    try {
+      const wb = XLSX.utils.book_new();
+
+      // Feuille 1 : Machine active BOM
+      const currentBOMData = currentMachineElements.map((item) => ({
+        'Machine ID': item.id_machine_registered,
+        Type: item.element_type,
+        'Référence Élément': item.ref_element,
+        Désignation: item.designation,
+        'Qté Montée': item.qte_montee,
+        Unité: item.unite,
+        'Emplacement Machine': item.emplacement_machine,
+        Criticité: item.criticalite,
+        'Durée de Vie (H)': item.duree_vie_estimee_heures,
+        'Heures Actuelles': item.heures_actuelles,
+        'Date Installation': item.date_installation,
+        Technicien: item.technicien,
+        Statut: item.statut,
+        Remarques: item.remarques,
+      }));
+      const wsCurrent = XLSX.utils.json_to_sheet(currentBOMData);
+      XLSX.utils.book_append_sheet(wb, wsCurrent, `BOM_${activeMachine.id_machine_registered}`);
+
+      // Feuille 2 : Registre Complet Atelier
+      const fullBOMData = machineElementsLedger.map((item) => ({
+        'Machine ID': item.id_machine_registered,
+        Type: item.element_type,
+        'Référence Élément': item.ref_element,
+        Désignation: item.designation,
+        'Qté Montée': item.qte_montee,
+        Unité: item.unite,
+        'Emplacement Machine': item.emplacement_machine,
+        Criticité: item.criticalite,
+        'Durée de Vie (H)': item.duree_vie_estimee_heures,
+        'Heures Actuelles': item.heures_actuelles,
+        'Date Installation': item.date_installation,
+        Technicien: item.technicien,
+        Statut: item.statut,
+        Remarques: item.remarques,
+      }));
+      const wsFull = XLSX.utils.json_to_sheet(fullBOMData);
+      XLSX.utils.book_append_sheet(wb, wsFull, 'REGISTRE_BOM_COMPLET');
+
+      XLSX.writeFile(wb, `GMAO_Nexus_BOM_${activeMachine.id_machine_registered}.xlsx`);
+      showToast?.('Nomenclature BOM exportée avec succès en Excel.', 'success');
+    } catch {
+      showToast?.("Erreur lors de l'export Excel.", 'error');
+    }
+  };
 
   return (
-    <AnimatedPage className="space-y-6">
-      {/* Top Banner */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2.5">
-            <GitBranch className="w-5 h-5 text-emerald-600 shrink-0" />
-            <span>Nexus Matrix : Architecture & Schéma des Liaisons GMAO</span>
-          </h2>
-          <p className="text-xs text-slate-500 mt-1 max-w-3xl">
-            Visualisez l'interconnexion complète, la structure <b>BOM (Bill of Materials)</b> à 4 niveaux et les formules de calcul
-            reliant <b className="text-blue-600">Stock PDR</b>, <b className="text-emerald-600">Machines (avec Blueprints)</b>,{' '}
-            <b className="text-amber-600">Entrepôt Parts</b> et <b className="text-purple-600">Zones & Équipes</b>.
-          </p>
+    <AnimatedPage className="space-y-6 max-w-7xl mx-auto p-1 sm:p-2 text-slate-800">
+      {/* 1. EN-TÊTE PRINCIPAL (Format Light UI Excel) */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <GitBranch className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-base font-bold text-slate-900">
+                Nexus Matrix : Registre Central des Éléments & BOM Machines
+              </h2>
+              <span className="text-xs text-slate-400">·</span>
+              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                Single Source of Truth
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
+              Point central de rattachement des pièces de rechange (PDR), composants et organes mécaniques montés sur chaque machine enregistrée.
+            </p>
+          </div>
         </div>
 
-        {/* Quick KPI stats */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
-          <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-center shrink-0">
-            <div className="text-[10px] uppercase font-bold text-slate-400">Stock PDR</div>
-            <div className="text-xs font-mono font-bold text-blue-700">{stockItems.length}</div>
+        {/* Boutons d'action globaux */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={handleExportBOMExcel}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-2xs transition active:scale-95 cursor-pointer"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <span>Exporter BOM (Excel)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenAddModal}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition active:scale-95 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Monter un Élément</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 2. KPI CARDS BANNER */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs">
+          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            Éléments sur cette Machine
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-center shrink-0">
-            <div className="text-[10px] uppercase font-bold text-slate-400">Machines</div>
-            <div className="text-xs font-mono font-bold text-emerald-700">{machines.length}</div>
+          <div className="text-xl font-bold font-mono text-slate-900 mt-1">
+            {kpis.totalMounted}
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-center shrink-0">
-            <div className="text-[10px] uppercase font-bold text-slate-400">Blueprints</div>
-            <div className="text-xs font-mono font-bold text-indigo-700">{blueprints.length}</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">
+            Machine : {activeMachine?.id_machine_registered}
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-center shrink-0">
-            <div className="text-[10px] uppercase font-bold text-slate-400">Entrepôt</div>
-            <div className="text-xs font-mono font-bold text-amber-700">{warehouseItems.length}</div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs">
+          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            Pièces Critiques
+          </div>
+          <div className="text-xl font-bold font-mono text-amber-600 mt-1">
+            {kpis.criticalCount}
+          </div>
+          <div className="text-[10px] text-slate-400 mt-0.5">
+            Surveillance renforcée
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs">
+          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            Alertes Remplacement
+          </div>
+          <div className="text-xl font-bold font-mono text-rose-600 mt-1">
+            {kpis.alertCount}
+          </div>
+          <div className="text-[10px] text-slate-400 mt-0.5">
+            Cycle de vie dépassé
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs">
+          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+            Total Registre Usine
+          </div>
+          <div className="text-xl font-bold font-mono text-emerald-700 mt-1">
+            {kpis.totalWorkshopElements}
+          </div>
+          <div className="text-[10px] text-slate-400 mt-0.5">
+            Toutes machines confondues
           </div>
         </div>
       </div>
 
-      {/* 4 Pillars Pillar Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-        {/* Pillar 1: Stock PDR */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out space-y-4 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                  <Package className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-slate-900">1. Stock PDR</h3>
-                  <div className="text-[11px] text-slate-500">Type • Diag • Stock Actuel</div>
-                </div>
-              </div>
-              <button
-                onClick={() => onNavigate('stock')}
-                className="text-slate-400 hover:text-blue-600 p-1 rounded-lg hover:bg-slate-50 transition"
-                title="Ouvrir Stock PDR"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5 text-xs">
-              {/* Level 1: Type */}
-              <div
-                onClick={() => onNavigate('types')}
-                className="p-3 rounded-xl bg-cyan-50/70 border border-cyan-200 cursor-pointer hover:bg-cyan-100/70 transition"
-              >
-                <div className="font-bold text-cyan-900 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5 text-cyan-600" />
-                    <span>L1 : Type ({types.length})</span>
-                  </span>
-                  <ArrowUpRight className="w-3 h-3 text-cyan-500" />
-                </div>
-                <div className="text-[11px] text-cyan-800 mt-1">
-                  Catégorie parent : Mécanique, Fixation, Pneumatique...
-                </div>
-                <div className="mt-2 pt-1 border-t border-cyan-200/60 font-mono text-[9.5px] text-cyan-900">
-                  Formule : <span className="font-semibold">=COUNTIF(Stock!D:D, [@id_type])</span>
-                </div>
-              </div>
-
-              <div className="flex justify-center text-slate-300">
-                <ArrowRight className="w-3.5 h-3.5 rotate-90" />
-              </div>
-
-              {/* Level 2: Diagnostic */}
-              <div
-                onClick={() => onNavigate('designations')}
-                className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 cursor-pointer hover:bg-amber-100/70 transition"
-              >
-                <div className="font-bold text-amber-900 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <Layers className="w-3.5 h-3.5 text-amber-600" />
-                    <span>L2 : Diagnostic ({diagnostics.length})</span>
-                  </span>
-                  <ArrowUpRight className="w-3 h-3 text-amber-500" />
-                </div>
-                <div className="text-[11px] text-amber-800 mt-1">
-                  Motifs d'usure ou pannes rattachés à chaque Type.
-                </div>
-                <div className="mt-2 pt-1 border-t border-amber-200/60 font-mono text-[9.5px] text-amber-900">
-                  Liaison : <span className="font-semibold">[@id_diag] → Diagnostic!B:B</span>
-                </div>
-              </div>
-
-              <div className="flex justify-center text-slate-300">
-                <ArrowRight className="w-3.5 h-3.5 rotate-90" />
-              </div>
-
-              {/* Central Output: Stock */}
-              <div
-                onClick={() => onNavigate('stock')}
-                className="p-3.5 rounded-xl bg-slate-900 text-white shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer hover:bg-slate-800 transition"
-              >
-                <div className="font-bold text-xs flex items-center justify-between">
-                  <span>Stock Actuel (PDR Focus)</span>
-                  <span className="font-mono text-cyan-400 font-bold">{stockItems.length} refs</span>
-                </div>
-                <div className="text-[11px] text-slate-300 mt-1">
-                  Formules Excel en temps réel & Rapprochement journalier.
-                </div>
-                <div className="mt-2 pt-1.5 border-t border-slate-800 font-mono text-[9.5px] text-emerald-400 flex items-center justify-between">
-                  <span>Actuel : = E + F - G</span>
-                  <span className="text-slate-400 text-[9px]">=Initial+Entrées-Sorties</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Pillar 2: Machines Hierarchy with Blueprints */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out space-y-4 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                  <Cpu className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-slate-900">2. Groupe Machines</h3>
-                  <div className="text-[11px] text-slate-500">Family • Template • Blueprint • MCH</div>
-                </div>
-              </div>
-              <button
-                onClick={() => onNavigate('machines')}
-                className="text-slate-400 hover:text-emerald-600 p-1 rounded-lg hover:bg-slate-50 transition"
-                title="Ouvrir Machines Registered"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              {/* L1: Family */}
-              <div
-                onClick={() => onNavigate('families')}
-                className="p-2.5 rounded-xl bg-cyan-50/70 border border-cyan-200 cursor-pointer hover:bg-cyan-100/70 transition"
-              >
-                <div className="font-bold text-cyan-900 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <HubIcon className="w-3.5 h-3.5 text-cyan-600" />
-                    <span>L1 : Family ({families.length})</span>
-                  </span>
-                  <ArrowUpRight className="w-3 h-3 text-cyan-500" />
-                </div>
-                <div className="text-[10.5px] text-cyan-800 mt-0.5">
-                  Famille technologique (POL, AMBO, REPO, DET...)
-                </div>
-              </div>
-
-              <div className="flex justify-center text-slate-300">
-                <ArrowRight className="w-3.5 h-3.5 rotate-90" />
-              </div>
-
-              {/* L2: Templates */}
-              <div
-                onClick={() => onNavigate('templates')}
-                className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 cursor-pointer hover:bg-amber-100/70 transition"
-              >
-                <div className="font-bold text-amber-900 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <CategoryIcon className="w-3.5 h-3.5 text-amber-600" />
-                    <span>L2 : Templates ({templates.length})</span>
-                  </span>
-                  <ArrowUpRight className="w-3 h-3 text-amber-500" />
-                </div>
-                <div className="text-[10.5px] text-amber-800 mt-0.5">
-                  Modèles génériques du constructeur rattachés à la famille.
-                </div>
-              </div>
-
-              <div className="flex justify-center text-slate-300">
-                <ArrowRight className="w-3.5 h-3.5 rotate-90" />
-              </div>
-
-              {/* L3: Blueprints (BOM 4-Tabs) */}
-              <div
-                onClick={() => onNavigate('blueprints')}
-                className="p-2.5 rounded-xl bg-indigo-50/80 border border-indigo-200 cursor-pointer hover:bg-indigo-100/80 transition"
-              >
-                <div className="font-bold text-indigo-900 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <FingerprintPattern className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>L3 : Blueprints BOM ({blueprints.length})</span>
-                  </span>
-                  <span className="px-1.5 py-0.2 rounded bg-indigo-200 text-indigo-800 text-[9.5px] font-bold">4-Tabs</span>
-                </div>
-                <div className="text-[10.5px] text-indigo-800 mt-0.5">
-                  Document maître : Specs + Components + Parts + PDR théoriques.
-                </div>
-              </div>
-
-              <div className="flex justify-center text-slate-300">
-                <ArrowRight className="w-3.5 h-3.5 rotate-90" />
-              </div>
-
-              {/* L4: Registered Machines */}
-              <div
-                onClick={() => onNavigate('machines')}
-                className="p-3 rounded-xl bg-slate-900 text-white shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer hover:bg-slate-800 transition"
-              >
-                <div className="font-bold text-xs flex items-center justify-between">
-                  <span>Machines Registered</span>
-                  <span className="font-mono text-emerald-400 font-bold">{machines.length} unités</span>
-                </div>
-                <div className="text-[10.5px] text-slate-300 mt-0.5">
-                  Hérite du Blueprint (optionnel) + Zone + Technicien.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Pillar 3: Entrepôt Parts & Components */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out space-y-4 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                  <Boxes className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-slate-900">3. Entrepôt Parts</h3>
-                  <div className="text-[11px] text-slate-500">Comp • Templates • Parts Ref</div>
-                </div>
-              </div>
-              <button
-                onClick={() => onNavigate('entrepot')}
-                className="text-slate-400 hover:text-amber-600 p-1 rounded-lg hover:bg-slate-50 transition"
-                title="Ouvrir Entrepôt"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              {/* L1: Comp Families */}
-              <div
-                onClick={() => onNavigate('comp_families')}
-                className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-200 cursor-pointer hover:bg-emerald-100/70 transition"
-              >
-                <div className="font-bold text-emerald-900 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <SpokeIcon className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>L1 : Comp Families ({compFamilies.length})</span>
-                  </span>
-                  <ArrowUpRight className="w-3 h-3 text-emerald-500" />
-                </div>
-                <div className="text-[10.5px] text-emerald-800 mt-0.5">
-                  Codes composants : EXT, VER, CYL, MOT...
-                </div>
-              </div>
-
-              <div className="flex justify-center text-slate-300">
-                <ArrowRight className="w-3.5 h-3.5 rotate-90" />
-              </div>
-
-              {/* L2: Comp Templates */}
-              <div
-                onClick={() => onNavigate('comp_templates')}
-                className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-200 cursor-pointer hover:bg-blue-100/70 transition"
-              >
-                <div className="font-bold text-blue-900 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <CubeIcon className="w-3.5 h-3.5 text-blue-600" />
-                    <span>L2 : Comp Templates ({compTemplates.length})</span>
-                  </span>
-                  <ArrowUpRight className="w-3 h-3 text-blue-500" />
-                </div>
-                <div className="text-[10.5px] text-blue-800 mt-0.5">
-                  Modèles (EXT-01, VER-01) ➔ Alimente Tab 2 Blueprint.
-                </div>
-              </div>
-
-              <div className="flex justify-center text-slate-300">
-                <ArrowRight className="w-3.5 h-3.5 rotate-90" />
-              </div>
-
-              {/* L3: Part Types & Designations */}
-              <div
-                onClick={() => onNavigate('part_types')}
-                className="p-2.5 rounded-xl bg-purple-50/70 border border-purple-200 cursor-pointer hover:bg-purple-100/70 transition"
-              >
-                <div className="font-bold text-purple-900 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <LayersIcon className="w-3.5 h-3.5 text-purple-600" />
-                    <span>L3 : Part Types ({partTypes.length})</span>
-                  </span>
-                  <ArrowUpRight className="w-3 h-3 text-purple-500" />
-                </div>
-                <div className="text-[10.5px] text-purple-800 mt-0.5">
-                  Références de pièces (VIS-M8) ➔ Alimente Tab 3 Blueprint.
-                </div>
-              </div>
-
-              <div className="flex justify-center text-slate-300">
-                <ArrowRight className="w-3.5 h-3.5 rotate-90" />
-              </div>
-
-              {/* Central Output: Warehouse items */}
-              <div
-                onClick={() => onNavigate('entrepot')}
-                className="p-3 rounded-xl bg-slate-900 text-white shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer hover:bg-slate-800 transition"
-              >
-                <div className="font-bold text-xs flex items-center justify-between">
-                  <span>Stock Entrepôt (Parts & Comp)</span>
-                  <span className="font-mono text-amber-400 font-bold">{warehouseItems.length} items</span>
-                </div>
-                <div className="text-[10.5px] text-slate-300 mt-0.5">
-                  Magasin centralisé indépendant du Stock PDR.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Pillar 4: Industrial Philosophy & Zones */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out space-y-4 flex flex-col justify-between">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
-                  <MapPin className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-slate-900">4. Zones & Équipes</h3>
-                  <div className="text-[11px] text-slate-500">Ateliers • Physiques • Mouvements</div>
-                </div>
-              </div>
-              <button
-                onClick={() => onNavigate('zones')}
-                className="text-slate-400 hover:text-purple-600 p-1 rounded-lg hover:bg-slate-50 transition"
-                title="Ouvrir Zones"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              {/* Zones card */}
-              <div
-                onClick={() => onNavigate('zones')}
-                className="p-2.5 rounded-xl bg-purple-50/70 border border-purple-200 cursor-pointer hover:bg-purple-100/70 transition"
-              >
-                <div className="font-bold text-purple-900 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <Factory className="w-3.5 h-3.5 text-purple-600" />
-                    <span>Zones & Ateliers ({zones.length})</span>
-                  </span>
-                  <ArrowUpRight className="w-3 h-3 text-purple-500" />
-                </div>
-                <div className="text-[10.5px] text-purple-800 mt-1 space-y-0.5">
-                  <div className="truncate">• <b>FM:</b> Fabrication Mécanique (Usinage)</div>
-                  <div className="truncate">• <b>Détourage:</b> Cisaillement & Ébavurage</div>
-                  <div className="truncate">• <b>Presses:</b> Hydr. 200T-400T & Inj. Bakélite</div>
-                  <div className="truncate">• <b>Finition:</b> Polissage, Satinage & Lignes FEMB</div>
-                </div>
-              </div>
-
-              {/* Users & Teams */}
-              <div
-                onClick={() => onNavigate('utilisateurs')}
-                className="grid grid-cols-2 gap-2 cursor-pointer"
-              >
-                <div className="p-2.5 rounded-xl bg-blue-50/70 border border-blue-200 hover:bg-blue-100/70 transition">
-                  <div className="font-bold text-blue-900 flex items-center gap-1">
-                    <Users className="w-3 h-3 text-blue-600" />
-                    <span>Techs</span>
-                  </div>
-                  <div className="text-[10.5px] font-mono text-blue-700 mt-0.5">{technicians.length} membres</div>
-                </div>
-                <div className="p-2.5 rounded-xl bg-indigo-50/70 border border-indigo-200 hover:bg-indigo-100/70 transition">
-                  <div className="font-bold text-indigo-900 flex items-center gap-1">
-                    <Wrench className="w-3 h-3 text-indigo-600" />
-                    <span>Opérations</span>
-                  </div>
-                  <div className="text-[10.5px] font-mono text-indigo-700 mt-0.5">{operations.length} profils</div>
-                </div>
-              </div>
-
-              {/* Central Output: Movements */}
-              <div
-                onClick={() => onNavigate('sortie')}
-                className="p-3 rounded-xl bg-slate-900 text-white shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer hover:bg-slate-800 transition"
-              >
-                <div className="font-bold text-xs flex items-center justify-between">
-                  <span>Mouvements (Sortie Rapide)</span>
-                  <span className="font-mono text-cyan-400 font-bold">{mouvements.length} ops</span>
-                </div>
-                <div className="text-[10.5px] text-slate-300 mt-0.5">
-                  Alimente l'historique de consommation de chaque machine.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Machine Nexus Inspector & Twin Machine Detector */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+      {/* 3. BARRE DE SÉLECTION DE LA MACHINE ET FICHE TECHNIQUE */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
-              <Zap className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm text-slate-900">
-                Nexus Machine Inspector & Détecteur de Machines Jumelles (Twins)
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                Sélectionnez une machine pour extraire son empreinte BOM réelle, ses PDR consommées et comparer avec les autres machines.
-              </p>
-            </div>
+            <Cpu className="w-4 h-4 text-emerald-600" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              Machine Enregistrée Sélectionnée
+            </h3>
           </div>
 
-          {/* Machine Selector */}
-          <div className="flex items-center gap-2">
+          {/* Recherche rapide dans la liste des machines */}
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="relative flex-1 md:w-72">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Chercher code machine (ex: DET-01, PRH-01)..."
+                value={machineSearch}
+                onChange={(e) => setMachineSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+
             <select
-              value={selectedMachine?.id_machine_registered || ''}
-              onChange={(e) => setSelectedMachineCode(e.target.value)}
-              className="h-9 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+              value={selectedMachineId}
+              onChange={(e) => setSelectedMachineId(e.target.value)}
+              className="py-1.5 px-3 text-xs font-bold rounded-lg border border-slate-200 bg-slate-50 focus:outline-hidden focus:border-emerald-500"
             >
-              {machines.map((m) => (
+              {filteredMachinesList.map((m) => (
                 <option key={m.id_machine_registered} value={m.id_machine_registered}>
-                  {m.id_machine_registered} • {m.designation || m.nom || 'Machine'} ({m.id_family || ''})
+                  {m.id_machine_registered} {m.designation ? `— ${m.designation}` : ''}
                 </option>
               ))}
             </select>
           </div>
         </div>
 
-        {selectedMachine && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-2">
-            {/* Card 1: Machine Identity & Linked Blueprint */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-500 uppercase">Identité Machine</span>
-                <span className="px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-100 text-emerald-800">
-                  {selectedMachine.status || 'En Service'}
-                </span>
-              </div>
-              <div>
-                <div className="text-base font-bold font-mono text-slate-900">
-                  {selectedMachine.id_machine_registered}
-                </div>
-                <div className="text-xs text-slate-600 font-medium">
-                  {selectedMachine.designation || selectedMachine.nom || 'Machine Industrielle'}
-                </div>
-              </div>
+        {/* Fiche synthétique de la machine */}
+        {activeMachine && (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/80 text-xs">
+            <div>
+              <span className="text-slate-400 block text-[10px] uppercase font-bold">Identifiant</span>
+              <span className="font-mono font-bold text-slate-900">{activeMachine.id_machine_registered}</span>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[10px] uppercase font-bold">Désignation</span>
+              <span className="font-semibold text-slate-800 truncate block">
+                {activeMachine.designation || activeMachine.nom || 'Équipement de Production'}
+              </span>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[10px] uppercase font-bold">Zone / Atelier</span>
+              <span className="font-medium text-slate-700 flex items-center gap-1">
+                <MapPin className="w-3 h-3 text-slate-400" />
+                {activeZone?.nom || activeZone?.code_zone || activeMachine.id_zone_default || 'Atelier'}
+              </span>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[10px] uppercase font-bold">Modèle & Famille</span>
+              <span className="font-medium text-slate-700 truncate block">
+                {activeMachine.id_templates || 'Standard'} {activeFamily ? `(${activeFamily.nom || activeFamily.libelle || activeFamily.name})` : ''}
+              </span>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[10px] uppercase font-bold">Statut Machine</span>
+              <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                {activeMachine.status || 'OPÉRATIONNEL'}
+              </span>
+            </div>
+          </div>
+        )}
 
-              <div className="pt-2 border-t border-slate-200/80 space-y-1.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Famille :</span>
-                  <span className="font-semibold text-cyan-700">{selectedMachine.id_family || '—'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Modèle Template :</span>
-                  <span className="font-semibold text-amber-700">{selectedMachine.id_templates || '—'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Zone / Secteur :</span>
-                  <span className="font-semibold text-purple-700">{selectedMachine.id_zone_default || selectedMachine.id_zone || '—'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Technicien assigné :</span>
-                  <span className="font-semibold text-blue-700">{selectedMachine.technician || '—'}</span>
-                </div>
-              </div>
-
-              {/* Linked Blueprint Box */}
-              <div className="mt-3 p-3 rounded-xl bg-white border border-indigo-200 shadow-2xs">
-                <div className="text-[11px] font-bold text-indigo-900 flex items-center justify-between">
-                  <span className="flex items-center gap-1">
-                    <FingerprintPattern className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Blueprint Associé</span>
-                  </span>
-                  {selectedMachine.id_blueprint ? (
-                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-800 font-bold">
-                      {selectedMachine.id_blueprint}
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-slate-400 italic">Non assigné</span>
-                  )}
-                </div>
-                {linkedBlueprint ? (
-                  <div className="mt-1.5 text-xs text-slate-600">
-                    <div className="font-semibold text-slate-800">{linkedBlueprint.libelle}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">
-                      Plan: {linkedBlueprint.ref_plan || 'N/A'} • {linkedBlueprint.revision || 'Rev-A'}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-1 text-[11px] text-slate-500">
-                    Cette machine fonctionne avec les paramètres d'usine de base. Vous pouvez lui assigner un Blueprint pour formaliser son BOM.
-                  </div>
-                )}
-              </div>
+        {/* Alerte machines jumelles (Twin Machines) */}
+        {twinMachines.length > 0 && (
+          <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/70 border border-blue-200 text-xs">
+            <div className="flex items-center gap-2">
+              <Boxes className="w-4 h-4 text-blue-600" />
+              <span>
+                <b>{twinMachines.length} Machine(s) jumelle(s) détectée(s)</b> de même modèle ({twinMachines.map((t) => t.id_machine_registered).join(', ')}).
+              </span>
             </div>
 
-            {/* Card 2: Real PDR Consumed over Machine Lifecycle */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                  <Wrench className="w-3.5 h-3.5 text-amber-600" />
-                  <span>PDR Consommées Réellement (Mouvements)</span>
-                </span>
-                <span className="text-[10.5px] font-mono font-bold text-slate-600">
-                  {machinePdrHistory.length} articles
-                </span>
-              </div>
-
-              {machinePdrHistory.length > 0 ? (
-                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                  {machinePdrHistory.map((p, idx) => (
-                    <div
-                      key={idx}
-                      className="p-2 rounded-lg bg-white border border-slate-200 flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <div className="font-mono font-bold text-slate-900">{p.ref}</div>
-                        <div className="text-[10px] text-slate-400">Dernier remplacement : {p.lastDate || '—'}</div>
-                      </div>
-                      <div className="text-right">
-                        <span className="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 font-mono font-bold text-[11px]">
-                          Qté : {p.totalQty}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="h-[180px] flex flex-col items-center justify-center text-center p-4 text-slate-400 border border-dashed border-slate-200 rounded-xl bg-white/50">
-                  <ShieldCheck className="w-8 h-8 text-emerald-500/70 mb-1" />
-                  <div className="text-xs font-semibold text-slate-600">Aucune panne ou sortie PDR enregistrée</div>
-                  <div className="text-[10.5px] text-slate-400 mt-0.5">Machine neuve ou sans maintenance corrective récente.</div>
-                </div>
-              )}
-            </div>
-
-            {/* Card 3: Twin Machines Analysis */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-slate-500 uppercase flex items-center gap-1">
-                  <GitBranch className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Machines Jumelles Potentielles (Twins)</span>
-                </span>
-                <span className="text-[10.5px] font-mono font-bold text-indigo-700">
-                  {twinMachines.length} trouvées
-                </span>
-              </div>
-
-              <div className="text-xs text-slate-600">
-                Machines partageant la même famille technologique et le même modèle de base :
-              </div>
-
-              {twinMachines.length > 0 ? (
-                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                  {twinMachines.map((tm) => (
-                    <div
-                      key={tm.id_machine_registered}
-                      className="p-2.5 rounded-lg bg-white border border-slate-200 text-xs space-y-1"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono font-bold text-slate-900">{tm.id_machine_registered}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
-                          {tm.id_zone_default || tm.id_zone || 'Atelier'}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-slate-500 truncate">
-                        {tm.designation || tm.nom}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="h-[180px] flex flex-col items-center justify-center text-center p-4 text-slate-400 border border-dashed border-slate-200 rounded-xl bg-white/50">
-                  <Cpu className="w-8 h-8 text-slate-300 mb-1" />
-                  <div className="text-xs font-semibold text-slate-600">Machine unique dans son segment</div>
-                  <div className="text-[10.5px] text-slate-400 mt-0.5">Aucun autre modèle identique n'est actuellement enregistré.</div>
-                </div>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={handleCloneToTwins}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-2xs transition active:scale-95 cursor-pointer"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              <span>Cloner la Nomenclature vers les Sœurs</span>
+            </button>
           </div>
         )}
       </div>
 
-      {/* Industrial Philosophy Summary Card */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950 text-white shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Factory className="w-5 h-5 text-emerald-400" />
-            <h3 className="font-bold text-sm text-white">Fils Conducteurs & Philosophie Industrielle CIOB</h3>
+      {/* 4. TABLEAU DE LA NOMENCLATURE ET DES ÉLÉMENTS MONTÉS */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          {/* Filtres par onglets */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+            {[
+              { id: 'ALL', label: `Tous (${currentMachineElements.length})` },
+              { id: 'PDR', label: `PDR (${currentMachineElements.filter((e) => e.element_type === 'PDR').length})` },
+              { id: 'COMPONENT', label: `Composants (${currentMachineElements.filter((e) => e.element_type === 'COMPONENT').length})` },
+              { id: 'PART', label: `Organes (${currentMachineElements.filter((e) => e.element_type === 'PART').length})` },
+              { id: 'CRITICAL', label: `Critiques (${currentMachineElements.filter((e) => e.criticalite === 'CRITIQUE').length})` },
+              { id: 'ALERT', label: `À Remplacer (${currentMachineElements.filter((e) => e.statut === 'A_REMPLACER').length})` },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setTypeFilter(tab.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer shrink-0 ${
+                  typeFilter === tab.id
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white/10 text-cyan-300">
-            Excel Twin 100% Offline
-          </span>
+
+          {/* Recherche dans la nomenclature */}
+          <div className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Filtrer éléments montés..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-hidden focus:border-emerald-500"
+            />
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs pt-1">
-          <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-            <div className="font-bold text-cyan-300">1. Machine Neuve (Jour 1)</div>
-            <div className="text-slate-300 text-[11px]">
-              Créée avec seulement <b>Family</b> + <b>Template</b>. Le Blueprint reste optionnel car ses composants réels sont découverts avec le temps.
-            </div>
+        {/* Grille des éléments */}
+        {displayedElements.length === 0 ? (
+          <div className="text-center py-12 px-4 border border-dashed border-slate-200 rounded-xl space-y-3">
+            <Boxes className="w-10 h-10 text-slate-300 mx-auto" />
+            <div className="text-xs font-bold text-slate-700">Aucun élément monté ne correspond aux critères</div>
+            <p className="text-[11px] text-slate-400 max-w-md mx-auto">
+              Utilisez le bouton "Monter un Élément" pour rattacher des pièces de rechange (PDR), distributeurs, courroies ou roulements à cette machine.
+            </p>
+            <button
+              type="button"
+              onClick={handleOpenAddModal}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 shadow-2xs transition"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Monter le premier élément</span>
+            </button>
           </div>
+        ) : (
+          <div className="overflow-x-auto border border-slate-200 rounded-xl">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px]">
+                <tr>
+                  <th className="py-2.5 px-3">Type</th>
+                  <th className="py-2.5 px-3">Référence & Désignation</th>
+                  <th className="py-2.5 px-3">Emplacement Machine</th>
+                  <th className="py-2.5 px-3 text-center">Qté Montée</th>
+                  <th className="py-2.5 px-3">Criticité</th>
+                  <th className="py-2.5 px-3">Usure Estimée</th>
+                  <th className="py-2.5 px-3">Statut</th>
+                  <th className="py-2.5 px-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {displayedElements.map((item) => {
+                  const lifeRatio = Math.min(100, Math.round(((item.heures_actuelles || 0) / (item.duree_vie_estimee_heures || 1)) * 100));
+                  const isHighWear = lifeRatio >= 85 || item.statut === 'A_REMPLACER';
 
-          <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-            <div className="font-bold text-emerald-300">2. Vie & Enrichissement</div>
-            <div className="text-slate-300 text-[11px]">
-              Au fur et à mesure des interventions, la machine enregistre ses <b>Components</b> (EXT/VER), <b>Parts</b> (VIS/RIV) et <b>PDR</b> réelles.
-            </div>
-          </div>
+                  return (
+                    <tr key={item.id} className={`transition ${isHighWear ? 'bg-rose-50/40 hover:bg-rose-50/70' : 'hover:bg-slate-50/70'}`}>
+                      {/* Type Badge */}
+                      <td className="py-3 px-3 shrink-0">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                            item.element_type === 'PDR'
+                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                              : item.element_type === 'COMPONENT'
+                              ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                              : 'bg-purple-50 text-purple-700 border border-purple-200'
+                          }`}
+                        >
+                          {item.element_type}
+                        </span>
+                      </td>
 
-          <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-            <div className="font-bold text-amber-300">3. Blueprint Maître (BOM)</div>
-            <div className="text-slate-300 text-[11px]">
-              Document officiel regroupant les 4 Tabs (Specs, Comp, Parts, PDR). Les machines jumelles (Twins) partagent le même Blueprint.
-            </div>
-          </div>
+                      {/* Réf & Désignation */}
+                      <td className="py-3 px-3 max-w-xs">
+                        <div className="font-mono font-bold text-slate-900">{item.ref_element}</div>
+                        <div className="text-[11px] text-slate-500 truncate">{item.designation}</div>
+                      </td>
 
-          <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-            <div className="font-bold text-indigo-300">4. Nexus & PDR Focus</div>
-            <div className="text-slate-300 text-[11px]">
-              Le Stock PDR est le cœur opérationnel : la formule <b className="text-white">= E + F - G</b> garantit la disponibilité continue de l'usine.
-            </div>
+                      {/* Emplacement */}
+                      <td className="py-3 px-3 text-slate-600 font-medium">
+                        {item.emplacement_machine || 'Non spécifié'}
+                      </td>
+
+                      {/* Quantité */}
+                      <td className="py-3 px-3 text-center font-mono font-bold text-slate-800">
+                        {item.qte_montee} {item.unite || 'U'}
+                      </td>
+
+                      {/* Criticité */}
+                      <td className="py-3 px-3">
+                        <span
+                          className={`inline-flex items-center gap-1 text-[11px] font-semibold ${
+                            item.criticalite === 'CRITIQUE'
+                              ? 'text-rose-600'
+                              : item.criticalite === 'MAJEURE'
+                              ? 'text-amber-600'
+                              : 'text-slate-600'
+                          }`}
+                        >
+                          {item.criticalite === 'CRITIQUE' && <ShieldAlert className="w-3.5 h-3.5" />}
+                          {item.criticalite}
+                        </span>
+                      </td>
+
+                      {/* Cycle de Vie / RUL Prédictif */}
+                      <td className="py-3 px-3 w-40">
+                        {(() => {
+                          const maxH = item.duree_vie_estimee_heures || 5000;
+                          const currentH = item.heures_actuelles || 0;
+                          const remainingH = Math.max(0, maxH - currentH);
+                          const rulPercent = Math.max(0, Math.min(100, Math.round((remainingH / maxH) * 100)));
+
+                          return (
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between text-[10px] font-mono text-slate-600 font-semibold">
+                                <span className={rulPercent <= 15 ? 'text-rose-600 font-bold' : ''}>
+                                  RUL: {remainingH} h
+                                </span>
+                                <span className="text-slate-400 font-normal">({rulPercent}%)</span>
+                              </div>
+                              <div className="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden" title={`Usure : ${currentH}h / ${maxH}h (RUL: ${remainingH}h)`}>
+                                <div
+                                  className={`h-full rounded-full transition-all duration-300 ${
+                                    rulPercent <= 15
+                                      ? 'bg-rose-500'
+                                      : rulPercent <= 40
+                                      ? 'bg-amber-500'
+                                      : 'bg-emerald-500'
+                                  }`}
+                                  style={{ width: `${100 - rulPercent}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </td>
+
+                      {/* Statut */}
+                      <td className="py-3 px-3">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                            item.statut === 'A_REMPLACER'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : item.statut === 'EN_REVISION'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          }`}
+                        >
+                          {item.statut === 'A_REMPLACER' && <AlertTriangle className="w-3 h-3" />}
+                          {item.statut === 'OPERATIONNEL' && <CheckCircle2 className="w-3 h-3" />}
+                          {item.statut || 'OPERATIONNEL'}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Remplacer via Mouvement Rapide */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onNavigate?.('stock');
+                              showToast?.(`Aller au Stock PDR pour préparer la sortie de ${item.ref_element}.`, 'info');
+                            }}
+                            title="Remplacer cette pièce via Mouvement Rapide"
+                            className="p-1.5 rounded-lg text-emerald-700 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition cursor-pointer"
+                          >
+                            <Zap className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Édition */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(item)}
+                            title="Modifier les caractéristiques"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition cursor-pointer"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Suppression */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Détacher ${item.ref_element} de la machine ${activeMachine.id_machine_registered} ?`)) {
+                                onDeleteMachineElement?.(item.id);
+                                showToast?.(`Élément ${item.ref_element} détaché du registre.`, 'info');
+                              }
+                            }}
+                            title="Détacher de la machine"
+                            className="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </div>
+        )}
       </div>
+
+      {/* 5. MODAL INTERACTIF D'AJOUT / MODIFICATION D'UN ÉLÉMENT */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-xl w-full p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Wrench className="w-5 h-5 text-emerald-600" />
+                <h3 className="text-sm font-bold text-slate-900">
+                  {editingElement ? 'Modifier l’Élément Monté' : `Monter un Élément sur ${activeMachine.id_machine_registered}`}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveElement} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                {/* Type de pièce */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Type d'Élément</label>
+                  <select
+                    value={formData.element_type}
+                    onChange={(e) => setFormData({ ...formData, element_type: e.target.value, ref_element: '', designation: '' })}
+                    className="w-full p-2 rounded-lg border border-slate-200 focus:outline-hidden focus:border-emerald-500"
+                  >
+                    <option value="PDR">Pièce de Rechange (PDR)</option>
+                    <option value="COMPONENT">Composant Déplaçable</option>
+                    <option value="PART">Organe / Pièce Spécifique</option>
+                  </select>
+                </div>
+
+                {/* Criticité */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Niveau de Criticité</label>
+                  <select
+                    value={formData.criticalite}
+                    onChange={(e) => setFormData({ ...formData, criticalite: e.target.value })}
+                    className="w-full p-2 rounded-lg border border-slate-200 focus:outline-hidden focus:border-emerald-500"
+                  >
+                    <option value="CRITIQUE">Critique (Arrêt Ligne Immédiat)</option>
+                    <option value="MAJEURE">Majeure (Dégradation Performance)</option>
+                    <option value="MINEURE">Mineure (Accessoire)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Sélection ou Saisie de la référence */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Référence de la Pièce / Organe
+                </label>
+                <div className="space-y-1.5">
+                  <select
+                    value={formData.ref_element}
+                    onChange={(e) => {
+                      const selectedRef = e.target.value;
+                      const found = referenceOptions.find((o) => o.ref === selectedRef);
+                      setFormData({
+                        ...formData,
+                        ref_element: selectedRef,
+                        designation: found?.designation || formData.designation,
+                      });
+                    }}
+                    className="w-full p-2 rounded-lg border border-slate-200 focus:outline-hidden focus:border-emerald-500 font-mono text-xs"
+                  >
+                    <option value="">-- Choisir depuis le Stock / Catalogue ({referenceOptions.length} dispo) --</option>
+                    {referenceOptions.map((opt) => (
+                      <option key={opt.ref} value={opt.ref}>
+                        {opt.ref} — {opt.designation} (Stock: {opt.stock})
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="text"
+                    placeholder="Ou saisir une référence libre..."
+                    value={formData.ref_element}
+                    onChange={(e) => setFormData({ ...formData, ref_element: e.target.value })}
+                    className="w-full p-2 rounded-lg border border-slate-200 focus:outline-hidden focus:border-emerald-500 font-mono text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Désignation */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Désignation Complète</label>
+                <input
+                  type="text"
+                  placeholder="ex: Roulement à billes SKF 6204 2RS C3"
+                  value={formData.designation}
+                  onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                  className="w-full p-2 rounded-lg border border-slate-200 focus:outline-hidden focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                {/* Quantité montée */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Quantité Montée</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.qte_montee}
+                    onChange={(e) => setFormData({ ...formData, qte_montee: Number(e.target.value) || 1 })}
+                    className="w-full p-2 rounded-lg border border-slate-200 focus:outline-hidden focus:border-emerald-500 font-mono"
+                  />
+                </div>
+
+                {/* Durée de vie estimée */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Vie Estimée (Heures)</label>
+                  <input
+                    type="number"
+                    min="100"
+                    step="500"
+                    value={formData.duree_vie_estimee_heures}
+                    onChange={(e) => setFormData({ ...formData, duree_vie_estimee_heures: Number(e.target.value) || 5000 })}
+                    className="w-full p-2 rounded-lg border border-slate-200 focus:outline-hidden focus:border-emerald-500 font-mono"
+                  />
+                </div>
+
+                {/* Heures actuelles */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Heures Actuelles</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={formData.heures_actuelles}
+                    onChange={(e) => setFormData({ ...formData, heures_actuelles: Number(e.target.value) || 0 })}
+                    className="w-full p-2 rounded-lg border border-slate-200 focus:outline-hidden focus:border-emerald-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {/* Emplacement machine */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Emplacement sur Machine</label>
+                  <input
+                    type="text"
+                    placeholder="ex: Palier droit arbre primaire"
+                    value={formData.emplacement_machine}
+                    onChange={(e) => setFormData({ ...formData, emplacement_machine: e.target.value })}
+                    className="w-full p-2 rounded-lg border border-slate-200 focus:outline-hidden focus:border-emerald-500"
+                  />
+                </div>
+
+                {/* Statut */}
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Statut Opérationnel</label>
+                  <select
+                    value={formData.statut}
+                    onChange={(e) => setFormData({ ...formData, statut: e.target.value })}
+                    className="w-full p-2 rounded-lg border border-slate-200 focus:outline-hidden focus:border-emerald-500"
+                  >
+                    <option value="OPERATIONNEL">Opérationnel (En service)</option>
+                    <option value="A_REMPLACER">À Remplacer Prochainement</option>
+                    <option value="EN_REVISION">En Révision / Contrôle</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Boutons d'action du formulaire */}
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="px-3.5 py-2 rounded-xl font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 transition cursor-pointer"
+                >
+                  Annuler
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition active:scale-95 cursor-pointer"
+                >
+                  {editingElement ? 'Enregistrer les Modifications' : 'Monter cet Élément'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AnimatedPage>
   );
 }

@@ -36,17 +36,17 @@ export const accessLogService = {
     const lang = typeof navigator !== 'undefined' ? navigator.language || 'fr' : 'fr';
 
     // Persistent Device Identifier (Fingerprint ID)
-    let deviceId = localStorage.getItem('gmao_device_uuid');
+    let deviceId = storageService.getItem('gmao_device_uuid');
     if (!deviceId) {
       deviceId = 'DEV-' + Math.random().toString(36).substring(2, 9).toUpperCase();
-      localStorage.setItem('gmao_device_uuid', deviceId);
+      storageService.setItem('gmao_device_uuid', deviceId);
     }
 
     // Client Hostname/Station Name
-    let stationName = localStorage.getItem('gmao_station_name');
+    let stationName = storageService.getItem('gmao_station_name');
     if (!stationName) {
       stationName = `Station-${os.split(' ')[0]}-${deviceId.substring(4, 8)}`;
-      localStorage.setItem('gmao_station_name', stationName);
+      storageService.setItem('gmao_station_name', stationName);
     }
 
     return {

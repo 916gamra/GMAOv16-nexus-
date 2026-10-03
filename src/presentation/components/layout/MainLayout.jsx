@@ -24,6 +24,9 @@ export default function MainLayout({
   fileInputRef,
   handleImportFile,
   handleExportExcel,
+  exportMasterTopologyWorkbook,
+  exportInventoryMaterialsWorkbook,
+  exportMovementsUnifiedWorkbook,
   linkedFileName,
   onDirectLink,
   onDirectSave,
@@ -292,6 +295,9 @@ export default function MainLayout({
           fileInputRef={fileInputRef}
           handleImportFile={handleImportFile}
           handleExportExcel={handleExportExcel}
+          exportMasterTopologyWorkbook={exportMasterTopologyWorkbook}
+          exportInventoryMaterialsWorkbook={exportInventoryMaterialsWorkbook}
+          exportMovementsUnifiedWorkbook={exportMovementsUnifiedWorkbook}
           linkedFileName={linkedFileName}
           onDirectLink={onDirectLink}
           onDirectSave={onDirectSave}

@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { Logger } from '../../../core/logger/LoggerService.js';
+import { storageService } from '../../../utils/storageService.js';
 
 export const STORAGE_KEY_TASKS = 'gmao_preventive_tasks_v8';
 export const INITIAL_TASKS = [];
@@ -9,18 +10,14 @@ export class TaskService {
     try {
       const keys = [
         STORAGE_KEY_TASKS,
-        'gmao_preventive_tasks_v8',
         'gmao_preventive_tasks_v7',
         'gmao_preventive_tasks_v6',
         'gmao_preventive_tasks_v2',
         'gmao_preventive_tasks',
       ];
       for (const k of keys) {
-        const data = localStorage.getItem(k);
-        if (data) {
-          const parsed = JSON.parse(data);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
+        const data = storageService.getItem(k);
+        if (data && Array.isArray(data) && data.length > 0) return data;
       }
     } catch {
       // fallback
@@ -30,9 +27,7 @@ export class TaskService {
 
   static saveTasks(tasks) {
     try {
-      localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
-      localStorage.setItem('gmao_preventive_tasks_v8', JSON.stringify(tasks));
-      localStorage.setItem('gmao_preventive_tasks_v7', JSON.stringify(tasks));
+      storageService.setItem(STORAGE_KEY_TASKS, tasks);
     } catch {
       // storage error
     }

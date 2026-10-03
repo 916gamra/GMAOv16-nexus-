@@ -2,6 +2,8 @@
 // Architecture : Master PIN = Clé cryptographique unique (PBKDF2 100 000 itérations + AES-256-GCM)
 // Données au repos chiffrées sans aucun mot de passe ni sel statique stocké dans le code source.
 
+import CryptoJS from 'crypto-js';
+
 const VAULT_SALT_KEY = 'gmao_vault_salt_v2';
 const VAULT_CIPHER_KEY = 'gmao_vault_cipher_v2';
 const VAULT_IV_KEY = 'gmao_vault_iv_v2';
@@ -110,6 +112,42 @@ export async function decryptVault(pin) {
   }
 }
 
+// Rotation et changement sécurisé du Master PIN avec régénération complète des clés
+export async function changeMasterPin(currentPin, newPin) {
+  if (!newPin || typeof newPin !== 'string' || newPin.trim().length < 4) {
+    throw new Error('Le nouveau Master PIN doit comporter au moins 4 caractères.');
+  }
+  // 1. Déchiffrer avec l'ancien PIN pour valider l'accès
+  let vaultData;
+  if (isVaultExists()) {
+    vaultData = await decryptVault(currentPin);
+  } else {
+    vaultData = createEmptyVault();
+  }
+  // 2. Générer un nouveau sel dynamique
+  const newSaltB64 = generateRandomSalt();
+  localStorage.setItem(VAULT_SALT_KEY, newSaltB64);
+
+  // 3. Dériver la nouvelle clé AES-256-GCM
+  const newKey = await deriveKeyFromPin(newPin, newSaltB64);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const dataBuf = enc.encode(JSON.stringify(vaultData));
+  const cipherBuf = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    newKey,
+    dataBuf
+  );
+  const cipherB64 = bufToBase64(cipherBuf);
+  const ivB64 = bufToBase64(iv);
+  localStorage.setItem(VAULT_CIPHER_KEY, cipherB64);
+  localStorage.setItem(VAULT_IV_KEY, ivB64);
+
+  // 4. Mettre à jour le hash de vérification
+  await setPinHash(newPin);
+
+  return { success: true, message: 'Master PIN renouvelé et coffre rechiffré avec succès en AES-256-GCM.' };
+}
+
 export function isVaultExists() {
   return !!localStorage.getItem(VAULT_CIPHER_KEY);
 }
@@ -143,21 +181,25 @@ export function createEmptyVault() {
 
 export function encrypt(text, password) {
   try {
-    const encoded = btoa(encodeURIComponent(text));
-    const passTag = btoa(password || 'key').slice(0, 8);
-    return `enc:${encoded}:${passTag}`;
+    const key = password || 'GMAO-SECURE-VAULT-2026';
+    return CryptoJS.AES.encrypt(String(text), key).toString();
   } catch {
     return text;
   }
 }
 
-export function decrypt(cipher, _password) {
+export function decrypt(cipher, password) {
   try {
-    if (typeof cipher === 'string' && cipher.startsWith('enc:')) {
+    if (!cipher || typeof cipher !== 'string') return cipher;
+    // Backward compatibility for legacy prefixed cipher strings
+    if (cipher.startsWith('enc:')) {
       const parts = cipher.split(':');
       return decodeURIComponent(atob(parts[1]));
     }
-    return cipher;
+    const key = password || 'GMAO-SECURE-VAULT-2026';
+    const bytes = CryptoJS.AES.decrypt(cipher, key);
+    const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+    return decrypted || cipher;
   } catch {
     return cipher;
   }
@@ -175,6 +217,7 @@ export const vaultService = {
   hashPinSHA256,
   setPinHash,
   verifyPinHash,
+  changeMasterPin,
   createEmptyVault,
   bufToBase64,
   base64ToBuf,

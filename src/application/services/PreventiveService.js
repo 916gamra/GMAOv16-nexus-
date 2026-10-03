@@ -7,6 +7,7 @@
 
 import * as XLSX from 'xlsx';
 import { Logger } from '../../core/logger/LoggerService.js';
+import { storageService } from '../../utils/storageService.js';
 import {
   INITIAL_ACTIONS,
   INITIAL_GUIDES,
@@ -31,11 +32,8 @@ export class PreventiveService {
   // ==========================================
   static getActions() {
     try {
-      const data = localStorage.getItem(STORAGE_KEY_ACTIONS);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
+      const data = storageService.getItem(STORAGE_KEY_ACTIONS);
+      if (data && Array.isArray(data) && data.length > 0) return data;
     } catch {
       // fallback
     }
@@ -45,7 +43,7 @@ export class PreventiveService {
 
   static saveActions(actions) {
     try {
-      localStorage.setItem(STORAGE_KEY_ACTIONS, JSON.stringify(actions));
+      storageService.setItem(STORAGE_KEY_ACTIONS, actions);
     } catch {
       // storage error handling
     }
@@ -95,11 +93,8 @@ export class PreventiveService {
   // ==========================================
   static getGuides() {
     try {
-      const data = localStorage.getItem(STORAGE_KEY_GUIDES);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
+      const data = storageService.getItem(STORAGE_KEY_GUIDES);
+      if (data && Array.isArray(data) && data.length > 0) return data;
     } catch {
       // fallback
     }
@@ -109,7 +104,7 @@ export class PreventiveService {
 
   static saveGuides(guides) {
     try {
-      localStorage.setItem(STORAGE_KEY_GUIDES, JSON.stringify(guides));
+      storageService.setItem(STORAGE_KEY_GUIDES, guides);
     } catch {
       // storage error handling
     }
@@ -159,11 +154,8 @@ export class PreventiveService {
   // ==========================================
   static getPlans() {
     try {
-      const data = localStorage.getItem(STORAGE_KEY_PLANS);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
+      const data = storageService.getItem(STORAGE_KEY_PLANS);
+      if (data && Array.isArray(data) && data.length > 0) return data;
     } catch {
       // fallback
     }
@@ -173,7 +165,7 @@ export class PreventiveService {
 
   static savePlans(plans) {
     try {
-      localStorage.setItem(STORAGE_KEY_PLANS, JSON.stringify(plans));
+      storageService.setItem(STORAGE_KEY_PLANS, plans);
     } catch {
       // storage error handling
     }
@@ -299,19 +291,14 @@ export class PreventiveService {
     try {
       const keys = [
         STORAGE_KEY_TASKS,
-        'gmao_preventive_tasks_v8',
         'gmao_preventive_tasks_v7',
         'gmao_preventive_tasks_v6',
         'gmao_preventive_tasks_v2',
         'gmao_preventive_tasks',
       ];
       for (const k of keys) {
-        const data = localStorage.getItem(k);
-        if (data) {
-          const parsed = JSON.parse(data);
-          // Return any valid array, respecting user modifications and real factory data
-          if (Array.isArray(parsed)) return parsed;
-        }
+        const data = storageService.getItem(k);
+        if (data && Array.isArray(data)) return data;
       }
     } catch {
       // fallback
@@ -326,9 +313,7 @@ export class PreventiveService {
 
   static saveTasks(tasks) {
     try {
-      localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
-      localStorage.setItem('gmao_preventive_tasks_v8', JSON.stringify(tasks));
-      localStorage.setItem('gmao_preventive_tasks_v7', JSON.stringify(tasks));
+      storageService.setItem(STORAGE_KEY_TASKS, tasks);
     } catch {
       // storage error handling
     }
@@ -918,8 +903,7 @@ export class PreventiveService {
     if (!Array.isArray(piecesConsommees) || piecesConsommees.length === 0) return;
     try {
       const STORAGE_KEY_MVT = 'gmao_mouvements';
-      const existingRaw = localStorage.getItem(STORAGE_KEY_MVT);
-      const movements = existingRaw ? JSON.parse(existingRaw) : [];
+      const movements = storageService.getItem(STORAGE_KEY_MVT, []);
 
       const newMouvements = piecesConsommees.map((pdr, idx) => ({
         id: `MVT-PRV-${Date.now()}-${idx}`,
@@ -941,7 +925,7 @@ export class PreventiveService {
       }));
 
       const updatedMovements = [...newMouvements, ...movements];
-      localStorage.setItem(STORAGE_KEY_MVT, JSON.stringify(updatedMovements));
+      storageService.setItem(STORAGE_KEY_MVT, updatedMovements);
 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('gmao_stock_updated', { detail: { type: 'sortie', items: newMouvements } }));
@@ -959,8 +943,7 @@ export class PreventiveService {
     if (!task || !task.id_machine) return;
     try {
       const STORAGE_KEY_INTERVENTIONS = 'gmao_interventions_history';
-      const existingRaw = localStorage.getItem(STORAGE_KEY_INTERVENTIONS);
-      const interventions = existingRaw ? JSON.parse(existingRaw) : [];
+      const interventions = storageService.getItem(STORAGE_KEY_INTERVENTIONS, []);
 
       const newIntervention = {
         id: executionRecord.id_execution || `INTERV-PRV-${Date.now()}`,
@@ -982,7 +965,7 @@ export class PreventiveService {
       };
 
       const updated = [newIntervention, ...interventions];
-      localStorage.setItem(STORAGE_KEY_INTERVENTIONS, JSON.stringify(updated));
+      storageService.setItem(STORAGE_KEY_INTERVENTIONS, updated);
 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('gmao_machines_updated', { detail: { id_machine: task.id_machine } }));
@@ -1004,10 +987,10 @@ export class PreventiveService {
         plans: this.getPlans(),
         guides: this.getGuides(),
         actions: this.getActions(),
-        machines: JSON.parse(localStorage.getItem('gmao_machines_registered_v6') || '[]'),
-        stock: JSON.parse(localStorage.getItem('gmao_raw_stock_v6') || '[]'),
-        movements: JSON.parse(localStorage.getItem('gmao_mouvements') || '[]'),
-        interventions: JSON.parse(localStorage.getItem('gmao_interventions_history') || '[]'),
+        machines: storageService.getItem('gmao_machines_registered_v6', []),
+        stock: storageService.getItem('gmao_raw_stock_v6', []),
+        movements: storageService.getItem('gmao_mouvements', []),
+        interventions: storageService.getItem('gmao_interventions_history', []),
       };
       return JSON.stringify(vault, null, 2);
     } catch (err) {
@@ -1028,10 +1011,10 @@ export class PreventiveService {
       if (Array.isArray(data.plans)) this.savePlans(data.plans);
       if (Array.isArray(data.guides)) this.saveGuides(data.guides);
       if (Array.isArray(data.actions)) this.saveActions(data.actions);
-      if (Array.isArray(data.machines)) localStorage.setItem('gmao_machines_registered_v6', JSON.stringify(data.machines));
-      if (Array.isArray(data.stock)) localStorage.setItem('gmao_raw_stock_v6', JSON.stringify(data.stock));
-      if (Array.isArray(data.movements)) localStorage.setItem('gmao_mouvements', JSON.stringify(data.movements));
-      if (Array.isArray(data.interventions)) localStorage.setItem('gmao_interventions_history', JSON.stringify(data.interventions));
+      if (Array.isArray(data.machines)) storageService.setItem('gmao_machines_registered_v6', data.machines);
+      if (Array.isArray(data.stock)) storageService.setItem('gmao_raw_stock_v6', data.stock);
+      if (Array.isArray(data.movements)) storageService.setItem('gmao_mouvements', data.movements);
+      if (Array.isArray(data.interventions)) storageService.setItem('gmao_interventions_history', data.interventions);
 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('preventive_tasks_updated'));

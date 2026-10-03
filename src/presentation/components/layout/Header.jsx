@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import {
   Menu,
   Upload,
@@ -7,11 +7,14 @@ import {
   Save,
   FileSpreadsheet,
   Bell,
-  Keyboard
+  Keyboard,
+  ChevronDown,
+  Layers,
+  Boxes,
+  Truck
 } from 'lucide-react';
 import PWAInstallButton from '../common/PWAInstallButton';
 import LanguageSwitcher from '../common/LanguageSwitcher';
-import { useTranslation } from '../../../i18n/I18nContext';
 import { analytics } from '../../../services/AnalyticsService';
 import { notificationService } from '../../../services/NotificationService';
 import { getParentModuleForTab } from './navConfig';
@@ -25,13 +28,27 @@ export default function Header({
   fileInputRef,
   handleImportFile,
   handleExportExcel,
+  exportMasterTopologyWorkbook,
+  exportInventoryMaterialsWorkbook,
+  exportMovementsUnifiedWorkbook,
   linkedFileName,
   onDirectLink,
   onDirectSave,
   currentUser,
   onOpenShortcuts,
 }) {
-  const { t } = useTranslation();
+  const [topologyMenuOpen, setTopologyMenuOpen] = useState(false);
+  const topologyMenuRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (topologyMenuRef.current && !topologyMenuRef.current.contains(event.target)) {
+        setTopologyMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   const activeParent = getParentModuleForTab(currentTab);
   const childTabs = activeParent.children || [];
 
@@ -584,15 +601,113 @@ export default function Header({
           {/* Offline Language Switcher (Expands on hover) */}
           <LanguageSwitcher className="inline-flex" />
 
-          {/* Export Excel Icon Button - Sleek Dark Neutral Style */}
-          <button
-            onClick={onExportWithTracking}
-            className="hidden sm:flex w-8 sm:w-9 h-8 sm:h-9 rounded-full bg-slate-900 hover:bg-black text-white items-center justify-center transition shadow-[0_2px_8px_rgba(0,0,0,0.18)] hover:shadow-md cursor-pointer shrink-0 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-hidden group"
-            title={t('header.export_excel') || "Exporter Excel"}
-            aria-label={t('header.export_excel') || "Exporter Excel"}
-          >
-            <Download size={15} className="text-white group-hover:scale-110 transition-transform" aria-hidden="true" />
-          </button>
+          {/* Export Excel & 3-Workbook Topology Quick Hub Dropdown */}
+          <div className="relative hidden sm:block" ref={topologyMenuRef}>
+            <button
+              onClick={() => setTopologyMenuOpen((prev) => !prev)}
+              className="flex items-center gap-1 pl-2.5 pr-2 py-1.5 rounded-full bg-slate-900 hover:bg-black text-white text-xs font-bold transition shadow-[0_2px_8px_rgba(0,0,0,0.18)] hover:shadow-md cursor-pointer shrink-0 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-hidden group"
+              title="Exporter Excel & المصنفات الثلاثة (3-Workbook Topology)"
+              aria-label="Menu d'exportation Excel et topologie industrielle"
+              aria-expanded={topologyMenuOpen}
+            >
+              <Download size={14} className="text-emerald-400 group-hover:scale-110 transition-transform" aria-hidden="true" />
+              <span className="text-[11px] font-mono tracking-tight text-slate-100 hidden md:inline">Export</span>
+              <ChevronDown size={12} className={`text-slate-400 transition-transform duration-200 ${topologyMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {topologyMenuOpen && (
+              <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-200/90 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="px-3.5 py-1.5 border-b border-slate-100 mb-1">
+                  <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 font-mono">
+                    3-Workbook Topology Hub
+                  </div>
+                  <div className="text-xs font-bold text-slate-800">
+                    Exportation des données industrielles
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setTopologyMenuOpen(false);
+                    onExportWithTracking();
+                  }}
+                  className="w-full px-3.5 py-2 text-left hover:bg-emerald-50/70 flex items-start gap-2.5 transition group cursor-pointer"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition">
+                    <FileSpreadsheet size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900 group-hover:text-emerald-800">
+                      Modèle Complet GMAO (.xlsx)
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-medium">
+                      Classeur maître avec formules vivantes et KPIs
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setTopologyMenuOpen(false);
+                    exportMasterTopologyWorkbook?.();
+                  }}
+                  className="w-full px-3.5 py-2 text-left hover:bg-blue-50/70 flex items-start gap-2.5 transition group cursor-pointer"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition">
+                    <Layers size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900 group-hover:text-blue-800">
+                      Classeur 1 : GMAO_Topology_Master
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-medium">
+                      6 feuilles (Zones, Machines, Staff, BOM...)
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setTopologyMenuOpen(false);
+                    exportInventoryMaterialsWorkbook?.();
+                  }}
+                  className="w-full px-3.5 py-2 text-left hover:bg-amber-50/70 flex items-start gap-2.5 transition group cursor-pointer"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition">
+                    <Boxes size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900 group-hover:text-amber-800">
+                      Classeur 2 : GMAO_Inventory_Materials
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-medium">
+                      3 feuilles (PDR, Warehouse, Part Types)
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setTopologyMenuOpen(false);
+                    exportMovementsUnifiedWorkbook?.();
+                  }}
+                  className="w-full px-3.5 py-2 text-left hover:bg-purple-50/70 flex items-start gap-2.5 transition group cursor-pointer"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-105 transition">
+                    <Truck size={15} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900 group-hover:text-purple-800">
+                      Classeur 3 : GMAO_Movements_Unified
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-medium">
+                      2 feuilles (Mouvements, Sortie Externe)
+                    </div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Action Icon Circles */}
           <button

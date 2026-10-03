@@ -1,15 +1,13 @@
 import { INITIAL_GUIDES } from './INITIAL_GUIDES.js';
+import { storageService } from '../../../utils/storageService.js';
 
 export const STORAGE_KEY_GUIDES = 'gmao_preventive_guides_v2';
 
 export class GuideService {
   static getGuides() {
     try {
-      const data = localStorage.getItem(STORAGE_KEY_GUIDES);
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
+      const data = storageService.getItem(STORAGE_KEY_GUIDES);
+      if (data && Array.isArray(data) && data.length > 0) return data;
     } catch {
       // fallback
     }
@@ -19,7 +17,7 @@ export class GuideService {
 
   static saveGuides(guides) {
     try {
-      localStorage.setItem(STORAGE_KEY_GUIDES, JSON.stringify(guides));
+      storageService.setItem(STORAGE_KEY_GUIDES, guides);
     } catch {
       // storage error
     }

@@ -8,7 +8,7 @@ import { HyperFormula } from 'hyperformula';
 import { Logger } from '../core/logger/LoggerService.js';
 import { safeNum, calculateStockStatus } from '../utils/formulaEngine.js';
 import { INITIAL_STOCK_LOOKUP } from '../utils/baselineStock.js';
-import { stockIndexStore } from '../application/StockIndexStore.js';
+import { stockIndexStore } from '../application/StockIndexStore';
 
 class ReactiveCalculationEngine {
   constructor() {

@@ -3,6 +3,7 @@
 // ARCHITECTURE: ref (Coordonnées externes / Bon bobinier) | code (Adresse interne SORT-EXT-xxx) | id (Passeport unique complet)
 
 import { Logger } from '../../core/logger/LoggerService.js';
+import { storageService } from '../../utils/storageService.js';
 import initialSorties from '../../data/movements/seedSortiesExternes.json';
 
 const STORAGE_KEY = 'gmao_sortie_externe_bobinage_v1';
@@ -12,20 +13,15 @@ export const INITIAL_SORTIES_BOBINAGE = initialSorties;
 
 class SortieExterneService {
   /**
-   * Charge la liste des sorties depuis le localStorage ou le seed initial
+   * Charge la liste des sorties depuis storageService ou le seed initial
    */
   static getSorties() {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SORTIES_BOBINAGE));
-        return INITIAL_SORTIES_BOBINAGE;
+      const stored = storageService.getItem(STORAGE_KEY, null);
+      if (stored && Array.isArray(stored) && stored.length > 0) {
+        return stored;
       }
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SORTIES_BOBINAGE));
+      storageService.setItem(STORAGE_KEY, INITIAL_SORTIES_BOBINAGE);
       return INITIAL_SORTIES_BOBINAGE;
     } catch {
       return INITIAL_SORTIES_BOBINAGE;
@@ -37,7 +33,7 @@ class SortieExterneService {
    */
   static saveSorties(sorties) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sorties));
+      storageService.setItem(STORAGE_KEY, sorties);
     } catch (e) {
       Logger.error('Erreur sauvegarde sorties externes:', e);
     }

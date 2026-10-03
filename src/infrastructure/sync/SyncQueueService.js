@@ -1,4 +1,5 @@
 import { Logger } from '../../core/logger/LoggerService';
+import { storageService } from '../../utils/storageService.js';
 
 /**
  * Sync Queue Service
@@ -82,9 +83,7 @@ export class SyncQueueService {
 
   saveQueueToStorage() {
     try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('gmao_sync_queue', JSON.stringify(this.queue));
-      }
+      storageService.setItem('gmao_sync_queue', this.queue);
     } catch (error) {
       Logger.error('[SyncQueueService] Failed to save queue:', error);
     }
@@ -92,14 +91,13 @@ export class SyncQueueService {
 
   loadQueueFromStorage() {
     try {
-      if (typeof localStorage !== 'undefined') {
-        const saved = localStorage.getItem('gmao_sync_queue');
-        if (saved) {
-          this.queue = JSON.parse(saved);
-        }
+      const saved = storageService.getItem('gmao_sync_queue', []);
+      if (Array.isArray(saved)) {
+        this.queue = saved;
       }
     } catch (error) {
       Logger.error('[SyncQueueService] Failed to load queue:', error);
+      this.queue = [];
     }
   }
 

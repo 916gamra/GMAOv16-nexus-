@@ -1,7 +1,9 @@
 import { ROLES, PERMISSIONS, RBACService } from './RBACService.js';
+import { AuthService } from './AuthService.js';
+import { Logger } from '../logger/LoggerService.js';
 
 /**
- * خدمة التحقق من الصلاحيات وأدوار المستخدمين
+ * Unified Permission Service - Single Source of Truth for RBAC and Authorization.
  * @module PermissionService
  */
 export class PermissionService {
@@ -9,48 +11,72 @@ export class PermissionService {
   static PERMISSIONS = PERMISSIONS;
 
   /**
-   * استخراج المستخدم الحالي من التخزين بآلية الفشل المغلق
+   * Retrieves the current authenticated user safely through AuthService
+   * Enforces fail-closed security principle.
+   * @returns {Object}
    */
   static getCurrentUser() {
     try {
-      const sessionStr = localStorage.getItem('gmao_session_v2') || localStorage.getItem('gmao_current_user');
-      if (sessionStr) {
-        const parsed = JSON.parse(sessionStr);
-        if (parsed && parsed.role) {
-          return parsed;
-        }
+      const auth = new AuthService();
+      const user = auth.getCurrentUser();
+      if (user && user.role) {
+        return user;
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      Logger.warn('[PermissionService] Failed to resolve currentUser safely:', err);
     }
-    // Fail-closed: الزائر الافتراضي عند عدم وجود جلسة
+    // Fail-closed default: Visiteur
     return { username: 'Visiteur', role: ROLES.VIEWER };
   }
 
   /**
-   * فحص ما إذا كان المستخدم يملك الصلاحية
-   * @param {string} permission - مثل 'stock.delete'
-   * @param {string} [role] - الدور إن تم تمريره
+   * Checks whether the current user or given role has a specific permission.
+   * @param {string} permission - e.g. 'stock.view', 'machine.create'
+   * @param {string} [role] - Optional role override
+   * @returns {boolean}
    */
   static can(permission, role = null) {
-    const userRole = role || this.getCurrentUser()?.role || ROLES.VIEWER;
-    return RBACService.hasPermission(userRole, permission);
+    const effectiveRole = role || this.getCurrentUser()?.role || ROLES.VIEWER;
+    const hasPerm = RBACService.hasPermission(effectiveRole, permission);
+    Logger.debug(`[PermissionService] Check ${permission} for ${effectiveRole}: ${hasPerm ? 'ALLOWED' : 'DENIED'}`);
+    return hasPerm;
   }
 
   /**
-   * فحص ما إذا كان المستخدم مسؤولاً
+   * Checks whether the current user or specified role is an Administrator.
+   * @param {string} [role]
+   * @returns {boolean}
    */
   static isAdmin(role = null) {
     const userRole = role || this.getCurrentUser()?.role;
-    return userRole === ROLES.ADMIN;
+    return userRole === ROLES.ADMIN || this.can('machine.delete', role);
   }
 
   /**
-   * فحص ما إذا كان للمستخدم دور من مجموعة أدوار
+   * Checks whether the user has at least one of the specified roles.
+   * @param {string[]} roles
+   * @param {string} [currentRole]
+   * @returns {boolean}
    */
   static hasAnyRole(roles = [], currentRole = null) {
     const userRole = currentRole || this.getCurrentUser()?.role;
     return roles.includes(userRole);
+  }
+
+  /**
+   * Retrieves all registered permissions.
+   * @returns {Object.<string, string[]>}
+   */
+  static getAllPermissions() {
+    return PERMISSIONS;
+  }
+
+  /**
+   * Retrieves all available roles.
+   * @returns {Object.<string, string>}
+   */
+  static getRoles() {
+    return ROLES;
   }
 }
 

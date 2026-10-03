@@ -1,48 +1,66 @@
 /**
- * IndexedDB Service - GMAO Industrial Architecture
- * Complete transactional persistence with retries, indexed queries, and fallback support.
+ * Unified Industrial IndexedDB Service - GMAO Architecture
+ * Single Source of Truth for client-side high-capacity persistence.
+ *
+ * Capabilities:
+ * 1. Key-Value Store ('app_data'): High performance getItem/setItem/setItemsBatch for state & snapshots.
+ * 2. Relational Entity Stores: Structured collections with indexes (machines, articles, warehouse_items, etc.).
+ * 3. Safe Fallback: Graceful degradation to In-Memory Map in SSR/Node/Vitest environments without hangs or retries.
+ * 4. Exponential Backoff & Retry: Resilient execution for browser environment quirks.
  */
 
+import { Logger } from '../../core/logger/LoggerService.js';
+
+const DB_NAME = 'CIOB_GMAO_INDUSTRIAL_DB';
+const DB_VERSION = 3;
+
 class IndexedDBService {
-  constructor(dbName = 'GMAO_V16_NEXUS', version = 2) {
+  constructor(dbName = DB_NAME, version = DB_VERSION) {
     this.dbName = dbName;
     this.version = version;
     this.db = null;
     this.retries = 3;
     this.initPromise = null;
+    // Fast in-memory fallback store when IndexedDB is unavailable (e.g. Node/Vitest test environment)
+    this.fallbackMemoryStore = new Map();
+  }
+
+  isSupported() {
+    return typeof window !== 'undefined' && typeof window.indexedDB !== 'undefined' && window.indexedDB !== null;
   }
 
   delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
-   * Initialize and open the database with retry logic
+   * Initializes and opens the IndexedDB database.
+   * In non-browser/test environments, immediately resolves to null without retries.
    */
   async init() {
     if (this.db) return this.db;
     if (this.initPromise) return this.initPromise;
 
-    if (typeof window === 'undefined' || !window.indexedDB) {
-      console.warn('⚠️ IndexedDB is not available in this environment');
+    if (!this.isSupported()) {
       return null;
     }
 
     this.initPromise = (async () => {
-      for (let i = 0; i < this.retries; i++) {
+      for (let attempt = 1; attempt <= this.retries; attempt++) {
         try {
           this.db = await this._openDB();
-          console.log(`✅ IndexedDB [${this.dbName}] initialized successfully`);
+          Logger.info(`✅ IndexedDB [${this.dbName} v${this.version}] initialized successfully`);
           return this.db;
         } catch (error) {
-          console.warn(`IndexedDB open retry ${i + 1}/${this.retries}:`, error);
-          if (i === this.retries - 1) {
-            console.error('❌ Failed to open IndexedDB after retries:', error);
-            throw error;
+          Logger.warn(`⚠️ IndexedDB open retry ${attempt}/${this.retries}: ${error?.message || error}`);
+          if (attempt === this.retries) {
+            Logger.error('❌ Failed to open IndexedDB after retries:', error);
+            return null;
           }
-          await this.delay(1000);
+          await this.delay(100 * Math.pow(2, attempt - 1));
         }
       }
+      return null;
     })();
 
     return this.initPromise;
@@ -50,9 +68,13 @@ class IndexedDBService {
 
   _openDB() {
     return new Promise((resolve, reject) => {
+      if (!this.isSupported()) {
+        return resolve(null);
+      }
+
       const request = window.indexedDB.open(this.dbName, this.version);
 
-      request.onerror = () => reject(request.error);
+      request.onerror = () => reject(request.error || new Error('Erreur d\'ouverture IndexedDB'));
 
       request.onsuccess = () => {
         resolve(request.result);
@@ -67,7 +89,13 @@ class IndexedDBService {
   }
 
   _createStores(db, tx = null) {
-    const stores = [
+    // 1. Primary Key-Value Store for app state, settings, backups, snapshots
+    if (!db.objectStoreNames.contains('app_data')) {
+      db.createObjectStore('app_data');
+    }
+
+    // 2. Structured Domain Stores
+    const entityStores = [
       {
         name: 'machines',
         keyPath: 'id_machine_registered',
@@ -133,9 +161,18 @@ class IndexedDBService {
           { name: 'role', keyPath: 'role', unique: false },
         ],
       },
+      {
+        name: 'bom_ledger',
+        keyPath: 'id',
+        indexes: [
+          { name: 'id_machine_registered', keyPath: 'id_machine_registered', unique: false },
+          { name: 'ref_element', keyPath: 'ref_element', unique: false },
+          { name: 'element_type', keyPath: 'element_type', unique: false },
+        ],
+      },
     ];
 
-    for (const s of stores) {
+    for (const s of entityStores) {
       let objectStore;
       if (!db.objectStoreNames.contains(s.name)) {
         objectStore = db.createObjectStore(s.name, { keyPath: s.keyPath });
@@ -153,129 +190,322 @@ class IndexedDBService {
     }
   }
 
+  // ==========================================
+  // SECTION 1: Key-Value API (Store: 'app_data')
+  // ==========================================
+
+  /**
+   * Retrieves an item from 'app_data' store with fallback.
+   */
+  async getItem(key, fallback = null) {
+    if (!this.isSupported()) {
+      return this.fallbackMemoryStore.has(key) ? this.fallbackMemoryStore.get(key) : fallback;
+    }
+
+    try {
+      const db = await this.init();
+      if (!db) {
+        return this.fallbackMemoryStore.has(key) ? this.fallbackMemoryStore.get(key) : fallback;
+      }
+
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction('app_data', 'readonly');
+          const store = tx.objectStore('app_data');
+          const req = store.get(key);
+          req.onsuccess = () => resolve(req.result !== undefined ? req.result : fallback);
+          req.onerror = () => resolve(fallback);
+        } catch {
+          resolve(fallback);
+        }
+      });
+    } catch {
+      return fallback;
+    }
+  }
+
+  /**
+   * Sets a single item in 'app_data' store.
+   */
+  async setItem(key, value) {
+    this.fallbackMemoryStore.set(key, value);
+
+    if (!this.isSupported()) {
+      return true;
+    }
+
+    try {
+      const db = await this.init();
+      if (!db) return true;
+
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction('app_data', 'readwrite');
+          const store = tx.objectStore('app_data');
+          store.put(value, key);
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        } catch {
+          resolve(false);
+        }
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Batch write multiple key-value pairs to 'app_data' in a single transaction.
+   */
+  async setItemsBatch(itemsMap = {}) {
+    if (!itemsMap || typeof itemsMap !== 'object') return false;
+
+    // Update fallback memory
+    for (const [key, value] of Object.entries(itemsMap)) {
+      this.fallbackMemoryStore.set(key, value);
+    }
+
+    if (!this.isSupported()) {
+      return true;
+    }
+
+    try {
+      const db = await this.init();
+      if (!db) return true;
+
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction('app_data', 'readwrite');
+          const store = tx.objectStore('app_data');
+          for (const [key, value] of Object.entries(itemsMap)) {
+            store.put(value, key);
+          }
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        } catch {
+          resolve(false);
+        }
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Removes an item from 'app_data' store.
+   */
+  async removeItem(key) {
+    this.fallbackMemoryStore.delete(key);
+
+    if (!this.isSupported()) {
+      return true;
+    }
+
+    try {
+      const db = await this.init();
+      if (!db) return true;
+
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction('app_data', 'readwrite');
+          const store = tx.objectStore('app_data');
+          store.delete(key);
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        } catch {
+          resolve(false);
+        }
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Alias for removeItem
+   */
+  async deleteItem(key) {
+    return this.removeItem(key);
+  }
+
+  // ==========================================
+  // SECTION 2: Entity Stores API
+  // ==========================================
+
   async getStore(storeName, mode = 'readonly') {
     const db = await this.init();
-    if (!db) return null;
+    if (!db || !db.objectStoreNames.contains(storeName)) return null;
     const tx = db.transaction([storeName], mode);
     return tx.objectStore(storeName);
   }
 
-  async getAll(storeName) {
+  /**
+   * Retrieves all items from a given store.
+   */
+  async getAll(storeName = 'app_data') {
+    if (!this.isSupported()) {
+      if (storeName === 'app_data') {
+        const obj = {};
+        for (const [k, v] of this.fallbackMemoryStore.entries()) {
+          obj[k] = v;
+        }
+        return obj;
+      }
+      return [];
+    }
+
     try {
       const store = await this.getStore(storeName, 'readonly');
-      if (!store) return [];
+      if (!store) return storeName === 'app_data' ? {} : [];
 
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         const request = store.getAll();
-        request.onsuccess = () => resolve(request.result || []);
-        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result || (storeName === 'app_data' ? {} : []));
+        request.onerror = () => resolve(storeName === 'app_data' ? {} : []);
       });
     } catch (err) {
-      console.warn(`IndexedDB getAll [${storeName}] failed:`, err);
-      return [];
+      Logger.warn(`IndexedDB getAll [${storeName}] error:`, err);
+      return storeName === 'app_data' ? {} : [];
     }
   }
 
-  async get(storeName, key) {
+  /**
+   * Polymorphic get:
+   * - If 1 argument: get(key) from 'app_data'
+   * - If 2 arguments: get(storeName, key)
+   */
+  async get(storeNameOrKey, key = null) {
+    if (key === null) {
+      return this.getItem(storeNameOrKey);
+    }
+
+    const storeName = storeNameOrKey;
+    if (!this.isSupported()) return null;
+
     try {
       const store = await this.getStore(storeName, 'readonly');
       if (!store) return null;
 
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         const request = store.get(key);
         request.onsuccess = () => resolve(request.result || null);
-        request.onerror = () => reject(request.error);
+        request.onerror = () => resolve(null);
       });
-    } catch (err) {
-      console.warn(`IndexedDB get [${storeName}, ${key}] failed:`, err);
+    } catch {
       return null;
     }
   }
 
+  /**
+   * Puts a record into an entity store.
+   */
   async put(storeName, data) {
+    if (!this.isSupported()) return true;
+
     try {
       const store = await this.getStore(storeName, 'readwrite');
       if (!store) return false;
 
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         const request = store.put(data);
         request.onsuccess = () => resolve(true);
-        request.onerror = () => reject(request.error);
+        request.onerror = () => resolve(false);
       });
-    } catch (err) {
-      console.warn(`IndexedDB put [${storeName}] failed:`, err);
+    } catch {
       return false;
     }
   }
 
+  /**
+   * Bulk puts multiple items into an entity store in a single transaction.
+   */
   async bulkPut(storeName, items = []) {
     if (!items || items.length === 0) return true;
+    if (!this.isSupported()) return true;
+
     try {
       const db = await this.init();
-      if (!db) return false;
+      if (!db || !db.objectStoreNames.contains(storeName)) return false;
 
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction([storeName], 'readwrite');
-        const store = tx.objectStore(storeName);
-
-        for (const item of items) {
-          store.put(item);
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction([storeName], 'readwrite');
+          const store = tx.objectStore(storeName);
+          for (const item of items) {
+            store.put(item);
+          }
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        } catch {
+          resolve(false);
         }
-
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => reject(tx.error);
       });
-    } catch (err) {
-      console.warn(`IndexedDB bulkPut [${storeName}] failed:`, err);
+    } catch {
       return false;
     }
   }
 
+  /**
+   * Deletes a record from an entity store by key.
+   */
   async delete(storeName, key) {
+    if (!this.isSupported()) return true;
+
     try {
       const store = await this.getStore(storeName, 'readwrite');
       if (!store) return false;
 
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         const request = store.delete(key);
         request.onsuccess = () => resolve(true);
-        request.onerror = () => reject(request.error);
+        request.onerror = () => resolve(false);
       });
-    } catch (err) {
-      console.warn(`IndexedDB delete [${storeName}, ${key}] failed:`, err);
+    } catch {
       return false;
     }
   }
 
-  async clear(storeName) {
+  /**
+   * Clears a store completely (defaults to 'app_data').
+   */
+  async clear(storeName = 'app_data') {
+    if (storeName === 'app_data') {
+      this.fallbackMemoryStore.clear();
+    }
+
+    if (!this.isSupported()) return true;
+
     try {
       const store = await this.getStore(storeName, 'readwrite');
       if (!store) return false;
 
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         const request = store.clear();
         request.onsuccess = () => resolve(true);
-        request.onerror = () => reject(request.error);
+        request.onerror = () => resolve(false);
       });
-    } catch (err) {
-      console.warn(`IndexedDB clear [${storeName}] failed:`, err);
+    } catch {
       return false;
     }
   }
 
+  /**
+   * Executes an indexed query on an entity store.
+   */
   async query(storeName, indexName, value) {
+    if (!this.isSupported()) return [];
+
     try {
       const store = await this.getStore(storeName, 'readonly');
-      if (!store) return [];
+      if (!store || !store.indexNames.contains(indexName)) return [];
       const index = store.index(indexName);
 
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         const request = index.getAll(value);
         request.onsuccess = () => resolve(request.result || []);
-        request.onerror = () => reject(request.error);
+        request.onerror = () => resolve([]);
       });
-    } catch (err) {
-      console.warn(`IndexedDB query [${storeName}.${indexName}] failed:`, err);
+    } catch {
       return [];
     }
   }
@@ -283,3 +513,4 @@ class IndexedDBService {
 
 export const indexedDBService = new IndexedDBService();
 export default indexedDBService;
+export { IndexedDBService };

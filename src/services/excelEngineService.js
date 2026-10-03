@@ -585,11 +585,11 @@ class ExcelEngineService {
       const name = ws.name.trim();
       const lower = name.toLowerCase();
 
-      if (lower === 'stock_actuel' || lower === 'stock' || lower === 'articles') {
+      if (lower === 'stock_actuel' || lower === 'stock' || lower === 'articles' || lower === 'pdr_articles') {
         const rawRows = extractSheetRows(ws);
         result.Stock_Actuel = rawRows
           .map((r) => ({
-            ref: r.Ref || r.ref || r['Référence'] || '',
+            ref: r.Ref || r.ref || r['Référence'] || r['Ref Article'] || '',
             designation: r['Désignation'] || r.designation || r.Designation || '',
             id_type: r.ID_Type || r.id_type || '',
             id_diag: r.ID_Diagnostic || r.id_diag || '',
@@ -617,6 +617,8 @@ class ExcelEngineService {
             commentaire: r.Commentaire || r.commentaire || '',
           }))
           .filter((m) => m.ref);
+      } else if (lower === 'machine_bom_ledger' || lower === 'bom_ledger' || lower === 'bom') {
+        result.Machine_BOM_Ledger = extractSheetRows(ws);
       } else if (lower.includes('machine')) {
         result.Machines_Registered = extractSheetRows(ws);
       } else if (lower.includes('warehouse') || lower.includes('entrepot')) {
@@ -631,7 +633,7 @@ class ExcelEngineService {
         result.Sortie_Externe = extractSheetRows(ws);
       } else if (lower === 'zones') {
         result.Zones = extractSheetRows(ws);
-      } else if (lower === 'technicians' || lower === 'techniciens') {
+      } else if (lower === 'technicians' || lower === 'techniciens' || lower === 'utilisateurs' || lower === 'users') {
         result.Technicians = extractSheetRows(ws);
       } else if (lower === 'operations') {
         result.Operations = extractSheetRows(ws);
@@ -639,10 +641,14 @@ class ExcelEngineService {
         result.Types = extractSheetRows(ws);
       } else if (lower === 'diagnostics') {
         result.Diagnostics = extractSheetRows(ws);
-      } else if (lower === 'families') {
+      } else if (lower === 'families' || lower === 'family_machines') {
         result.Families = extractSheetRows(ws);
-      } else if (lower === 'templates') {
+      } else if (lower === 'templates' || lower === 'templates_machines') {
         result.Templates = extractSheetRows(ws);
+      } else if (lower === 'part_types') {
+        result.Part_Types = extractSheetRows(ws);
+      } else if (lower === 'part_designations') {
+        result.Part_Designations = extractSheetRows(ws);
       }
     });
 
