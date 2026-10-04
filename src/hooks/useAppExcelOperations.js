@@ -55,6 +55,7 @@ export function useAppExcelOperations({
 
   const [linkedFileHandle, setLinkedFileHandle] = useState(null);
   const [linkedFileName, setLinkedFileName] = useState('');
+  const [operationProgress, setOperationProgress] = useState({ active: false, percent: 0, status: '' });
 
   // AUTOMATIC BACKUP CREATOR
   const createAutomaticBackup = useCallback(
@@ -385,6 +386,7 @@ export function useAppExcelOperations({
       };
 
       reader.onload = async (evt) => {
+        setOperationProgress({ active: true, percent: 30, status: 'Traitement du fichier...' });
         try {
           let importedData = {};
           if (file.name.endsWith('.json')) {
@@ -490,17 +492,19 @@ export function useAppExcelOperations({
             }
           }
 
-          showToast('Import réussi avec extraction intelligente ! (Backup daté du ' + backupDate + ')', 'success');
+          showToast('Import réussi مع استخراج ذكي! (Backup بتاريخ ' + backupDate + ')', 'success');
           Logger.info('[ExcelOperations] File imported successfully with smart parser', { file: file.name });
         } catch (err) {
-      if (err.name === "AbortError") return;
-      if (err.name === "SecurityError" || err.name === "NotAllowedError" || (err.message && err.message.toLowerCase().includes("cross origin"))) {
-        showToast("Liaison bloquée par le navigateur (iframe). Basculement vers l'import classique.", "info");
-        fileInputRef.current?.click();
-        return;
-      }
+          if (err.name === "AbortError") return;
+          if (err.name === "SecurityError" || err.name === "NotAllowedError" || (err.message && err.message.toLowerCase().includes("cross origin"))) {
+            showToast("Liaison bloquée par le navigateur (iframe). Basculement vers l'import classique.", "info");
+            fileInputRef.current?.click();
+            return;
+          }
           showToast('Erreur lors de la lecture du fichier.', 'error');
           Logger.error('[ExcelOperations] Import error:', err);
+        } finally {
+          setOperationProgress({ active: false, percent: 100, status: '' });
         }
       };
 
@@ -721,5 +725,6 @@ export function useAppExcelOperations({
     handleDirectFileLink,
     handleDirectSave,
     createAutomaticBackup,
+    operationProgress,
   };
 }

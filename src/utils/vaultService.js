@@ -221,6 +221,7 @@ export const vaultService = {
   createEmptyVault,
   bufToBase64,
   base64ToBuf,
+  isWebCryptoSupported: () => typeof window !== 'undefined' && !!(window.crypto && window.crypto.subtle)
 };
 
 export default vaultService;

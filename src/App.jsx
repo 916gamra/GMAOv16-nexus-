@@ -273,6 +273,7 @@ export default function App() {
     handleImportFile,
     handleDirectFileLink,
     handleDirectSave,
+    operationProgress,
   } = useAppExcelOperations({
     state: gmaoState,
     stockItems,
@@ -445,6 +446,7 @@ export default function App() {
         onMarkTaskDone={handleMarkTaskDone}
         onAddMouvement={entityActions.handleAddMouvement}
         showToast={showToast}
+        operationProgress={operationProgress}
       >
         <AppRouter
           currentTab={currentTab}

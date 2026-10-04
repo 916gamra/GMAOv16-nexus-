@@ -71,6 +71,14 @@ export function useStateSync(setters = {}, validators = {}) {
           if (isBroadcast) {
             setMouvements((prevMouvementList) => {
               if (!Array.isArray(prevMouvementList) || prevMouvementList.length === 0) return fresh.mouvements;
+              
+              // Optimization: Skip if payload is strictly identical to local state
+              const freshLen = fresh.mouvements.length;
+              const localLen = prevMouvementList.length;
+              if (freshLen === localLen && JSON.stringify(fresh.mouvements) === JSON.stringify(prevMouvementList)) {
+                return prevMouvementList;
+              }
+
               return ConflictResolutionService.resolveMultipleConflicts(
                 prevMouvementList,
                 fresh.mouvements,

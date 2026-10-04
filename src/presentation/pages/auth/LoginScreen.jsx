@@ -17,7 +17,7 @@ import {
 import { useAuth } from '../../../context/AuthContext';
 
 export default function LoginScreen() {
-  const { login, loginWithPin, getAvailableAccounts, isPinConfigured, getCurrentSessionUser, setupMasterPin, isVaultExists } = useAuth();
+  const { login, loginWithPin, getAvailableAccounts, isPinConfigured, getCurrentSessionUser, setupMasterPin } = useAuth();
 
   // Authentication mode: 'CREDENTIALS' | 'PIN_ENCRYPTED' | 'SETUP_PIN'
   const [authMode, setAuthMode] = useState(() => (!isPinConfigured() ? 'SETUP_PIN' : 'CREDENTIALS'));

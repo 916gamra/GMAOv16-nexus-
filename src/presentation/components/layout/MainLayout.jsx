@@ -38,6 +38,7 @@ export default function MainLayout({
   onMarkTaskDone,
   onAddMouvement,
   showToast,
+  operationProgress,
 }) {
   const { user, logout } = useAuth();
   const { isMobile } = useMobileDetect(1024);
@@ -273,6 +274,44 @@ export default function MainLayout({
       {/* Subtle Background Accent Glows */}
       <div className="fixed -top-32 -right-32 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none -z-10" />
       <div className="fixed -bottom-32 -left-32 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none -z-10" />
+
+      {/* Heavy Operation Progress Overlay */}
+      {operationProgress?.active && (
+        <div className="fixed inset-0 z-100 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6 select-none">
+          <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6 border border-slate-200 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center shrink-0">
+                <FileSpreadsheet className="w-6 h-6 text-emerald-600 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-900 leading-tight uppercase tracking-tight">
+                  Opération en cours
+                </h3>
+                <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                  {operationProgress.status || 'Traitement des données...'}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between text-[10px] font-bold text-slate-600 font-mono">
+                <span>PROGRESSION</span>
+                <span>{operationProgress.percent}%</span>
+              </div>
+              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                <div 
+                  className="h-full bg-emerald-500 transition-all duration-300 ease-out shadow-sm"
+                  style={{ width: `${operationProgress.percent}%` }}
+                />
+              </div>
+            </div>
+            
+            <p className="text-[9px] text-slate-400 mt-4 text-center font-medium leading-relaxed italic">
+              Veuillez patienter pendant la finalisation de l'opération Excel Twin...
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Sticky Top Header: Dedicated Compact Mobile Header on Mobile, Standard Header on Desktop */}
       {isMobile ? (
