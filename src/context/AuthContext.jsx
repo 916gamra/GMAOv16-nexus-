@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import * as bcrypt from 'bcryptjs';
+import { z } from 'zod';
 import { Container } from '../core/di/Container.js';
 import { accessLogService } from '../utils/AccessLogService';
 import { vaultService } from '../utils/vaultService';
@@ -7,6 +8,41 @@ import { storageService } from '../utils/storageService';
 
 const AuthContext = createContext(null);
 const BCRYPT_ROUNDS = 10;
+
+const LoginSchema = z.object({
+  username: z.string().min(1, "Nom d'utilisateur requis").max(50),
+  password: z.string().min(1, "Mot de passe requis").max(128),
+  pin: z.string().min(3).max(10).optional(),
+});
+
+const loginAttemptsMap = new Map(); // username -> { count, lockUntil }
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+function checkRateLimit(username) {
+  const record = loginAttemptsMap.get(username);
+  if (!record) return;
+  if (record.lockUntil && Date.now() < record.lockUntil) {
+    const remainingMinutes = Math.ceil((record.lockUntil - Date.now()) / 60000);
+    throw new Error(`Compte temporairement verrouillé (${remainingMinutes} min restantes). Trop de tentatives.`);
+  }
+  if (record.lockUntil && Date.now() >= record.lockUntil) {
+    loginAttemptsMap.delete(username);
+  }
+}
+
+function recordFailedAttempt(username) {
+  const record = loginAttemptsMap.get(username) || { count: 0, lockUntil: null };
+  record.count += 1;
+  if (record.count >= MAX_LOGIN_ATTEMPTS) {
+    record.lockUntil = Date.now() + LOCKOUT_DURATION_MS;
+  }
+  loginAttemptsMap.set(username, record);
+}
+
+function resetFailedAttempts(username) {
+  loginAttemptsMap.delete(username);
+}
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -172,74 +208,99 @@ export const AuthProvider = ({ children }) => {
       ? (usernameOrParams.pin || usernameOrParams.pinCode || '')
       : (pinParam || '');
 
+    // 1. Zod Input Validation
+    try {
+      LoginSchema.parse({
+        username: usernameRaw,
+        password: passwordRaw,
+        pin: pinRaw || undefined,
+      });
+    } catch (err) {
+      throw new Error(`Validation des données : ${err.errors?.[0]?.message || 'Entrées invalides'}`);
+    }
+
     const username = usernameRaw.trim().toLowerCase();
     const password = (passwordRaw || '').trim();
     const pin = (pinRaw || '').trim();
 
-    // Case 1: Vault exists and PIN is provided -> 2FA Zero-Knowledge decryption
-    if (vaultService.isVaultExists()) {
-      let vault = null;
+    // 2. Brute Force Rate Limiting Check
+    checkRateLimit(username);
 
-      // If user supplied PIN, decrypt vault with PIN
-      if (pin) {
-        try {
-          vault = await vaultService.decryptVault(pin);
-        } catch {
-          throw new Error('Master PIN incorrect : échec du déchiffrement du coffre-fort (AES-GCM).');
+    try {
+      // Case 1: Vault exists and PIN is provided -> 2FA Zero-Knowledge decryption
+      if (vaultService.isVaultExists()) {
+        let vault = null;
+
+        // If user supplied PIN, decrypt vault with PIN
+        if (pin) {
+          try {
+            vault = await vaultService.decryptVault(pin);
+          } catch {
+            recordFailedAttempt(username);
+            throw new Error('Master PIN incorrect : échec du déchiffrement du coffre-fort (AES-GCM).');
+          }
+        }
+
+        if (vault && Array.isArray(vault.accounts)) {
+          // Look up account in decrypted vault
+          const acc = vault.accounts.find(
+            (a) =>
+              (a.code && a.code.toLowerCase() === username) ||
+              (a.username && a.username.toLowerCase() === username) ||
+              (username === 'rmg' && (a.code === 'magasinier' || a.username === 'magasinier'))
+          );
+
+          if (!acc) {
+            recordFailedAttempt(username);
+            throw new Error(`Le compte "${username}" est introuvable dans le coffre-fort.`);
+          }
+
+          // Verify password with BCrypt
+          const isOk = acc.passwordHash && bcrypt.compareSync(password, acc.passwordHash);
+          if (!isOk) {
+            recordFailedAttempt(username);
+            throw new Error('Mot de passe incorrect.');
+          }
+
+          resetFailedAttempts(username);
+
+          // Create session
+          const sessionUser = {
+            id: acc.id,
+            code: acc.code || acc.username,
+            username: acc.username || acc.code,
+            name: acc.name || acc.libelle,
+            role: acc.role,
+            titleFr: acc.titleFr || acc.role,
+            avatar: acc.avatar || (acc.code || 'US').substring(0, 2).toUpperCase(),
+            badgeColor: acc.badgeColor || 'emerald',
+            authMethod: 'VAULT_2FA',
+            loginTime: Date.now(),
+          };
+
+          setUser(sessionUser);
+          setIsVaultUnlocked(true);
+          setAccounts(vault.accounts.map(({ passwordHash: _passwordHash, ...rest }) => rest));
+          if (authService?.saveSignedSession) {
+            authService.saveSignedSession(sessionUser);
+          } else {
+            localStorage.setItem('gmao_session_v2', JSON.stringify(sessionUser));
+          }
+          await accessLogService.recordLogin(sessionUser);
+          return sessionUser;
         }
       }
 
-      if (vault && Array.isArray(vault.accounts)) {
-        // Look up account in decrypted vault
-        const acc = vault.accounts.find(
-          (a) =>
-            (a.code && a.code.toLowerCase() === username) ||
-            (a.username && a.username.toLowerCase() === username) ||
-            (username === 'rmg' && (a.code === 'magasinier' || a.username === 'magasinier'))
-        );
-
-        if (!acc) {
-          throw new Error(`Le compte "${username}" est introuvable dans le coffre-fort.`);
-        }
-
-        // Verify password with BCrypt
-        const isOk = acc.passwordHash && bcrypt.compareSync(password, acc.passwordHash);
-        if (!isOk) {
-          throw new Error('Mot de passe incorrect.');
-        }
-
-        // Create session
-        const sessionUser = {
-          id: acc.id,
-          code: acc.code || acc.username,
-          username: acc.username || acc.code,
-          name: acc.name || acc.libelle,
-          role: acc.role,
-          titleFr: acc.titleFr || acc.role,
-          avatar: acc.avatar || (acc.code || 'US').substring(0, 2).toUpperCase(),
-          badgeColor: acc.badgeColor || 'emerald',
-          authMethod: 'VAULT_2FA',
-          loginTime: Date.now(),
-        };
-
-        setUser(sessionUser);
-        setIsVaultUnlocked(true);
-        setAccounts(vault.accounts.map(({ passwordHash: _passwordHash, ...rest }) => rest));
-        if (authService?.saveSignedSession) {
-          authService.saveSignedSession(sessionUser);
-        } else {
-          localStorage.setItem('gmao_session_v2', JSON.stringify(sessionUser));
-        }
-        await accessLogService.recordLogin(sessionUser);
-        return sessionUser;
-      }
+      // Case 2: Standard authentication fallback
+      const loggedInUser = await authService.login(username, password);
+      resetFailedAttempts(username);
+      setUser(loggedInUser);
+      await accessLogService.recordLogin(loggedInUser);
+      return loggedInUser;
+    } catch (err) {
+      recordFailedAttempt(username);
+      throw err;
     }
-
-    // Case 2: Standard authentication fallback
-    const loggedInUser = await authService.login(username, password);
-    setUser(loggedInUser);
-    await accessLogService.recordLogin(loggedInUser);
-    return loggedInUser;
   }, [authService]);
 
   // Authentification rapide par code PIN

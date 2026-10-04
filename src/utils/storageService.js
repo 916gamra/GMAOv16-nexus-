@@ -35,20 +35,51 @@ function cleanupCache() {
   lastCleanupTime = now;
 }
 
-// Periodic cleanup
-if (typeof window !== 'undefined' && (typeof process === 'undefined' || process.env?.NODE_ENV !== 'test')) {
-  const timer = setInterval(() => {
-    if (Date.now() - lastCleanupTime > CACHE_CLEANUP_INTERVAL) {
-      cleanupCache();
+// CacheManager class to prevent interval memory leaks and control lifecycle
+class CacheManager {
+  constructor() {
+    this.timerId = null;
+    this.isActive = false;
+  }
+
+  startCleanup() {
+    if (this.isActive) return;
+    this.isActive = true;
+    this.timerId = setInterval(() => {
+      if (Date.now() - lastCleanupTime > CACHE_CLEANUP_INTERVAL) {
+        cleanupCache();
+      }
+    }, CACHE_CLEANUP_INTERVAL);
+    if (this.timerId && typeof this.timerId.unref === 'function') {
+      this.timerId.unref();
     }
-  }, CACHE_CLEANUP_INTERVAL);
-  if (timer && typeof timer.unref === 'function') {
-    timer.unref();
+  }
+
+  stopCleanup() {
+    if (this.timerId) {
+      clearInterval(this.timerId);
+      this.timerId = null;
+      this.isActive = false;
+    }
+  }
+
+  destroy() {
+    this.stopCleanup();
   }
 }
 
-// Legacy keys for migration only
-const OLD_SECURE_STORAGE_KEY = 'CIOB_GMAO_CLIENT_PERSISTENCE_SALT_KEY_987654321!';
+export const cacheManager = new CacheManager();
+
+// Periodic cleanup initialization
+if (typeof window !== 'undefined' && (typeof process === 'undefined' || process.env?.NODE_ENV !== 'test')) {
+  cacheManager.startCleanup();
+}
+
+// Legacy keys for migration only (secure salt via environment variables)
+const OLD_SECURE_STORAGE_KEY = import.meta.env.VITE_CRYPTO_KEY || 'CIOB_GMAO_CLIENT_PERSISTENCE_SALT_KEY_987654321!';
+if (!import.meta.env.VITE_CRYPTO_KEY) {
+  console.warn('⚠️ VITE_CRYPTO_KEY is not defined in environment. Using fallback salt.');
+}
 const KEY_STORE_NAME = 'gmao_crypto_keys';
 const KEY_ID = 'main_aes_gcm_key';
 
@@ -359,10 +390,11 @@ export const storageService = {
   setItem(key, value) {
     memoryCache.set(key, { data: value, _lastAccessed: Date.now() });
 
-    // Evict oldest if exceeding capacity
+    // Evict oldest 20% if exceeding capacity (LRU-like batch eviction)
     if (memoryCache.size > MAX_CACHE_SIZE) {
-      const firstKey = memoryCache.keys().next().value;
-      memoryCache.delete(firstKey);
+      const keys = Array.from(memoryCache.keys());
+      const keysToRemove = keys.slice(0, Math.max(1, Math.floor(keys.length * 0.2)));
+      keysToRemove.forEach((k) => memoryCache.delete(k));
     }
 
     try {

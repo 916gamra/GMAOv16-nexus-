@@ -24,6 +24,7 @@ import * as XLSX from 'xlsx';
 import CustomSelect from '../../components/common/CustomSelect';
 import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import { useI18n } from '../../../i18n/I18nContext';
+import { dataIntegrityService } from '../../../services/dataIntegrityService';
 
 export default function BonsTravailTab({
   interventions = [],
@@ -63,6 +64,7 @@ export default function BonsTravailTab({
   const [filterTech, setFilterTech] = useState('ALL');
   const [filterMachine, setFilterMachine] = useState('ALL');
   const [filterTypePanne, setFilterTypePanne] = useState('ALL');
+  const [orphanFilter, setOrphanFilter] = useState('ALL'); // 'ALL' | 'ORPHAN_ONLY' | 'LINKED_ONLY'
   const [searchTerm, setSearchTerm] = useState('');
 
   // Sorting & Pagination State
@@ -88,6 +90,17 @@ export default function BonsTravailTab({
     return interventions.filter((item) => Boolean(item.num_bt));
   }, [interventions]);
 
+  // Annotate BTs with orphan status
+  const btsWithOrphan = useMemo(
+    () => dataIntegrityService.annotateCorrectiveOrphans(bts, machines),
+    [bts, machines]
+  );
+
+  const orphanCount = useMemo(
+    () => btsWithOrphan.filter((b) => b._isOrphan).length,
+    [btsWithOrphan]
+  );
+
   // All technicians present in BTs + configured intervenants
   const availableTechs = useMemo(() => {
     const set = new Set();
@@ -105,14 +118,16 @@ export default function BonsTravailTab({
     return Array.from(set).sort();
   }, [bts, intervenants, technicians]);
 
-  // All machines present in BTs + registered machines from SSOT
+  // All machines present in BTs + registered machines from SSOT (excluding archived for creation/selection)
   const availableMachines = useMemo(() => {
     const set = new Set();
     if (Array.isArray(machines)) {
-      machines.forEach((m) => {
-        const id = m.id_machine_registered || m.id || m.code;
-        if (id) set.add(id);
-      });
+      machines
+        .filter((m) => m.status !== 'ARCHIVEE' && m.is_active !== false)
+        .forEach((m) => {
+          const id = m.id_machine_registered || m.id || m.code;
+          if (id) set.add(id);
+        });
     }
     bts.forEach((b) => {
       if (b.code_machine) set.add(b.code_machine);
@@ -141,7 +156,7 @@ export default function BonsTravailTab({
 
   // Filtered BTs
   const filteredBts = useMemo(() => {
-    return bts.filter((bt) => {
+    return btsWithOrphan.filter((bt) => {
       if (
         filterStatus === 'EN_COURS' &&
         bt.statut !== 'EN_COURS' &&
@@ -155,6 +170,8 @@ export default function BonsTravailTab({
       if (filterTech !== 'ALL' && bt.intervenant !== filterTech) return false;
       if (filterMachine !== 'ALL' && bt.code_machine !== filterMachine) return false;
       if (filterTypePanne !== 'ALL' && bt.type_panne !== filterTypePanne) return false;
+      if (orphanFilter === 'ORPHAN_ONLY' && !bt._isOrphan) return false;
+      if (orphanFilter === 'LINKED_ONLY' && bt._isOrphan) return false;
 
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
@@ -177,7 +194,7 @@ export default function BonsTravailTab({
       }
       return true;
     });
-  }, [bts, filterStatus, filterTech, filterMachine, filterTypePanne, searchTerm]);
+  }, [btsWithOrphan, filterStatus, filterTech, filterMachine, filterTypePanne, orphanFilter, searchTerm]);
 
   // Sorting
   const sortedBts = useMemo(() => {
@@ -239,6 +256,7 @@ export default function BonsTravailTab({
     filterTech !== 'ALL' ||
     filterMachine !== 'ALL' ||
     filterTypePanne !== 'ALL' ||
+    orphanFilter !== 'ALL' ||
     Boolean(searchTerm);
 
   const clearAllFilters = () => {
@@ -246,6 +264,7 @@ export default function BonsTravailTab({
     setFilterTech('ALL');
     setFilterMachine('ALL');
     setFilterTypePanne('ALL');
+    setOrphanFilter('ALL');
     setSearchTerm('');
     setCurrentPage(1);
   };
@@ -321,9 +340,16 @@ export default function BonsTravailTab({
         icon: Factory,
         sortable: true,
         render: (bt) => (
-          <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 text-xs font-mono font-bold whitespace-nowrap">
-            {bt.code_machine}
-          </span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 text-xs font-mono font-bold whitespace-nowrap">
+              {bt.code_machine}
+            </span>
+            {bt._isOrphan && (
+              <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 font-bold" title="Machine introuvable ou archivée">
+                Orphelin
+              </span>
+            )}
+          </div>
         ),
       },
       {
@@ -700,6 +726,45 @@ export default function BonsTravailTab({
                     isActive ? 'bg-white/20 text-white' : 'bg-white text-slate-600 border border-slate-200/60'
                   }`}
                 >
+                  {preset.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Orphan Filter Bar */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs no-scrollbar pt-2 border-t border-slate-100">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 mr-1 shrink-0">
+            <AlertTriangle className="w-3 h-3 text-amber-500" />
+            Intégrité Machine :
+          </span>
+          {[
+            { key: 'ALL', label: 'Toutes', count: btsWithOrphan.length },
+            { key: 'LINKED_ONLY', label: 'Liées (Actives)', count: btsWithOrphan.length - orphanCount },
+            { key: 'ORPHAN_ONLY', label: `Orphelines (${orphanCount})`, count: orphanCount, highlight: orphanCount > 0 },
+          ].map((preset) => {
+            const isSelected = orphanFilter === preset.key;
+            return (
+              <button
+                key={preset.key}
+                type="button"
+                onClick={() => {
+                  setOrphanFilter(preset.key);
+                  setCurrentPage(1);
+                }}
+                className={`h-7 px-2.5 rounded-lg text-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                  isSelected
+                    ? preset.highlight
+                      ? 'bg-amber-600 text-white font-bold shadow-xs'
+                      : 'bg-blue-600 text-white font-bold shadow-xs'
+                    : 'bg-slate-100/80 hover:bg-slate-200 text-slate-700 border border-slate-200/60 font-medium'
+                }`}
+              >
+                <span>{preset.label}</span>
+                <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
+                  isSelected ? 'bg-white/20 text-white' : 'bg-white text-slate-600 border border-slate-200/60'
+                }`}>
                   {preset.count}
                 </span>
               </button>

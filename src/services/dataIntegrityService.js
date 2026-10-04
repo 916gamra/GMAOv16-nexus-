@@ -787,6 +787,112 @@ class DataIntegrityService {
       return isOrphan ? { ...i, _isOrphan: true } : { ...i, _isOrphan: false };
     });
   }
+
+  /**
+   * Preview impact of a destructive action before Clear/Reset.
+   */
+  previewClearImpact({
+    action, // 'CLEAR_PREVENTIVE' | 'RESET_PREVENTIVE_BASELINE' | 'CLEAR_CORRECTIVE' | 'RESET_MACHINES' | ...
+    machines = [],
+    preventiveTasks = [],
+    correctiveInterventions = [],
+  } = {}) {
+    const activeIds = this.buildActiveMachineIdSet(machines);
+    const prevOrphans = (preventiveTasks || []).filter((t) =>
+      this.isOrphanMachineRef(t.id_machine || t.machine_id || t.code_machine, activeIds)
+    );
+    const corrOrphans = (correctiveInterventions || []).filter((i) =>
+      this.isOrphanMachineRef(
+        i.code_machine || i.id_machine || i.machine_id || i.id_machine_registered,
+        activeIds
+      )
+    );
+
+    const warnings = [];
+    if (action === 'CLEAR_PREVENTIVE') {
+      warnings.push(`Cette action va supprimer ${(preventiveTasks || []).length} tâche(s) préventive(s). La liste des machines restera intacte.`);
+    } else if (action === 'RESET_PREVENTIVE_BASELINE') {
+      warnings.push(`Cette action va réinitialيز / recharger le planning préventif de base. ${prevOrphans.length} tâche(s) orpheline(s) détectée(s) actuellement.`);
+    } else if (action === 'CLEAR_CORRECTIVE') {
+      warnings.push(`Cette action va vider les demandes et interventions correctives (${(correctiveInterventions || []).length} éléments).`);
+    }
+
+    return {
+      action,
+      preventiveOrphanCount: prevOrphans.length,
+      correctiveOrphanCount: corrOrphans.length,
+      machineCount: (machines || []).length,
+      preventiveCount: (preventiveTasks || []).length,
+      correctiveCount: (correctiveInterventions || []).length,
+      warnings,
+    };
+  }
+
+  /**
+   * Purge orphan preventive tasks.
+   */
+  purgeOrphanPreventiveTasks(tasks = [], machines = []) {
+    const active = this.buildActiveMachineIdSet(machines);
+    const kept = [];
+    const removed = [];
+    (tasks || []).forEach((t) => {
+      const ref = t.id_machine || t.machine_id || t.code_machine;
+      if (this.isOrphanMachineRef(ref, active)) removed.push(t);
+      else kept.push(t);
+    });
+    return { kept, removed, removedCount: removed.length };
+  }
+
+  /**
+   * Purge orphan corrective interventions.
+   */
+  purgeOrphanCorrectiveInterventions(interventions = [], machines = []) {
+    const active = this.buildActiveMachineIdSet(machines);
+    const kept = [];
+    const removed = [];
+    (interventions || []).forEach((i) => {
+      const ref = i.code_machine || i.id_machine || i.machine_id || i.id_machine_registered;
+      if (this.isOrphanMachineRef(ref, active)) removed.push(i);
+      else kept.push(i);
+    });
+    return { kept, removed, removedCount: removed.length };
+  }
+
+  /**
+   * Bulk relink orphan items to a target active machine.
+   */
+  bulkRelinkOrphans({
+    entityType, // 'preventive' | 'corrective'
+    items = [],
+    machines = [],
+    newMachineId,
+  } = {}) {
+    const active = this.buildActiveMachineIdSet(machines);
+    const target = String(newMachineId || '').trim().toUpperCase();
+    if (!target || !active.has(target)) {
+      return { updated: items, changedCount: 0, error: 'INVALID_TARGET_MACHINE' };
+    }
+    let changedCount = 0;
+    const updated = (items || []).map((item) => {
+      const ref =
+        entityType === 'preventive'
+          ? item.id_machine || item.machine_id || item.code_machine
+          : item.code_machine || item.id_machine || item.machine_id || item.id_machine_registered;
+      if (!this.isOrphanMachineRef(ref, active)) return item;
+      changedCount++;
+      if (entityType === 'preventive') {
+        return { ...item, id_machine: target, machine_id: target, code_machine: target, _isOrphan: false };
+      }
+      return {
+        ...item,
+        code_machine: target,
+        id_machine: target,
+        machine_id: target,
+        _isOrphan: false,
+      };
+    });
+    return { updated, changedCount, error: null };
+  }
 }
 
 export const dataIntegrityService = new DataIntegrityService();
