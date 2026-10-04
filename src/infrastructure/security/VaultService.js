@@ -1,4 +1,5 @@
 import CryptoJS from 'crypto-js';
+import bcrypt from 'bcryptjs';
 
 /**
  * Vault Service
@@ -9,6 +10,31 @@ export class VaultService {
     this.PBKDF2_ITERATIONS = 100000;
     this.SALT_LENGTH = 16;
     this.IV_LENGTH = 12;
+  }
+
+  /**
+   * تجزئة PIN
+   */
+  async hashPIN(pin) {
+    try {
+      const salt = await bcrypt.genSalt(10);
+      return await bcrypt.hash(pin, salt);
+    } catch (error) {
+      console.error('PIN hashing failed:', error);
+      throw new Error('Failed to hash PIN');
+    }
+  }
+
+  /**
+   * التحقق من PIN
+   */
+  async verifyPIN(pin, hash) {
+    try {
+      return await bcrypt.compare(pin, hash);
+    } catch (error) {
+      console.error('PIN verification failed:', error);
+      return false;
+    }
   }
 
   /**
