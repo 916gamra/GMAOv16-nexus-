@@ -21,7 +21,7 @@ export class VaultService {
       return await bcrypt.hash(pin, salt);
     } catch (error) {
       console.error('PIN hashing failed:', error);
-      throw new Error('Failed to hash PIN');
+      throw new Error('Failed to hash PIN', { cause: error });
     }
   }
 

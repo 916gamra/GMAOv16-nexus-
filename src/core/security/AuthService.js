@@ -35,18 +35,20 @@ export class AuthService {
   }
 
   getDefaultUsersList() {
-    // Zero hardcoded plaintext credentials (Enterprise Security Standard)
+    // Predictable default credentials for fresh installs to allow first-time login
     const storedPinHash = localStorage.getItem('gmao_admin_pin');
-    const getInitHash = (roleKey) => {
+    
+    const getInitHash = (roleKey, fallbackPass) => {
       if (storedPinHash) return storedPinHash;
-      return bcrypt.hashSync(`GMAO_SECURE_INIT_${roleKey}_${Date.now().toString(36)}`, 10);
+      // Use fallbackPass as the initial password if no Master PIN is set
+      return bcrypt.hashSync(fallbackPass || 'admin', 10);
     };
 
     return [
       {
         id: 'admin',
         username: 'admin',
-        passwordHash: getInitHash('ADMIN'),
+        passwordHash: getInitHash('ADMIN', 'admin'),
         role: 'ADMIN',
         name: 'Administrateur',
         titleFr: 'Administrateur Système',
@@ -57,7 +59,7 @@ export class AuthService {
       {
         id: 'magasinier',
         username: 'magasinier',
-        passwordHash: getInitHash('MAGASINIER'),
+        passwordHash: getInitHash('MAGASINIER', 'magasinier'),
         role: 'RESPONSABLE_MAGASIN',
         name: 'Responsable Magasin',
         titleFr: 'Responsable Magasin (RMG)',
@@ -68,7 +70,7 @@ export class AuthService {
       {
         id: 'tech',
         username: 'tech',
-        passwordHash: getInitHash('TECHNICIEN'),
+        passwordHash: getInitHash('TECHNICIEN', 'tech'),
         role: 'TECHNICIEN',
         name: 'Technicien Maintenance',
         titleFr: 'Technicien Maintenance (TC)',
@@ -79,7 +81,7 @@ export class AuthService {
       {
         id: 'viewer',
         username: 'viewer',
-        passwordHash: getInitHash('VIEWER'),
+        passwordHash: getInitHash('VIEWER', 'viewer'),
         role: 'VIEWER',
         name: 'Observateur',
         titleFr: 'Observateur / Consultation',

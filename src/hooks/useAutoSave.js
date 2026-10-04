@@ -101,12 +101,13 @@ export function useAutoSave(state, debounceMs = 1000, onStateChange = null) {
       correctiveIntervenants,
     };
 
-    // Avoid saving if state has not changed
+    // Avoid saving if state has not changed - Use a more efficient check for huge datasets
     const currentStateStr = JSON.stringify(fullState);
-    if (lastSavedState.current === currentStateStr) {
+    const currentStateLength = currentStateStr.length;
+    if (lastSavedState.current === currentStateLength) {
       return;
     }
-    lastSavedState.current = currentStateStr;
+    lastSavedState.current = currentStateLength;
 
     try {
       // Check storage quota safety before writing

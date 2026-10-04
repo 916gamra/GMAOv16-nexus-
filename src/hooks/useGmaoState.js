@@ -19,9 +19,21 @@ export { BASELINE_STOCK_ITEMS };
  * Composes domain-specific sub-states: Stock, Machines, Warehouse, Users, Movements, Preventive Maintenance, and Sortie Externe.
  */
 export function useGmaoState() {
-  const [groupedState, setGroupedState] = useState(() => storageService.getItem('gmao_full_state_v1') || {});
+  // Use a lazy initializer for groupedState but keep it minimal to avoid blocking main thread
+  const [groupedState, setGroupedState] = useState(() => {
+    try {
+      // Only read if absolutely necessary, otherwise fallback to empty to let sub-hooks handle their own seed/storage
+      const saved = storageService.getItem('gmao_full_state_v1');
+      if (saved && typeof saved === 'object' && Object.keys(saved).length > 5) {
+        return saved;
+      }
+    } catch {
+      return {};
+    }
+    return {};
+  });
 
-  // 1. Domain sub-hooks
+  // 1. Domain sub-hooks - these hooks already handle their own storage fallback if groupedState is empty
   const stockSub = useStockSubState(groupedState);
   const machineSub = useMachineSubState(groupedState);
   const warehouseSub = useWarehouseSubState(groupedState);

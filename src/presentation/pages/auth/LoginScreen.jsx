@@ -17,10 +17,10 @@ import {
 import { useAuth } from '../../../context/AuthContext';
 
 export default function LoginScreen() {
-  const { login, loginWithPin, getAvailableAccounts, isPinConfigured, getCurrentSessionUser } = useAuth();
+  const { login, loginWithPin, getAvailableAccounts, isPinConfigured, getCurrentSessionUser, setupMasterPin, isVaultExists } = useAuth();
 
-  // Authentication mode: 'CREDENTIALS' | 'PIN_ENCRYPTED'
-  const [authMode, setAuthMode] = useState('CREDENTIALS');
+  // Authentication mode: 'CREDENTIALS' | 'PIN_ENCRYPTED' | 'SETUP_PIN'
+  const [authMode, setAuthMode] = useState(() => (!isPinConfigured() ? 'SETUP_PIN' : 'CREDENTIALS'));
   const [selectedUserKey, setSelectedUserKey] = useState('admin');
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
@@ -93,6 +93,34 @@ export default function LoginScreen() {
       setErrorMsg(err.message || 'Code PIN chiffré invalide');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSetupPin = async (e) => {
+    if (e) e.preventDefault();
+    if (!pinCode.trim() || pinCode.length < 4) {
+      setErrorMsg('Le Master PIN doit comporter au moins 4 chiffres.');
+      return;
+    }
+    setErrorMsg(null);
+    setIsLoading(true);
+
+    try {
+      await setupMasterPin(pinCode);
+      setAuthMode('CREDENTIALS');
+      setErrorMsg('Master PIN configuré avec succès. Vous pouvez maintenant vous connecter.');
+    } catch (err) {
+      setErrorMsg(err.message || 'Échec de configuration du PIN');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetApp = () => {
+    if (window.confirm('Voulez-vous vraiment réinitialiser l\'application ? Toutes les données locales seront supprimées.')) {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.reload();
     }
   };
 
@@ -355,7 +383,7 @@ export default function LoginScreen() {
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
             </form>
-          ) : (
+          ) : authMode === 'PIN_ENCRYPTED' ? (
             /* Mode 2: Encrypted PIN Login using Settings BCrypt Engine */
             <form onSubmit={handleLoginPin} className="space-y-4">
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5">
@@ -411,12 +439,81 @@ export default function LoginScreen() {
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
             </form>
+          ) : (
+            /* Mode 3: Initial PIN Setup */
+            <form onSubmit={handleSetupPin} className="space-y-4">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                  <span className="font-bold text-emerald-800">Configuration Initiale</span>
+                </div>
+                <p className="text-xs text-emerald-700 leading-relaxed">
+                  C'est votre première connexion. Veuillez définir un <b>Master PIN</b> (4 chiffres minimum). 
+                  Ce code servira à chiffrer vos données et sera également le mot de passe du compte <b>admin</b>.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider font-mono mb-1.5">
+                  Nouveau Master PIN
+                </label>
+                <div className="relative">
+                  <Hash className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <input
+                    id="input-setup-pin"
+                    type={showPassword ? 'text' : 'password'}
+                    value={pinCode}
+                    onChange={(e) => {
+                      setPinCode(e.target.value);
+                      if (errorMsg) setErrorMsg(null);
+                    }}
+                    placeholder="Choisir un code PIN (ex: 1234)..."
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-10 py-2.5 text-xs font-mono text-slate-900 tracking-widest focus:outline-none focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                id="btn-setup-pin"
+                disabled={isLoading}
+                className="w-full bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white font-bold py-3 px-4 rounded-xl text-xs transition shadow-md hover:shadow-lg flex items-center justify-center gap-2 group cursor-pointer mt-2 disabled:opacity-50"
+              >
+                <span>{isLoading ? 'Initialisation...' : 'Configurer & Continuer'}</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAuthMode('CREDENTIALS')}
+                className="w-full text-center text-[10px] text-slate-400 hover:text-emerald-600 transition font-mono uppercase font-bold tracking-tighter"
+              >
+                Ignorer pour l'instant (Utiliser admin/admin)
+              </button>
+            </form>
           )}
         </div>
 
         {/* Footer info */}
-        <div className="p-3 bg-slate-50 border-t border-slate-200 text-center text-[11px] text-slate-500 font-mono">
-          CIOB GMAO Light • Entreprise Edition • Architecture 100% Offline
+        <div className="p-3 bg-slate-50 border-t border-slate-200 flex flex-col gap-2">
+          <div className="text-center text-[11px] text-slate-500 font-mono">
+            CIOB GMAO Light • Entreprise Edition • Architecture 100% Offline
+          </div>
+          
+          <button
+            onClick={handleResetApp}
+            className="text-[9px] text-slate-300 hover:text-rose-400 transition font-mono uppercase font-medium self-center"
+          >
+            Réinitialiser l'application (Dépannage)
+          </button>
         </div>
       </div>
     </div>
