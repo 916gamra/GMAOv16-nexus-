@@ -348,10 +348,15 @@ export default function DetailedTaskListView({
                                   <div className="w-5 h-5 rounded-md bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 shrink-0">
                                     <Factory className="w-3 h-3" />
                                   </div>
-                                  <div className="min-w-0">
+                                  <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
                                     <span className="font-mono font-bold text-slate-900 block text-xs truncate">
                                       {tItem.id_machine}
                                     </span>
+                                    {tItem._isOrphan && (
+                                      <span className="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-0.5 shrink-0">
+                                        <AlertTriangle className="w-2.5 h-2.5" /> Orphelin
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </td>
@@ -473,9 +478,16 @@ export default function DetailedTaskListView({
                             <Factory className="w-3.5 h-3.5" />
                           </div>
                           <div className="min-w-0">
-                            <span className="font-mono font-black text-slate-900 block text-xs truncate">
-                              {tItem.id_machine}
-                            </span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-mono font-black text-slate-900 block text-xs truncate">
+                                {tItem.id_machine}
+                              </span>
+                              {tItem._isOrphan && (
+                                <span className="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-0.5 shrink-0">
+                                  <AlertTriangle className="w-2.5 h-2.5" /> Orphelin
+                                </span>
+                              )}
+                            </div>
                             <span className="text-[11px] text-slate-500 truncate block">
                               {tItem.nom_machine || tItem.id_machine}
                             </span>

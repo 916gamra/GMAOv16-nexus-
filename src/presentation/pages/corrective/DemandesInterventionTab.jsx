@@ -27,6 +27,7 @@ import * as XLSX from 'xlsx';
 import CustomSelect from '../../components/common/CustomSelect';
 import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import { useI18n } from '../../../i18n/I18nContext';
+import { dataIntegrityService } from '../../../services/dataIntegrityService';
 
 export default function DemandesInterventionTab({
   interventions = [],
@@ -67,7 +68,19 @@ export default function DemandesInterventionTab({
   const [filterUrgence, setFilterUrgence] = useState('ALL');
   const [filterTypePanne, setFilterTypePanne] = useState('ALL');
   const [filterMachine, setFilterMachine] = useState('ALL');
+  const [orphanFilter, setOrphanFilter] = useState('ALL'); // 'ALL' | 'ORPHAN_ONLY' | 'LINKED_ONLY'
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Annotate interventions with orphan status
+  const itemsWithOrphan = useMemo(
+    () => dataIntegrityService.annotateCorrectiveOrphans(interventions, machines),
+    [interventions, machines]
+  );
+
+  const orphanCount = useMemo(
+    () => itemsWithOrphan.filter((i) => i._isOrphan).length,
+    [itemsWithOrphan]
+  );
 
   // Sorting & Pagination State
   const [sortField, setSortField] = useState('date_demande');
@@ -118,13 +131,15 @@ export default function DemandesInterventionTab({
   // Combined machine list from registered state (SSOT)
   const allMachineOptions = useMemo(() => {
     if (Array.isArray(machines) && machines.length > 0) {
-      return machines.map((m) => ({
-        id_machine_registered: m.id_machine_registered || m.code || m.id,
-        code: m.code || m.id_machine_registered || m.id,
-        zone: m.id_zone_default || m.id_zone || m.zone || 'Atelier',
-        designation: m.designation || m.nom || m.id_machine_registered || m.id,
-        totalInterventions: m.totalInterventions || 0,
-      }));
+      return machines
+        .filter((m) => m.status !== 'ARCHIVEE' && m.is_active !== false)
+        .map((m) => ({
+          id_machine_registered: m.id_machine_registered || m.code || m.id,
+          code: m.code || m.id_machine_registered || m.id,
+          zone: m.id_zone_default || m.id_zone || m.zone || 'Atelier',
+          designation: m.designation || m.nom || m.id_machine_registered || m.id,
+          totalInterventions: m.totalInterventions || 0,
+        }));
     }
     return [
       { id_machine_registered: 'RCP-02', code: 'RCP-02', zone: 'FM' },
@@ -269,7 +284,7 @@ export default function DemandesInterventionTab({
 
   // Filtered DIs
   const filteredDis = useMemo(() => {
-    return interventions.filter((item) => {
+    return itemsWithOrphan.filter((item) => {
       // Status filter
       if (
         filterStatus === 'DEMANDE' &&
@@ -291,6 +306,10 @@ export default function DemandesInterventionTab({
       // Machine filter
       if (filterMachine !== 'ALL' && item.code_machine !== filterMachine) return false;
 
+      // Orphan filter
+      if (orphanFilter === 'ORPHAN_ONLY' && !item._isOrphan) return false;
+      if (orphanFilter === 'LINKED_ONLY' && item._isOrphan) return false;
+
       // Search term
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
@@ -311,7 +330,7 @@ export default function DemandesInterventionTab({
       }
       return true;
     });
-  }, [interventions, filterStatus, filterUrgence, filterTypePanne, filterMachine, searchTerm]);
+  }, [itemsWithOrphan, filterStatus, filterUrgence, filterTypePanne, filterMachine, orphanFilter, searchTerm]);
 
   // Sorting
   const sortedDis = useMemo(() => {
@@ -483,11 +502,16 @@ export default function DemandesInterventionTab({
         icon: Factory,
         sortable: true,
         render: (di) => (
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <span className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-700 flex items-center justify-center font-black text-[10px] border border-amber-200/60 shadow-2xs font-mono">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-700 flex items-center justify-center font-black text-[10px] border border-amber-200/60 shadow-2xs font-mono shrink-0">
               {String(di.code_machine || 'MCH').slice(0, 3)}
             </span>
             <span className="font-bold text-slate-900 font-mono">{di.code_machine}</span>
+            {di._isOrphan && (
+              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-0.5 shrink-0">
+                <AlertTriangle className="w-2.5 h-2.5" /> Orphelin
+              </span>
+            )}
           </div>
         ),
       },
@@ -915,6 +939,40 @@ export default function DemandesInterventionTab({
                 >
                   {preset.count}
                 </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* QUICK ORPHAN FILTER BAR */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs no-scrollbar">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 mr-1 shrink-0">
+            <AlertTriangle className="w-3 h-3 text-amber-500" />
+            Intégrité Machine :
+          </span>
+          {[
+            { key: 'ALL', label: 'Toutes', count: itemsWithOrphan.length },
+            { key: 'LINKED_ONLY', label: 'Liées (Actives)', count: itemsWithOrphan.length - orphanCount },
+            { key: 'ORPHAN_ONLY', label: `Orphelines (${orphanCount})`, count: orphanCount, highlight: orphanCount > 0 },
+          ].map((preset) => {
+            const isSelected = orphanFilter === preset.key;
+            return (
+              <button
+                key={preset.key}
+                type="button"
+                onClick={() => {
+                  setOrphanFilter(preset.key);
+                  setCurrentPage(1);
+                }}
+                className={`h-7 px-2.5 rounded-lg text-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                  isSelected
+                    ? 'bg-amber-600 text-white shadow-xs font-bold'
+                    : preset.highlight
+                    ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold animate-pulse'
+                    : 'bg-slate-100/80 hover:bg-slate-200/80 text-slate-700 font-medium'
+                }`}
+              >
+                <span>{preset.label}</span>
               </button>
             );
           })}

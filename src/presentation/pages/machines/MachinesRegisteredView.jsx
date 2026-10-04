@@ -212,15 +212,17 @@ export default function MachinesRegisteredView({
     let enService = 0;
     let enMaintenance = 0;
     let enArret = 0;
+    let archivee = 0;
 
     machines.forEach((m) => {
-      const st = String(m.status || 'En Service').toLowerCase();
-      if (st.includes('service')) enService++;
-      else if (st.includes('maint') || st.includes('panne')) enMaintenance++;
+      const st = String(m.status || 'En Service').toUpperCase();
+      if (st === 'ARCHIVEE') archivee++;
+      else if (st.includes('SERVICE')) enService++;
+      else if (st.includes('MAINT') || st.includes('PANNE')) enMaintenance++;
       else enArret++;
     });
 
-    const activeFamiliesCount = new Set(machines.map((m) => m.id_family).filter(Boolean)).size;
+    const activeFamiliesCount = new Set(machines.filter(m => m.status !== 'ARCHIVEE').map((m) => m.id_family).filter(Boolean)).size;
     const totalInterventions = Object.values(sortiesCountMap).reduce((a, b) => a + b, 0);
 
     return {
@@ -228,6 +230,7 @@ export default function MachinesRegisteredView({
       enService,
       enMaintenance,
       enArret,
+      archivee,
       activeFamiliesCount,
       totalInterventions,
     };
@@ -239,12 +242,20 @@ export default function MachinesRegisteredView({
       if (mchFamilyFilter !== 'ALL' && m.id_family !== mchFamilyFilter) return false;
       if (mchTemplateFilter !== 'ALL' && m.id_templates !== mchTemplateFilter) return false;
       if (!matchesZoneFilter(m.id_zone_default, mchZoneFilter, zones)) return false;
+      
+      const st = String(m.status || 'En Service').toUpperCase();
+      
       if (statusFilter !== 'ALL') {
-        const st = String(m.status || 'En Service').toLowerCase();
-        if (statusFilter === 'En Service' && !st.includes('service')) return false;
-        if (statusFilter === 'En Maintenance' && !st.includes('maint') && !st.includes('panne')) return false;
-        if (statusFilter === 'Arrêt' && (st.includes('service') || st.includes('maint') || st.includes('panne'))) return false;
+        if (statusFilter === 'ARCHIVEE' && st !== 'ARCHIVEE') return false;
+        if (statusFilter === 'En Service' && !st.includes('SERVICE')) return false;
+        if (statusFilter === 'En Maintenance' && !st.includes('MAINT') && !st.includes('PANNE')) return false;
+        if (statusFilter === 'Arrêt' && (st.includes('SERVICE') || st.includes('MAINT') || st.includes('PANNE') || st === 'ARCHIVEE')) return false;
+      } else {
+        // By default, show only active machines if statusFilter is ALL? 
+        // Or show everything? The user said "Active / Archived / All" filter.
+        // Let's make 'ALL' really show everything, but maybe we add a 'ACTIVE' preset.
       }
+
       if (mchSearch) {
         const q = String(mchSearch).trim().toLowerCase();
         const techObj = technicians.find((t) => t.id_technician === m.technician || t.nom === m.technician);
@@ -398,6 +409,7 @@ export default function MachinesRegisteredView({
     { key: 'En Service', label: t('machines.filters.in_service', 'En Service'), count: kpis.enService, colorDot: 'bg-emerald-500', activeBg: 'bg-emerald-600 text-white border-emerald-600 shadow-xs' },
     { key: 'En Maintenance', label: t('machines.filters.in_maintenance', 'En Maintenance'), count: kpis.enMaintenance, colorDot: 'bg-amber-500', activeBg: 'bg-amber-600 text-white border-amber-600 shadow-xs' },
     { key: 'Arrêt', label: t('machines.filters.stopped', "À l'Arrêt"), count: kpis.enArret, colorDot: 'bg-rose-500', activeBg: 'bg-rose-600 text-white border-rose-600 shadow-xs' },
+    { key: 'ARCHIVEE', label: t('machines.filters.archived', 'Archivée'), count: kpis.archivee, colorDot: 'bg-slate-400', activeBg: 'bg-slate-600 text-white border-slate-600 shadow-xs' },
   ].map((p) => ({
     ...p,
     isActive: statusFilter === p.key,
@@ -853,15 +865,15 @@ export default function MachinesRegisteredView({
                     (t) => t.id_technician === m.technician || t.nom === m.technician
                   );
                   const sortiesCount = sortiesCountMap[m.id_machine_registered] || 0;
-                  const isService = String(m.status || 'En Service').toLowerCase().includes('service');
-                  const isMaintenance =
-                    String(m.status || '').toLowerCase().includes('maint') ||
-                    String(m.status || '').toLowerCase().includes('panne');
+                  const status = String(m.status || 'En Service').toUpperCase();
+                  const isArchived = status === 'ARCHIVEE';
+                  const isService = status.includes('SERVICE');
+                  const isMaintenance = status.includes('MAINT') || status.includes('PANNE');
 
                   return (
                     <tr
                       key={m.id_machine_registered || `mch-row-${realIndex}`}
-                      className="even:bg-slate-50/70 odd:bg-white hover:bg-emerald-50/40 border-b border-slate-200/70 transition-colors"
+                      className={`even:bg-slate-50/70 odd:bg-white hover:bg-emerald-50/40 border-b border-slate-200/70 transition-colors ${isArchived ? 'opacity-70 grayscale-[0.3]' : ''}`}
                     >
                       {/* Row N° Column */}
                       <td className="py-3 px-3 text-center font-mono text-[11px] font-bold text-slate-400 bg-slate-100/40 border-r border-slate-200/80 shrink-0">
@@ -1017,25 +1029,28 @@ export default function MachinesRegisteredView({
                         </div>
                       </td>
 
-                      {/* Status (H) */}
                       <td className="py-3 px-3 text-center whitespace-nowrap">
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border shadow-2xs ${
-                            isService
+                            isArchived
+                              ? 'bg-slate-100 text-slate-500 border-slate-300'
+                              : isService
                               ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                               : isMaintenance
-                                ? 'bg-amber-50 text-amber-800 border-amber-300'
-                                : 'bg-rose-50 text-rose-800 border-rose-300'
+                              ? 'bg-amber-50 text-amber-800 border-amber-300'
+                              : 'bg-rose-50 text-rose-800 border-rose-300'
                           }`}
                         >
-                          {isService ? (
+                          {isArchived ? (
+                            <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          ) : isService ? (
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                           ) : isMaintenance ? (
                             <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                           ) : (
                             <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
                           )}
-                          <span>{m.status || 'En Service'}</span>
+                          <span>{isArchived ? 'Archivée' : m.status || 'En Service'}</span>
                         </span>
                       </td>
 
@@ -1407,7 +1422,11 @@ export default function MachinesRegisteredView({
                 <b className="font-mono text-slate-900">{toDelete.id_machine_registered}</b> ({toDelete.designation}) ?
                 <br /><br />
                 <span className="text-[10px] bg-slate-50 border border-slate-100 p-2 rounded-lg block text-slate-600">
-                  <b>Remarque :</b> Si la machine est liée à des tâches préventives, interventions ou mouvements, elle sera <b>archivée</b> (désactivée) au lieu d'être supprimée, afin de préserver l'historique.
+                  <b>Remarque :</b> Si la machine est liée à des tâches préventives, interventions ou mouvements, elle sera <b>archivée</b> (désactivée) au lieu d'être supprimée.
+                  <br />
+                  <span className="mt-1 block text-right font-arabic" dir="rtl">
+                    «إذا كانت الآلة مرتبطة بمهام وقائية أو تدخلات تصحيحية أو حركات، سيتم <b>أرشفتها</b> وليس حذفها نهائياً، حفاظاً على السجل.»
+                  </span>
                 </span>
               </p>
             </div>

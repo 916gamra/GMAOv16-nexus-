@@ -514,11 +514,13 @@ export default function TabPlanBuilder({
               >
                 <option value="">-- Sélectionner une Machine du Parc --</option>
                 {machines.length > 0 ? (
-                  machines.map((m) => (
-                    <option key={m.id_machine_registered || m.id || m.code_machine} value={m.code_machine || m.id_machine_registered}>
-                      {m.code_machine || m.id_machine_registered} - {m.nom || m.designation || 'Machine'} ({m.id_zone || m.zone || 'Zone'})
-                    </option>
-                  ))
+                  machines
+                    .filter((m) => m.status !== 'ARCHIVEE' && m.is_active !== false)
+                    .map((m) => (
+                      <option key={m.id_machine_registered || m.id || m.code_machine} value={m.code_machine || m.id_machine_registered}>
+                        {m.code_machine || m.id_machine_registered} - {m.nom || m.designation || 'Machine'} ({m.id_zone || m.zone || 'Zone'})
+                      </option>
+                    ))
                 ) : (
                   <>
                     <option value="FRM-01">FRM-01 - Formeuse Hydraulique (AFM)</option>

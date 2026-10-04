@@ -682,19 +682,24 @@ export default function SortieRapideView({
 
   // Dynamic available machines based on selected zone
   const availableMachines = useMemo(() => {
-    if (!form.id_zone) return machines;
-    const targetZ = zones.find((z) => z.id_zone === form.id_zone || z.code_zone === form.id_zone || z.code === form.id_zone);
-    return machines.filter((m) => {
-      if (m.id_zone_default === form.id_zone) return true;
-      if (targetZ) {
-        return (
-          m.id_zone_default === targetZ.id_zone ||
-          m.id_zone_default === targetZ.code_zone ||
-          m.id_zone_default === targetZ.code
-        );
-      }
-      return false;
-    });
+    let list = machines;
+    if (form.id_zone) {
+      const targetZ = zones.find(
+        (z) => z.id_zone === form.id_zone || z.code_zone === form.id_zone || z.code === form.id_zone
+      );
+      list = machines.filter((m) => {
+        if (m.id_zone_default === form.id_zone) return true;
+        if (targetZ) {
+          return (
+            m.id_zone_default === targetZ.id_zone ||
+            m.id_zone_default === targetZ.code_zone ||
+            m.id_zone_default === targetZ.code
+          );
+        }
+        return false;
+      });
+    }
+    return list.filter((m) => m.status !== 'ARCHIVEE' && m.is_active !== false);
   }, [machines, form.id_zone, zones]);
 
   // Available technicians:

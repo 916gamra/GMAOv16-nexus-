@@ -35,6 +35,7 @@ import PreventiveAnalyticsView from './PreventiveAnalyticsView';
 import MonthlyDayMatrixView from './MonthlyDayMatrixView';
 import PreventiveService from '../../../../application/services/PreventiveService';
 import { multiTokenSearch } from '../../../../utils/searchUtils';
+import { dataIntegrityService } from '../../../../services/dataIntegrityService';
 
 const ACTION_PILL_MAP = {
   C: { bg: 'bg-blue-500/10 text-blue-800 border-blue-200/80', dot: 'bg-blue-600', label: 'Contrôle' },
@@ -112,6 +113,18 @@ export default function TabMainView({
   const [selectedWeek, setSelectedWeek] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [selectedTech, setSelectedTech] = useState('ALL');
+  const [orphanFilter, setOrphanFilter] = useState('ALL'); // 'ALL' | 'ORPHAN_ONLY' | 'LINKED_ONLY'
+
+  // Annotate tasks with orphan status
+  const tasksWithOrphanFlag = useMemo(
+    () => dataIntegrityService.annotatePreventiveOrphans(tasks, machines),
+    [tasks, machines]
+  );
+
+  const orphanCount = useMemo(
+    () => tasksWithOrphanFlag.filter((t) => t._isOrphan).length,
+    [tasksWithOrphanFlag]
+  );
 
   // Matrix range selector
   const [weekRange, setWeekRange] = useState('S1-S16');
@@ -158,15 +171,15 @@ export default function TabMainView({
         if (id && typeof id === 'string' && id.trim()) set.add(id.trim());
       });
     }
-    if (Array.isArray(tasks)) {
-      tasks.forEach((t) => {
+    if (Array.isArray(tasksWithOrphanFlag)) {
+      tasksWithOrphanFlag.forEach((t) => {
         const id = t?.id_machine;
         if (id && typeof id === 'string' && id.trim()) set.add(id.trim());
       });
     }
     const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
     return ['ALL', ...sorted];
-  }, [machines, tasks]);
+  }, [machines, tasksWithOrphanFlag]);
 
   const zoneList = useMemo(() => {
     const set = new Set();
@@ -182,15 +195,15 @@ export default function TabMainView({
         if (z && typeof z === 'string' && z.trim()) set.add(z.trim());
       });
     }
-    if (Array.isArray(tasks)) {
-      tasks.forEach((t) => {
+    if (Array.isArray(tasksWithOrphanFlag)) {
+      tasksWithOrphanFlag.forEach((t) => {
         const z = t?.id_zone;
         if (z && typeof z === 'string' && z.trim()) set.add(z.trim());
       });
     }
     const sorted = Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
     return ['ALL', ...sorted];
-  }, [zones, machines, tasks]);
+  }, [zones, machines, tasksWithOrphanFlag]);
 
   const techList = useMemo(() => {
     const set = new Set();
@@ -209,15 +222,15 @@ export default function TabMainView({
         if (name && name.trim()) set.add(name.trim());
       });
     }
-    if (Array.isArray(tasks)) {
-      tasks.forEach((t) => {
+    if (Array.isArray(tasksWithOrphanFlag)) {
+      tasksWithOrphanFlag.forEach((t) => {
         const resp = t?.responsable;
         if (resp && typeof resp === 'string' && resp.trim()) set.add(resp.trim());
       });
     }
     const sorted = Array.from(set).sort((a, b) => a.localeCompare(b));
     return ['ALL', ...sorted];
-  }, [technicians, tasks]);
+  }, [technicians, tasksWithOrphanFlag]);
 
   // Current ISO Week detection for highlighting current column
   const currentWeekNumber = useMemo(() => {
@@ -231,7 +244,7 @@ export default function TabMainView({
   const filteredTasks = useMemo(() => {
     const norm = (str) => String(str || '').trim().toUpperCase().replace(/[-_\s]/g, '');
 
-    return tasks.filter((t) => {
+    return tasksWithOrphanFlag.filter((t) => {
       // Search query across all fields using multiTokenSearch
       const matchSearch = multiTokenSearch(
         t,
@@ -262,9 +275,12 @@ export default function TabMainView({
       const matchTech = selectedTech === 'ALL' || norm(t.responsable) === norm(selectedTech);
       const matchWeek = selectedWeek === 'ALL' || (t.planning && Boolean(t.planning[selectedWeek]));
 
+      if (orphanFilter === 'ORPHAN_ONLY' && !t._isOrphan) return false;
+      if (orphanFilter === 'LINKED_ONLY' && t._isOrphan) return false;
+
       return matchSearch && matchZone && matchMach && matchAct && matchFreq && matchStat && matchTech && matchWeek;
     });
-  }, [tasks, deferredSearchQuery, selectedZone, selectedMachine, selectedAction, selectedFrequence, selectedStatus, selectedTech, selectedWeek, machineMap]);
+  }, [tasksWithOrphanFlag, deferredSearchQuery, selectedZone, selectedMachine, selectedAction, selectedFrequence, selectedStatus, selectedTech, selectedWeek, machineMap, orphanFilter]);
 
   const stats = useMemo(() => {
     const total = tasks.length;
@@ -910,6 +926,37 @@ export default function TabMainView({
                 >
                   {preset.count}
                 </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* QUICK ORPHAN FILTER BAR */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs no-scrollbar">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 mr-1 shrink-0">
+            <AlertTriangle className="w-3 h-3 text-amber-500" />
+            Intégrité Machine :
+          </span>
+          {[
+            { key: 'ALL', label: 'Toutes', count: tasksWithOrphanFlag.length },
+            { key: 'LINKED_ONLY', label: 'Liées (Actives)', count: tasksWithOrphanFlag.length - orphanCount },
+            { key: 'ORPHAN_ONLY', label: `Orphelines (${orphanCount})`, count: orphanCount, highlight: orphanCount > 0 },
+          ].map((preset) => {
+            const isSelected = orphanFilter === preset.key;
+            return (
+              <button
+                key={preset.key}
+                type="button"
+                onClick={() => setOrphanFilter(preset.key)}
+                className={`h-7 px-2.5 rounded-lg text-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                  isSelected
+                    ? 'bg-amber-600 text-white shadow-xs font-bold'
+                    : preset.highlight
+                    ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold animate-pulse'
+                    : 'bg-slate-100/80 hover:bg-slate-200/80 text-slate-700 font-medium'
+                }`}
+              >
+                <span>{preset.label}</span>
               </button>
             );
           })}

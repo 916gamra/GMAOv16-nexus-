@@ -734,6 +734,59 @@ class DataIntegrityService {
       correctiveSample: correctiveHits.slice(0, 5).map((i) => i.id || i.num_bt || i.code_bon),
     };
   }
+
+  /**
+   * Build a Set of ACTIVE machine ids (excludes archived / inactive).
+   */
+  buildActiveMachineIdSet(machines = []) {
+    const set = new Set();
+    (machines || []).forEach((m) => {
+      const archived =
+        m.status === 'ARCHIVEE' ||
+        m.statut === 'Archivée' ||
+        m.is_active === false ||
+        m.actif === false;
+      if (archived) return;
+      const id = String(m.id_machine_registered || m.id || m.code || m.id_machine || '')
+        .trim()
+        .toUpperCase();
+      if (id) set.add(id);
+    });
+    return set;
+  }
+
+  /**
+   * True if task/intervention machine ref is missing or points to archived machine.
+   */
+  isOrphanMachineRef(machineRef, activeMachineIds) {
+    const id = String(machineRef || '').trim().toUpperCase();
+    if (!id) return true;
+    return !activeMachineIds.has(id);
+  }
+
+  /**
+   * Annotate preventive tasks with _isOrphan flag.
+   */
+  annotatePreventiveOrphans(tasks = [], machines = []) {
+    const active = this.buildActiveMachineIdSet(machines);
+    return (tasks || []).map((t) => {
+      const ref = t.id_machine || t.machine_id || t.code_machine;
+      const isOrphan = this.isOrphanMachineRef(ref, active);
+      return isOrphan ? { ...t, _isOrphan: true } : { ...t, _isOrphan: false };
+    });
+  }
+
+  /**
+   * Annotate corrective interventions with _isOrphan flag.
+   */
+  annotateCorrectiveOrphans(interventions = [], machines = []) {
+    const active = this.buildActiveMachineIdSet(machines);
+    return (interventions || []).map((i) => {
+      const ref = i.code_machine || i.id_machine || i.machine_id || i.id_machine_registered;
+      const isOrphan = this.isOrphanMachineRef(ref, active);
+      return isOrphan ? { ...i, _isOrphan: true } : { ...i, _isOrphan: false };
+    });
+  }
 }
 
 export const dataIntegrityService = new DataIntegrityService();
