@@ -3,7 +3,35 @@ import fr from './translations/fr.json';
 import ar from './translations/ar.json';
 import en from './translations/en.json';
 
-const dictionaries = { fr, ar, en };
+import frZones from './locales/fr/zones.json';
+import arZones from './locales/ar/zones.json';
+import enZones from './locales/en/zones.json';
+
+import frUtilisateurs from './locales/fr/utilisateurs.json';
+import arUtilisateurs from './locales/ar/utilisateurs.json';
+import enUtilisateurs from './locales/en/utilisateurs.json';
+
+import frEntrepot from './locales/fr/entrepot.json';
+import arEntrepot from './locales/ar/entrepot.json';
+import enEntrepot from './locales/en/entrepot.json';
+
+import frCorrective from './locales/fr/corrective.json';
+import arCorrective from './locales/ar/corrective.json';
+import enCorrective from './locales/en/corrective.json';
+
+import frPreventive from './locales/fr/preventive.json';
+import arPreventive from './locales/ar/preventive.json';
+import enPreventive from './locales/en/preventive.json';
+
+import frMachines from './locales/fr/machines.json';
+import arMachines from './locales/ar/machines.json';
+import enMachines from './locales/en/machines.json';
+
+const dictionaries = {
+  fr: { ...fr, zones: frZones, utilisateurs: frUtilisateurs, entrepot: frEntrepot, corrective: frCorrective, preventive: frPreventive, machines: frMachines },
+  ar: { ...ar, zones: arZones, utilisateurs: arUtilisateurs, entrepot: arEntrepot, corrective: arCorrective, preventive: arPreventive, machines: arMachines },
+  en: { ...en, zones: enZones, utilisateurs: enUtilisateurs, entrepot: enEntrepot, corrective: enCorrective, preventive: enPreventive, machines: enMachines },
+};
 
 const I18nContext = createContext({
   language: 'fr',
@@ -22,8 +50,9 @@ export function I18nProvider({ children }) {
     }
   });
 
-  const dir = language === 'ar' ? 'rtl' : 'ltr';
-  const isRTL = language === 'ar';
+  // Rule: Application layout is strictly locked to LTR for all languages including Arabic (AR)
+  const dir = 'ltr';
+  const isRTL = false;
 
   useEffect(() => {
     try {
@@ -31,9 +60,9 @@ export function I18nProvider({ children }) {
     } catch {
       /* ignore */
     }
-    document.documentElement.dir = dir;
+    document.documentElement.dir = 'ltr';
     document.documentElement.lang = language;
-  }, [language, dir]);
+  }, [language]);
 
   const setLanguage = useCallback((newLang) => {
     if (dictionaries[newLang]) {
@@ -101,3 +130,5 @@ export function useTranslation() {
   }
   return context;
 }
+
+export const useI18n = useTranslation;

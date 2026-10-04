@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import ViewSwitchButtonGroup from './ViewSwitchButtonGroup';
 import TablePaginationCard from '../../../components/common/TablePaginationCard';
+import { useI18n } from '../../../../i18n/I18nContext';
 
 const ACTION_PILL_MAP = {
   C: { bg: 'bg-blue-500/10 text-blue-800 border-blue-200/80', dot: 'bg-blue-600', label: 'Contrôle' },
@@ -47,6 +48,7 @@ export default function MatrixWeeksView({
   hasActiveFilters = false,
   clearAllFilters = () => {},
 }) {
+  const { t } = useI18n();
   const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedMachines, setExpandedMachines] = useState(() => new Set());
@@ -160,15 +162,15 @@ export default function MatrixWeeksView({
             <div className="flex items-center gap-2">
               <Grid className="w-4 h-4 text-indigo-600" />
               <span className="font-bold text-slate-800 text-[13px]">
-                Matrice Hebdomadaire AFNOR (52 Semaines)
+                {t('preventive.table.matrix_afnor_title', 'Matrice Hebdomadaire AFNOR (52 Semaines)')}
               </span>
             </div>
             <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-mono font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
-              {totalMachines} Machine{totalMachines > 1 ? 's' : ''} ({totalTasks} tâches)
+              {totalMachines} {t('common.machine', 'Machine')}{totalMachines > 1 ? 's' : ''} ({totalTasks} {t('preventive.table.tasks_count', '{{count}} tâches', { count: totalTasks })})
             </span>
             {currentWeekNumber && (
               <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                Semaine courante : S{currentWeekNumber}
+                {t('preventive.table.current_week', 'Semaine courante : {{week}}', { week: `S${currentWeekNumber}` })}
               </span>
             )}
 
@@ -177,17 +179,17 @@ export default function MatrixWeeksView({
               type="button"
               onClick={toggleAllDisplayed}
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95"
-              title={allDisplayedExpanded ? 'Replier toutes les machines' : 'Déplier toutes les machines'}
+              title={allDisplayedExpanded ? t('preventive.table.collapse_all', 'Tout replier') : t('preventive.table.expand_all', 'Tout déplier')}
             >
               {allDisplayedExpanded ? (
                 <>
                   <ChevronUp className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Tout replier</span>
+                  <span>{t('preventive.table.collapse_all', 'Tout replier')}</span>
                 </>
               ) : (
                 <>
                   <ChevronDown className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>Tout déplier</span>
+                  <span>{t('preventive.table.expand_all', 'Tout déplier')}</span>
                 </>
               )}
             </button>
@@ -196,10 +198,10 @@ export default function MatrixWeeksView({
           {/* Right: Week Range Selector + 3D Circular Switch Button */}
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold text-slate-600 mr-1 hidden sm:inline">Plage :</span>
+              <span className="text-[11px] font-semibold text-slate-600 mr-1 hidden sm:inline">{t('preventive.table.range', 'Plage :')}</span>
               <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200 shadow-2xs">
                 {[
-                  { label: 'Tous (S1-S52)', val: 'ALL' },
+                  { label: t('preventive.table.range_all', 'Tous (S1-S52)'), val: 'ALL' },
                   { label: 'S1-S16', val: 'S1-S16' },
                   { label: 'S17-S32', val: 'S17-S32' },
                   { label: 'S33-S52', val: 'S33-S52' },
@@ -235,24 +237,24 @@ export default function MatrixWeeksView({
               <tr>
                 {/* Row Index */}
                 <th className="py-3 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/70 border-r border-slate-200 sticky left-0 z-30">
-                  N°
+                  {t('preventive.table.col_num', 'N°')}
                 </th>
 
                 {/* Machine (A) */}
                 <th className="py-3 px-3.5 min-w-[170px] sticky left-12 z-30 bg-slate-100 border-r border-slate-200 shadow-[2px_0_5px_rgba(0,0,0,0.04)]">
-                  <span>MACHINE (A)</span>
+                  <span>{t('preventive.table.col_machine', 'MACHINE (A)')}</span>
                 </th>
 
                 {/* Zone (B) */}
                 <th className="py-3 px-3 min-w-[70px] border-r border-slate-200">
-                  <span>ZONE (B)</span>
+                  <span>{t('preventive.table.col_zone', 'ZONE (B)')}</span>
                 </th>
 
                 {/* Composant (C) */}
                 <th className="py-3 px-3.5 min-w-[170px] border-r border-slate-200">
                   <div className="flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>COMPOSANT (C)</span>
+                    <span>{t('preventive.table.col_composant', 'COMPOSANT (C)')}</span>
                   </div>
                 </th>
 
@@ -260,7 +262,7 @@ export default function MatrixWeeksView({
                 <th className="py-3 px-3 min-w-[85px] text-center border-r border-slate-200">
                   <div className="flex items-center justify-center gap-1.5">
                     <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>ACTION (D)</span>
+                    <span>{t('preventive.table.col_action', 'ACTION (D)')}</span>
                   </div>
                 </th>
 
@@ -268,7 +270,7 @@ export default function MatrixWeeksView({
                 <th className="py-3 px-3 min-w-[85px] border-r border-slate-200">
                   <div className="flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>FRÉQ. (E)</span>
+                    <span>{t('preventive.table.col_frequence', 'FRÉQ. (E)')}</span>
                   </div>
                 </th>
 
@@ -292,7 +294,7 @@ export default function MatrixWeeksView({
                 <th className="py-3 px-3 min-w-[110px] border-r border-slate-200">
                   <div className="flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>RESP. (G)</span>
+                    <span>{t('preventive.table.col_responsable', 'RESP. (G)')}</span>
                   </div>
                 </th>
 
@@ -300,12 +302,12 @@ export default function MatrixWeeksView({
                 <th className="py-3 px-3 min-w-[95px] text-center border-r border-slate-200">
                   <div className="flex items-center justify-center gap-1.5">
                     <Activity className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>ÉTAT (H)</span>
+                    <span>{t('preventive.table.col_statut', 'STATUT (H)')}</span>
                   </div>
                 </th>
 
                 {/* Actions Menu */}
-                <th className="py-3 px-3.5 text-center min-w-[100px] font-bold text-slate-400 tracking-widest select-none" title="Actions Rapides">
+                <th className="py-3 px-3.5 text-center min-w-[100px] font-bold text-slate-400 tracking-widest select-none" title={t('preventive.table.col_actions', 'ACTIONS')}>
                   •••
                 </th>
               </tr>
@@ -316,9 +318,9 @@ export default function MatrixWeeksView({
                   <td colSpan={matrixWeeks.length + 9} className="p-12 text-center text-slate-400 text-xs">
                     <div className="max-w-md mx-auto space-y-2">
                       <Calendar className="w-8 h-8 text-slate-300 mx-auto" />
-                      <p className="font-bold text-slate-600">Aucune machine trouvée</p>
+                      <p className="font-bold text-slate-600">{t('preventive.table.empty_tasks', 'Aucune machine trouvée')}</p>
                       <p className="text-[11px] text-slate-400">
-                        Ajustez les filtres de recherche ou sélectionnez une autre zone / machine.
+                        {t('preventive.table.empty_tasks_sub', 'Ajustez vos critères de recherche ou vos filtres.')}
                       </p>
                       {hasActiveFilters && (
                         <button
@@ -326,7 +328,7 @@ export default function MatrixWeeksView({
                           onClick={clearAllFilters}
                           className="mt-2 px-3 py-1.5 text-xs font-bold bg-indigo-50 text-indigo-700 rounded-xl hover:bg-indigo-100 cursor-pointer"
                         >
-                          Réinitialiser les filtres
+                          {t('preventive.table.reset_filters', 'Réinitialiser les filtres')}
                         </button>
                       )}
                     </div>
@@ -518,10 +520,10 @@ export default function MatrixWeeksView({
                         <td className="py-2.5 px-3 font-medium text-slate-700 border-r border-slate-200 whitespace-nowrap">
                           {group.tasks.length === 1 ? (
                             <span className="font-semibold text-slate-800 text-xs truncate max-w-[100px] block">
-                              {group.tasks[0].responsable || 'Technicien'}
+                              {group.tasks[0].responsable || t('common.technician', 'Technicien')}
                             </span>
                           ) : (
-                            <span className="text-slate-500 text-[11px]">Équipe</span>
+                            <span className="text-slate-500 text-[11px]">{t('preventive.filters.badges.assigned', 'Équipe')}</span>
                           )}
                         </td>
 
@@ -533,20 +535,20 @@ export default function MatrixWeeksView({
                             if (lateCount > 0) {
                               return (
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                  {lateCount} retard{lateCount > 1 ? 's' : ''}
+                                  {lateCount} {t('preventive.table.status.late', 'En retard')}
                                 </span>
                               );
                             }
                             if (doneCount === group.tasks.length) {
                               return (
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                  Terminé
+                                  {t('preventive.table.status.done', 'Terminé')}
                                 </span>
                               );
                             }
                             return (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                {doneCount}/{group.tasks.length} fait
+                                {doneCount}/{group.tasks.length} {t('preventive.table.status.done', 'fait')}
                               </span>
                             );
                           })()}
@@ -562,7 +564,7 @@ export default function MatrixWeeksView({
                             }}
                             className="text-[11px] font-bold text-indigo-700 hover:text-indigo-900 transition hover:underline cursor-pointer"
                           >
-                            {isExpanded ? 'Réduire' : 'Détails'}
+                            {isExpanded ? t('common.close', 'Réduire') : t('common.edit', 'Détails')}
                           </button>
                         </td>
                       </tr>
@@ -571,6 +573,12 @@ export default function MatrixWeeksView({
                       {isExpanded &&
                         group.tasks.map((task, taskIdx) => {
                           const statusBadge = STATUT_BADGES[task.etat] || STATUT_BADGES['À faire'];
+                          const localizedStatus = task.etat === 'Fait'
+                            ? t('preventive.table.status.done', 'Fait')
+                            : task.etat === 'En retard'
+                            ? t('preventive.table.status.late', 'En retard')
+                            : t('preventive.table.status.todo', 'À faire');
+
                           const actionConfig = ACTION_PILL_MAP[task.action_code] || {
                             bg: 'bg-slate-100 text-slate-800 border-slate-200',
                             dot: 'bg-slate-500',
@@ -594,7 +602,7 @@ export default function MatrixWeeksView({
                                 <div className="flex items-center gap-1.5 text-slate-400 font-mono text-xs">
                                   <span className="text-indigo-600 font-bold">└─</span>
                                   <span className="text-[11px] text-slate-600 font-medium truncate max-w-[130px]">
-                                    Tâche {taskIdx + 1}/{group.tasks.length}
+                                    {t('preventive.tabs.list', 'Tâche')} {taskIdx + 1}/{group.tasks.length}
                                   </span>
                                 </div>
                               </td>
@@ -651,7 +659,7 @@ export default function MatrixWeeksView({
                                     {isDone ? (
                                       <span
                                         className="w-6 h-6 rounded-md bg-emerald-600 text-white flex items-center justify-center font-black text-[11px] mx-auto shadow-2xs cursor-default"
-                                        title={`Tâche réalisée avec succès en ${week}`}
+                                        title={`${t('preventive.table.status.done', 'Fait')} (${week})`}
                                       >
                                         ✓
                                       </span>
@@ -664,7 +672,7 @@ export default function MatrixWeeksView({
                                             ? 'bg-rose-600 text-white animate-pulse shadow-rose-200'
                                             : 'bg-indigo-50 text-indigo-800 hover:bg-indigo-600 hover:text-white border border-indigo-200'
                                         }`}
-                                        title={`${task.action_code} sur ${task.composant} (${task.frequence}) - Cliquez pour valider`}
+                                        title={`${task.action_code} (${task.composant}) - ${t('buttons.validate_task', 'Valider')}`}
                                       >
                                         {cellVal}
                                       </button>
@@ -680,7 +688,7 @@ export default function MatrixWeeksView({
                                 <div className="flex items-center gap-1.5">
                                   <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                                   <span className="font-semibold text-slate-800 text-xs truncate max-w-[100px]">
-                                    {task.responsable || 'Technicien'}
+                                    {task.responsable || t('common.technician', 'Technicien')}
                                   </span>
                                 </div>
                               </td>
@@ -688,7 +696,7 @@ export default function MatrixWeeksView({
                               {/* Statut */}
                               <td className="py-2 px-3 text-center border-r border-slate-200/80 whitespace-nowrap">
                                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border inline-block ${statusBadge}`}>
-                                  {task.etat}
+                                  {localizedStatus}
                                 </span>
                               </td>
 
@@ -699,7 +707,7 @@ export default function MatrixWeeksView({
                                     type="button"
                                     onClick={() => onOpenPrint(task)}
                                     className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 flex items-center justify-center transition shadow-2xs cursor-pointer"
-                                    title="Imprimer Bon d'OT Préventif"
+                                    title={t('preventive.buttons.print_wo', 'Imprimer OT')}
                                   >
                                     <Printer className="w-3.5 h-3.5" />
                                   </button>
@@ -708,9 +716,9 @@ export default function MatrixWeeksView({
                                       type="button"
                                       onClick={() => onOpenValidate(task)}
                                       className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer active:scale-95"
-                                      title="Valider avec pièces et consommables"
+                                      title={t('preventive.buttons.validate_execution', 'Valider')}
                                     >
-                                      Valider
+                                      {t('common.confirm', 'Valider')}
                                     </button>
                                   )}
                                 </div>

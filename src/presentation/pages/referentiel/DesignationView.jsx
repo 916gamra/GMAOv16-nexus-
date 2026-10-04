@@ -5,6 +5,7 @@ import FormulasModalButton from '../../components/common/FormulasModalButton';
 import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import CustomSelect from '../../components/common/CustomSelect';
 import SequentialCodePicker from '../../components/common/SequentialCodePicker';
+import { useI18n } from '../../../i18n/I18nContext';
 import {
   BadgeCheck,
   Layers,
@@ -67,6 +68,7 @@ export default function DesignationView({
   onNavigateToStockFilteredByRef,
   _onNavigateToQuickSortie,
 }) {
+  const { t } = useI18n();
   const [localSearch, setLocalSearch] = useState('');
   const [search, setSearch] = useState('');
 
@@ -393,7 +395,7 @@ export default function DesignationView({
     () => [
       {
         key: 'ref',
-        label: 'REF / CODE',
+        label: t('designation_articles.col_ref', 'REF / CODE'),
         colLetter: 'A',
         icon: Tag,
         sortable: true,
@@ -408,7 +410,7 @@ export default function DesignationView({
       },
       {
         key: 'designation',
-        label: 'DÉSIGNATION',
+        label: t('designation_articles.col_designation', 'DÉSIGNATION'),
         colLetter: 'B',
         icon: Package,
         sortable: true,
@@ -419,7 +421,7 @@ export default function DesignationView({
       },
       {
         key: 'id_type',
-        label: 'TYPE PARENT',
+        label: t('designation_articles.col_type', 'TYPE PARENT'),
         colLetter: 'C',
         icon: Layers,
         sortable: true,
@@ -430,7 +432,7 @@ export default function DesignationView({
               type="button"
               onClick={() => setDesigTypeFilter(typeName)}
               className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-semibold transition ${getTypeStyle(typeName)}`}
-              title="Filtrer par ce Type"
+              title={t('designation_articles.filter_type_title', 'Filtrer par ce Type')}
             >
               <Tag className="w-3 h-3 opacity-70" />
               <span>{typeName}</span>
@@ -440,7 +442,7 @@ export default function DesignationView({
       },
       {
         key: 'stockActuel',
-        label: 'STOCK ACTUEL',
+        label: t('designation_articles.col_stock', 'STOCK ACTUEL'),
         colLetter: 'D',
         icon: Boxes,
         sortable: true,
@@ -461,7 +463,7 @@ export default function DesignationView({
       },
       {
         key: 'alerte',
-        label: 'ÉTAT',
+        label: t('designation_articles.col_status', 'ÉTAT'),
         colLetter: 'E',
         icon: AlertTriangle,
         sortable: true,
@@ -491,19 +493,19 @@ export default function DesignationView({
               {alertStatus === 'RUPTURE' && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                   <XCircle className="w-3 h-3" />
-                  <span>RUPTURE</span>
+                  <span>{t('designation_articles.status_rupture', 'RUPTURE')}</span>
                 </span>
               )}
               {alertStatus === 'ALERTE' && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                   <AlertTriangle className="w-3 h-3" />
-                  <span>ALERTE</span>
+                  <span>{t('designation_articles.status_alert', 'ALERTE')}</span>
                 </span>
               )}
               {alertStatus === 'OK' && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <CheckCircle2 className="w-3 h-3" />
-                  <span>OK</span>
+                  <span>{t('designation_articles.status_ok', 'OK')}</span>
                 </span>
               )}
             </>
@@ -512,7 +514,7 @@ export default function DesignationView({
       },
       {
         key: 'emplacement',
-        label: 'EMPLACEMENT',
+        label: t('designation_articles.col_location', 'EMPLACEMENT'),
         colLetter: 'F',
         icon: MapPin,
         sortable: true,
@@ -561,7 +563,7 @@ export default function DesignationView({
                     }
                   }}
                   className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
-                  title="Filtrer le Stock Actuel sur cet article"
+                  title={t('designation_articles.filter_stock_title', 'Filtrer le Stock Actuel sur cet article')}
                 >
                   <Warehouse className="w-3.5 h-3.5 text-slate-900" />
                 </button>
@@ -575,7 +577,7 @@ export default function DesignationView({
                       ? 'bg-slate-100 text-cyan-700 font-bold'
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
-                  title="Actions et options de la désignation"
+                  title={t('article_types.action_options_title', 'Actions et options de la désignation')}
                 >
                   <MoreVertical className="w-3.5 h-3.5" />
                 </button>
@@ -585,7 +587,7 @@ export default function DesignationView({
                 <div className="absolute right-0 top-full mt-1.5 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150 space-y-1">
                   <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Actions Désignation PDR
+                      {t('designation_articles.action_header', 'Actions Désignation PDR')}
                     </div>
                     <div className="font-mono font-bold text-xs text-slate-800 truncate mt-0.5">
                       {refDisplay} • {desigDisplay}
@@ -603,7 +605,7 @@ export default function DesignationView({
                       className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-cyan-700 hover:bg-cyan-50 flex items-center gap-2 transition cursor-pointer group"
                     >
                       <Warehouse className="w-3.5 h-3.5 text-cyan-600 group-hover:scale-110 transition-transform" />
-                      <span>Filtrer le Stock Actuel ({currentStock})</span>
+                      <span>{t('designation_articles.filter_stock_action', 'Filtrer le Stock Actuel ({{count}})', { count: currentStock })}</span>
                     </button>
                     <button
                       type="button"
@@ -623,7 +625,7 @@ export default function DesignationView({
                       className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-indigo-700 hover:bg-indigo-50 flex items-center gap-2 transition cursor-pointer group"
                     >
                       <Edit2 className="w-3.5 h-3.5 text-indigo-600 group-hover:scale-110 transition-transform" />
-                      <span>Modifier la Désignation</span>
+                      <span>{t('designation_articles.edit_designation', 'Modifier la Désignation')}</span>
                     </button>
                     <button
                       type="button"
@@ -634,7 +636,7 @@ export default function DesignationView({
                       className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition cursor-pointer group"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-rose-500 group-hover:scale-110 transition-transform" />
-                      <span>Supprimer du Référentiel</span>
+                      <span>{t('designation_articles.delete_designation', 'Supprimer du Référentiel')}</span>
                     </button>
                   </div>
                 </div>
@@ -644,7 +646,7 @@ export default function DesignationView({
         },
       },
     ],
-    [stockItems, activeActionMenuId, onNavigateToStockFilteredByRef]
+    [stockItems, activeActionMenuId, onNavigateToStockFilteredByRef, t]
   );
 
   return (
@@ -661,10 +663,10 @@ export default function DesignationView({
           </div>
           <div>
             <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              Désignations d&apos;Articles
+              {t('designation_articles.title', "Désignations d'Articles")}
             </h2>
             <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-              Catalogue d&apos;articles de stock et pièces de rechange rattachés à un type parent (ex: Foret Beton Ø12 → Foret).
+              {t('designation_articles.subtitle', "Catalogue d'articles de stock et pièces de rechange rattachés à un type parent (ex: Foret Beton Ø12 → Foret).")}
             </p>
           </div>
         </div>
@@ -672,7 +674,7 @@ export default function DesignationView({
         <div className="flex items-center gap-2.5 shrink-0 relative">
           <FormulasModalButton
             onClick={() => setShowFormulasModal(true)}
-            title="Formules Excel (Désignations Articles)"
+            title={t('designation_articles.formulas_button', "Formules Excel (Désignations Articles)")}
           />
 
           <Action3DButton
@@ -688,7 +690,7 @@ export default function DesignationView({
               handleTypeSelect(initialType);
               setShowAddModal(true);
             }}
-            title="Nouvelle Désignation"
+            title={t('designation_articles.new_designation_button', 'Nouvelle Désignation')}
           />
         </div>
       </div>
@@ -704,14 +706,14 @@ export default function DesignationView({
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Filtres & Recherche Avancée
+                  {t('common.filters.title', 'Filtres & Recherche Avancée')}
                 </span>
                 <span className="bg-amber-50 text-amber-800 px-2.5 py-0.5 rounded-lg text-[11px] font-bold border border-amber-200/70 shadow-2xs font-mono">
                   {filtered.length} / {designations.length}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium">
-                Référentiel des Désignations & Articles PDR • Colonnes A → F
+                {t('designation_articles.filters_subtitle', 'Référentiel des Désignations & Articles PDR • Colonnes A → F')}
               </p>
             </div>
           </div>
@@ -721,10 +723,10 @@ export default function DesignationView({
             <button
               onClick={handleExportExcel}
               className="h-8 px-3 rounded-xl border border-emerald-200/80 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-              title="Exporter le tableau vers Excel / CSV"
+              title={t('common.filters.export_excel', 'Exporter le tableau vers Excel / CSV')}
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Export Excel</span>
+              <span>{t('common.filters.export_excel', 'Export Excel')}</span>
             </button>
 
             {/* Circular Reset Button */}
@@ -736,7 +738,7 @@ export default function DesignationView({
                   setSortField('ref');
                   setSortOrder('asc');
                 }}
-                title="Réinitialiser tous les filtres actifs"
+                title={t('common.filters.reset_tooltip', 'Réinitialiser tous les filtres actifs')}
                 className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in shrink-0"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -750,10 +752,10 @@ export default function DesignationView({
           <div className="w-full">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                RECHERCHE LIBRE
+                {t('article_types.search_free', 'RECHERCHE LIBRE')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                Col. A+B
+                {t('designation_articles.col_a_b', 'Col. A+B')}
               </span>
             </div>
             <div className="relative flex items-center">
@@ -762,7 +764,7 @@ export default function DesignationView({
               </span>
               <input
                 type="text"
-                placeholder="Rechercher par Ref (FORET001) ou Désignation..."
+                placeholder={t('designation_articles.search_placeholder', 'Rechercher par Ref (FORET001) ou Désignation...')}
                 value={localSearch}
                 onChange={(e) => setLocalSearch(e.target.value)}
                 className="w-full h-10 pl-9 pr-8 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
@@ -772,7 +774,7 @@ export default function DesignationView({
                   onClick={() => setLocalSearch('')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer z-10"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3 h-3" />
                 </button>
               )}
             </div>
@@ -782,10 +784,10 @@ export default function DesignationView({
           <div className="w-full">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                TYPE PARENT
+                {t('designation_articles.type_parent_label', 'TYPE PARENT')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                Col. C
+                {t('designation_articles.col_c', 'Col. C')}
               </span>
             </div>
             <CustomSelect
@@ -799,7 +801,7 @@ export default function DesignationView({
               options={[
                 {
                   value: 'ALL',
-                  label: `Tous les Types (${types.length})`,
+                  label: `${t('designation_articles.all_types', "Tous les types d'articles")} (${types.length})`,
                   badge: `${designations.length}`,
                   badgeColor: 'bg-slate-100 text-slate-700 font-bold',
                 },
@@ -826,10 +828,10 @@ export default function DesignationView({
           <div className="w-full relative" ref={sortMenuRef}>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                TRI DES ENREGISTREMENTS
+                {t('designation_articles.sorting_title', 'TRI DES ENREGISTREMENTS')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                Ordre A-Z
+                {t('article_types.order_a_z', 'Ordre A-Z')}
               </span>
             </div>
             <button
@@ -845,7 +847,7 @@ export default function DesignationView({
                   <ArrowUpDown className="w-3 h-3" />
                 </span>
                 <span>
-                  Tri : <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
+                  {t('article_types.sort_prefix', 'Tri :')} <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
                   {sortOrder === 'asc' ? 'A→Z' : 'Z→A'})
                 </span>
               </div>
@@ -859,7 +861,7 @@ export default function DesignationView({
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   <span className="flex items-center gap-1.5 text-slate-700 font-semibold">
                     <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />
-                    Trier par
+                    {t('designation_articles.sort_by_title', 'Trier par')}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 gap-1 text-xs">
@@ -871,7 +873,7 @@ export default function DesignationView({
                         : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>Référence / Code (A)</span>
+                    <span>{t('designation_articles.sort_ref', 'Référence / Code (A)')}</span>
                     {sortField === 'ref' &&
                       (sortOrder === 'asc' ? (
                         <ArrowUp className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
@@ -888,7 +890,7 @@ export default function DesignationView({
                         : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>Désignation / Libellé (B)</span>
+                    <span>{t('designation_articles.sort_designation', 'Désignation / Nom (B)')}</span>
                     {sortField === 'designation' &&
                       (sortOrder === 'asc' ? (
                         <ArrowUp className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
@@ -905,7 +907,7 @@ export default function DesignationView({
                         : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>Type Parent (C)</span>
+                    <span>{t('designation_articles.sort_type', 'Type Parent (C)')}</span>
                     {sortField === 'id_type' &&
                       (sortOrder === 'asc' ? (
                         <ArrowUp className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
@@ -922,7 +924,7 @@ export default function DesignationView({
                         : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>Stock Actuel (D)</span>
+                    <span>{t('designation_articles.sort_stock', 'Stock Actuel (D)')}</span>
                     {sortField === 'stockActuel' &&
                       (sortOrder === 'asc' ? (
                         <ArrowUp className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
@@ -939,7 +941,7 @@ export default function DesignationView({
                         : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>État du Stock (E)</span>
+                    <span>{t('designation_articles.sort_alert', 'État & Alerte (E)')}</span>
                     {sortField === 'alerte' &&
                       (sortOrder === 'asc' ? (
                         <ArrowUp className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
@@ -956,7 +958,7 @@ export default function DesignationView({
                         : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>Emplacement (F)</span>
+                    <span>{t('designation_articles.sort_location', 'Emplacement (F)')}</span>
                     {sortField === 'emplacement' &&
                       (sortOrder === 'asc' ? (
                         <ArrowUp className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
@@ -973,11 +975,11 @@ export default function DesignationView({
         {/* Active Filter Chips */}
         {(localSearch || desigTypeFilter !== 'ALL') && (
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 text-xs">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Filtres actifs :</span>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t('article_types.active_filter', 'Filtre actif :')}</span>
             {localSearch && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-semibold">
                 <Search className="w-3 h-3 text-indigo-600" />
-                Recherche: &quot;{localSearch}&quot;
+                {t('article_types.active_search_prefix', 'Recherche: ')}&quot;{localSearch}&quot;
                 <button
                   onClick={() => setLocalSearch('')}
                   className="hover:bg-indigo-200/60 p-0.5 rounded-full transition cursor-pointer"
@@ -1004,9 +1006,9 @@ export default function DesignationView({
 
       {/* Unified Industrial Data Grid */}
       <GmaoIndustrialDataGrid
-        title="Tableau Désignations d'Articles • Colonnes A → F"
+        title={t('designation_articles.grid_title', "Tableau Désignations d'Articles • Colonnes A → F")}
         icon={<BadgeCheck className="w-4 h-4 text-indigo-600" />}
-        excelMapping="ref (A) | designation (B) | id_type (C) | stockActuel (D) | alerte (E) | emplacement (F)"
+        excelMapping={t('designation_articles.excel_mapping', 'ref (A) | designation (B) | type (C) | stockActuel (D) | alerte (E) | emplacement (F)')}
         bannerColor="slate"
         columns={designationColumns}
         data={displayedData}
@@ -1017,7 +1019,7 @@ export default function DesignationView({
         startIndex={startIndex}
         showRowNumber={true}
         emptyIcon={<BadgeCheck className="w-8 h-8 text-slate-300" />}
-        emptyMessage="Aucune désignation trouvée"
+        emptyMessage={t('designation_articles.empty_message', "Aucune désignation trouvée")}
         pagination={{
           currentPage,
           setCurrentPage,
@@ -1026,7 +1028,7 @@ export default function DesignationView({
           totalItems,
           pageSizeOptions: [25, 50, 100, 200, 0],
           color: 'cyan',
-          itemLabel: 'désignations',
+          itemLabel: t('designation_articles.item_label', 'désignations'),
         }}
       />
 
@@ -1037,21 +1039,21 @@ export default function DesignationView({
               type="button"
               onClick={handleCloseAddModal}
               className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
-              title="Fermer"
+              title={t('common.close', 'Fermer')}
             >
               <X className="w-4 h-4" />
             </button>
             <h3 className="font-bold text-base text-slate-900 mb-1">
-              Nouvelle Désignation d&apos;Article
+              {t('designation_articles.add_title', "Nouvelle Désignation d'Article")}
             </h3>
             <p className="text-xs text-slate-500 mb-4">
-              Désignation d&apos;article associée à un Type parent (ex: FORET001 → Foret Beton Ø12).
+              {t('designation_articles.add_desc', "Désignation d'article associée à un Type parent (ex: FORET001 → Foret Beton Ø12).")}
             </p>
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <div className="flex items-center justify-between">
                   <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    Type Parent (Category)
+                    {t('designation_articles.type_parent_label', 'Type Parent')}
                   </label>
                   <button
                     type="button"
@@ -1061,7 +1063,7 @@ export default function DesignationView({
                     }}
                     className="text-[11px] font-semibold text-cyan-600 hover:underline"
                   >
-                    + Créer un Type
+                    + {t('article_types.new_type_button', 'Créer un Type')}
                   </button>
                 </div>
                 <CustomSelect
@@ -1087,18 +1089,18 @@ export default function DesignationView({
                   autoGeneratedCode={form.ref}
                   takenNumbers={takenDiagNumbers}
                   padLength={3}
-                  label="ID / Code Référence Article (B)"
-                  helperText="Génération séquentielle selon le Type parent ou sélection libre"
+                  label={t('designation_articles.code_label', 'ID / Code Référence Article (B)')}
+                  helperText={t('designation_articles.code_helper', 'Génération séquentielle selon le Type parent ou sélection libre')}
                 />
               </div>
 
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  Désignation d&apos;Article
+                  {t('designation_articles.designation_label', "Désignation d'Article")}
                 </label>
                 <input
                   type="text"
-                  placeholder="Foret Beton Ø12, Cheville Ø10..."
+                  placeholder={t('designation_articles.designation_placeholder', 'Foret Beton Ø12, Cheville Ø10...')}
                   value={form.designation}
                   onChange={(e) => setForm({ ...form, designation: e.target.value })}
                   className="mt-1 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs"
@@ -1109,7 +1111,7 @@ export default function DesignationView({
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    Stock Initial
+                    {t('designation_articles.stock_initial_label', 'Stock Initial')}
                   </label>
                   <input
                     type="number"
@@ -1121,7 +1123,7 @@ export default function DesignationView({
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    Seuil
+                    {t('designation_articles.threshold_label', 'Seuil')}
                   </label>
                   <input
                     type="number"
@@ -1133,7 +1135,7 @@ export default function DesignationView({
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    Emplacement
+                    {t('designation_articles.location_label', 'Emplacement')}
                   </label>
                   <input
                     type="text"
@@ -1151,13 +1153,13 @@ export default function DesignationView({
                   onClick={handleCloseAddModal}
                   className="flex-1 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-medium cursor-pointer"
                 >
-                  Annuler
+                  {t('common.cancel', 'Annuler')}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 h-10 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold transition shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer"
                 >
-                  Enregistrer
+                  {t('common.save', 'Enregistrer')}
                 </button>
               </div>
             </form>
@@ -1168,7 +1170,7 @@ export default function DesignationView({
       {toEdit && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-200">
-            <h3 className="font-bold text-base text-slate-900 mb-1">Modifier Désignation</h3>
+            <h3 className="font-bold text-base text-slate-900 mb-1">{t('designation_articles.edit_title', 'Modifier Désignation')}</h3>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -1179,7 +1181,7 @@ export default function DesignationView({
             >
               <div>
                 <label className="text-[11px] font-bold text-slate-500">
-                  ID / Réf (Désignation)
+                  {t('designation_articles.code_label', 'ID / Réf (Désignation)')}
                 </label>
                 <input
                   type="text"
@@ -1191,7 +1193,7 @@ export default function DesignationView({
 
               <div>
                 <label className="text-[11px] font-bold text-slate-500">
-                  Désignation (Libellé)
+                  {t('designation_articles.designation_label', 'Désignation (Libellé)')}
                 </label>
                 <input
                   type="text"
@@ -1204,7 +1206,7 @@ export default function DesignationView({
 
               <div>
                 <label className="text-[11px] font-bold text-slate-500">
-                  Type de Pièce / Article
+                  {t('designation_articles.type_parent_label', 'Type de Pièce / Article')}
                 </label>
                 <CustomSelect
                   value={toEdit.id_type || toEdit.type}
@@ -1220,7 +1222,7 @@ export default function DesignationView({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[11px] font-bold text-slate-500">
-                    Stock Initial (Opt)
+                    {t('designation_articles.stock_initial_label', 'Stock Initial (Opt)')}
                   </label>
                   <input
                     type="number"
@@ -1230,7 +1232,7 @@ export default function DesignationView({
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-slate-500">Seuil Alerte</label>
+                  <label className="text-[11px] font-bold text-slate-500">{t('designation_articles.threshold_label', 'Seuil Alerte')}</label>
                   <input
                     type="number"
                     value={toEdit.seuil || 0}
@@ -1241,7 +1243,7 @@ export default function DesignationView({
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-500">Emplacement</label>
+                <label className="text-[11px] font-bold text-slate-500">{t('designation_articles.location_label', 'Emplacement')}</label>
                 <input
                   type="text"
                   value={toEdit.emplacement || ''}
@@ -1256,13 +1258,13 @@ export default function DesignationView({
                   onClick={() => setToEdit(null)}
                   className="flex-1 h-10 rounded-xl bg-slate-100 text-xs font-medium"
                 >
-                  Annuler
+                  {t('common.cancel', 'Annuler')}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 h-10 rounded-xl bg-blue-600 text-white text-xs font-semibold"
                 >
-                  Enregistrer
+                  {t('common.save', 'Enregistrer')}
                 </button>
               </div>
             </form>
@@ -1274,18 +1276,17 @@ export default function DesignationView({
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-4">
             <div className="flex flex-col items-center text-center">
               <AlertTriangle className="w-8 h-8 text-rose-600 mb-2" />
-              <h3 className="font-bold text-lg text-slate-900">Supprimer la désignation ?</h3>
+              <h3 className="font-bold text-lg text-slate-900">{t('designation_articles.delete_title', 'Supprimer la désignation ?')}</h3>
             </div>
             <p className="text-sm text-center text-slate-600">
-              Confirmez-vous la suppression de <b>{toDelete.ref}</b> ? Cette opération est liée au
-              Stock Initial.
+              {t('designation_articles.delete_confirm', 'Confirmez-vous la suppression de {{name}} ?', { name: toDelete.ref })}
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setToDelete(null)}
                 className="flex-1 h-10 rounded-xl bg-slate-100 text-slate-700 text-xs font-medium"
               >
-                Annuler
+                {t('common.cancel', 'Annuler')}
               </button>
               <button
                 onClick={() => {
@@ -1294,7 +1295,7 @@ export default function DesignationView({
                 }}
                 className="flex-1 h-10 rounded-xl bg-rose-600 text-white text-xs font-semibold"
               >
-                Supprimer
+                {t('common.delete', 'Supprimer')}
               </button>
             </div>
           </div>
@@ -1311,8 +1312,8 @@ export default function DesignationView({
                   <Calculator className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-900 text-base">Formules Excel — Désignations d'Articles</h3>
-                  <p className="text-xs text-slate-500">Formules miroir de l'onglet Désignations (GMAO)</p>
+                  <h3 className="font-black text-slate-900 text-base">{t('designation_articles.formulas_title', "Formules Excel — Désignations d'Articles")}</h3>
+                  <p className="text-xs text-slate-500">{t('designation_articles.formulas_subtitle', "Formules miroir de l'onglet Désignations (GMAO)")}</p>
                 </div>
               </div>
               <button
@@ -1359,12 +1360,12 @@ export default function DesignationView({
             </div>
 
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-medium">Modèle GMAO_Light_Template_V2</span>
+              <span className="text-xs text-slate-400 font-medium">{t('article_types.template_version', 'Modèle GMAO_Light_Template_V2')}</span>
               <button
                 onClick={() => setShowFormulasModal(false)}
                 className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer"
               >
-                Fermer
+                {t('common.close', 'Fermer')}
               </button>
             </div>
           </div>

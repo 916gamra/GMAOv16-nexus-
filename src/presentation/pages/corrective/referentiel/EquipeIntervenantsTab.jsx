@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import TablePaginationCard from '../../../components/common/TablePaginationCard';
 import GmaoIndustrialDataGrid from '../../../components/common/GmaoIndustrialDataGrid.jsx';
+import { useI18n } from '../../../../i18n/I18nContext';
 import {
   Users,
   LayoutGrid,
@@ -29,6 +30,7 @@ export default function EquipeIntervenantsTab({
   zones = [],
   showToast,
 }) {
+  const { t } = useI18n();
   // View mode state: 'excel' (Tableau) | 'grid' (Cartes)
   const [displayMode, setDisplayMode] = useState('excel');
 
@@ -155,7 +157,7 @@ export default function EquipeIntervenantsTab({
     () => [
       {
         key: 'id_technician',
-        label: 'ID TECHNICIEN',
+        label: t('corrective.intervenants.col_id', 'ID TECHNICIEN'),
         colLetter: 'Col A',
         icon: Users,
         align: 'center',
@@ -170,7 +172,7 @@ export default function EquipeIntervenantsTab({
       },
       {
         key: 'nom',
-        label: 'NOM & PRÉNOM DU TECHNICIEN',
+        label: t('corrective.intervenants.col_nom', 'NOM & PRÉNOM DU TECHNICIEN'),
         colLetter: 'Col B',
         icon: User,
         render: (tech) => {
@@ -187,7 +189,7 @@ export default function EquipeIntervenantsTab({
       },
       {
         key: 'id_zone',
-        label: 'ZONE / ATELIER',
+        label: t('corrective.intervenants.col_zone', 'ZONE / ATELIER'),
         colLetter: 'Col C',
         icon: MapPin,
         render: (tech) => {
@@ -202,7 +204,7 @@ export default function EquipeIntervenantsTab({
       },
       {
         key: 'specialite',
-        label: 'SPÉCIALITÉ & COMPÉTENCES',
+        label: t('corrective.intervenants.col_specialite', 'SPÉCIALITÉ & COMPÉTENCES'),
         colLetter: 'Col D',
         icon: Wrench,
         render: (tech) => {
@@ -216,7 +218,7 @@ export default function EquipeIntervenantsTab({
       },
       {
         key: 'total',
-        label: 'INTERVENTIONS BT',
+        label: t('corrective.intervenants.col_total', 'INTERVENTIONS BT'),
         colLetter: 'Col E',
         icon: FileSpreadsheet,
         align: 'center',
@@ -244,7 +246,7 @@ export default function EquipeIntervenantsTab({
       },
       {
         key: 'actions',
-        label: 'ACTIONS GMAO',
+        label: t('common.actions', 'ACTIONS GMAO'),
         colLetter: 'Col G',
         icon: Zap,
         align: 'center',
@@ -256,7 +258,7 @@ export default function EquipeIntervenantsTab({
                 type="button"
                 onClick={() => handleOpenEditModal(tech)}
                 className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition cursor-pointer active:scale-95"
-                title="Modifier les informations du technicien"
+                title={t('corrective.intervenants.edit_title', 'Modifier les informations du technicien')}
               >
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
@@ -265,7 +267,7 @@ export default function EquipeIntervenantsTab({
                 type="button"
                 onClick={() => setTechToDelete(tech)}
                 className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition cursor-pointer active:scale-95"
-                title="Supprimer ce technicien de l'équipe"
+                title={t('corrective.intervenants.delete_title', 'Supprimer ce technicien de l\'équipe')}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -290,7 +292,7 @@ export default function EquipeIntervenantsTab({
         },
       },
     ],
-    [startIndex, onAddDemandeWithPreset]
+    [startIndex, onAddDemandeWithPreset, t]
   );
 
   return (
@@ -301,24 +303,29 @@ export default function EquipeIntervenantsTab({
         <div className="flex items-center gap-2 flex-wrap text-xs text-slate-600">
           <span className="font-bold text-slate-800 flex items-center gap-1.5">
             <Users className="w-4 h-4 text-purple-600" />
-            <span>Équipe Intervenants & Techniciens Habilités (Source SSOT: Utilisateurs)</span>
+            <span>{t('corrective.intervenants.title', 'Équipe Intervenants & Techniciens Habilités')}</span>
           </span>
 
           <span className="text-slate-300">|</span>
 
           <span>
             {totalItems > 0 ? (
-              <>
-                Affichage de <b>{startIndex + 1}</b> à <b>{endIndex}</b> sur <b>{totalItems}</b> techniciens
-              </>
+              t('corrective.intervenants.display_count', 'Affichage de {{start}} à {{end}} sur {{total}} techniciens', {
+                start: startIndex + 1,
+                end: endIndex,
+                total: totalItems,
+              })
             ) : (
-              'Aucun technicien trouvé'
+              t('corrective.intervenants.empty', 'Aucun technicien trouvé')
             )}
           </span>
 
           {totalItems < totalIntervenantsCount && (
             <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
-              Filtre actif ({totalItems} / {totalIntervenantsCount})
+              {t('components.group.active_filter_with_counts', 'Filtre actif ({{filtered}} / {{total}})', {
+                filtered: totalItems,
+                total: totalIntervenantsCount,
+              })}
             </span>
           )}
         </div>
@@ -330,10 +337,10 @@ export default function EquipeIntervenantsTab({
             type="button"
             onClick={handleOpenAddModal}
             className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-            title="Ajouter un nouveau technicien habilité"
+            title={t('corrective.intervenants.add_title', 'Ajouter un nouveau technicien')}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Nouveau Technicien</span>
+            <span>{t('corrective.intervenants.add_button', 'Nouveau Technicien')}</span>
           </button>
 
           <div className="inline-flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 shadow-2xs">
@@ -345,10 +352,10 @@ export default function EquipeIntervenantsTab({
                   ? 'bg-white text-slate-900 shadow-2xs border border-slate-200 font-black'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
-              title="Affichage en tableau Excel avec 20 lignes fixes"
+              title={t('corrective.pannes.view_table', 'Vue Tableau')}
             >
               <Table className="w-3.5 h-3.5 text-purple-600" />
-              <span>Tableau Excel</span>
+              <span>{t('corrective.pannes.view_table', 'Tableau Excel')}</span>
             </button>
 
             <button
@@ -359,10 +366,10 @@ export default function EquipeIntervenantsTab({
                   ? 'bg-white text-slate-900 shadow-2xs border border-slate-200 font-black'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
-              title="Affichage en cartes / grille"
+              title={t('corrective.pannes.view_cards', 'Vue Cartes')}
             >
               <LayoutGrid className="w-3.5 h-3.5 text-purple-600" />
-              <span>Cartes / Grille</span>
+              <span>{t('corrective.pannes.view_cards', 'Cartes / Grille')}</span>
             </button>
           </div>
         </div>

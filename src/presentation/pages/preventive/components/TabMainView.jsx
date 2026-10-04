@@ -25,6 +25,7 @@ import {
   CalendarRange,
 } from 'lucide-react';
 import CustomSelect from '../../../components/common/CustomSelect';
+import { useI18n } from '../../../../i18n/I18nContext';
 import PrintWorkOrderModal from './PrintWorkOrderModal';
 import MonthlyCalendarView from './MonthlyCalendarView';
 import GroupedMachinesView from './GroupedMachinesView';
@@ -64,6 +65,7 @@ export default function TabMainView({
   onCreateCorrective,
   _onNavigateToMachine,
 }) {
+  const { t } = useI18n();
   const [internalViewMode, setInternalViewMode] = useState('matrix'); // 'matrix' | 'calendar' | 'list' | 'analytics'
   const viewMode = controlledViewMode !== undefined ? controlledViewMode : internalViewMode;
   const setViewMode = useCallback(
@@ -305,8 +307,8 @@ export default function TabMainView({
   const zoneOptions = useMemo(() => [
     {
       value: 'ALL',
-      label: `Toutes Zones (${Math.max(0, zoneList.length - 1)})`,
-      badge: 'Global',
+      label: `${t('preventive.filters.all_zones', 'Toutes Zones')} (${Math.max(0, zoneList.length - 1)})`,
+      badge: t('common.all', 'Global'),
       badgeColor: 'bg-slate-100 text-slate-700',
     },
     ...zoneList.filter((z) => z !== 'ALL').map((z) => {
@@ -315,19 +317,19 @@ export default function TabMainView({
         : 0;
       return {
         value: z,
-        label: `Zone ${z}`,
-        sublabel: machCountInZone > 0 ? `${machCountInZone} équipement(s) installés` : undefined,
-        badge: 'Site',
+        label: `${t('common.zone', 'Zone')} ${z}`,
+        sublabel: machCountInZone > 0 ? `${machCountInZone} ${t('preventive.filters.badges.equip', 'équipement(s)')}` : undefined,
+        badge: t('preventive.filters.badges.site', 'Site'),
         badgeColor: 'bg-emerald-50 text-emerald-800 border border-emerald-200/80',
       };
     }),
-  ], [zoneList, machines]);
+  ], [zoneList, machines, t]);
 
   const machineOptions = useMemo(() => [
     {
       value: 'ALL',
-      label: `Toutes Machines (${Math.max(0, machineList.length - 1)})`,
-      badge: 'Global',
+      label: `${t('preventive.filters.all_machines', 'Toutes Machines')} (${Math.max(0, machineList.length - 1)})`,
+      badge: t('common.all', 'Global'),
       badgeColor: 'bg-slate-100 text-slate-700',
     },
     ...machineList.filter((m) => m !== 'ALL').map((mId) => {
@@ -339,15 +341,15 @@ export default function TabMainView({
       return {
         value: mId,
         label: machineName ? `${mId} · ${machineName}` : mId,
-        sublabel: zoneName ? `Zone: ${zoneName}${familyName ? ` · ${familyName}` : ''}` : undefined,
-        badge: 'Équip.',
+        sublabel: zoneName ? `${t('common.zone', 'Zone')}: ${zoneName}${familyName ? ` · ${familyName}` : ''}` : undefined,
+        badge: t('preventive.filters.badges.equip', 'Équip.'),
         badgeColor: 'bg-blue-50 text-blue-800 border border-blue-200/80',
       };
     }),
-  ], [machineList, machineMap, taskMachineMap]);
+  ], [machineList, machineMap, taskMachineMap, t]);
 
   const actionOptions = useMemo(() => [
-    { value: 'ALL', label: `Toutes Actions (${actions.length})`, badge: 'AFNOR', badgeColor: 'bg-slate-100 text-slate-700' },
+    { value: 'ALL', label: `${t('preventive.filters.all_actions', 'Toutes Actions')} (${actions.length})`, badge: 'AFNOR', badgeColor: 'bg-slate-100 text-slate-700' },
     ...actions.map((a) => ({
       value: a.code,
       label: `${a.code} - ${a.libelle}`,
@@ -355,58 +357,58 @@ export default function TabMainView({
       badge: a.code,
       badgeColor: ACTION_PILL_MAP[a.code]?.bg || 'bg-indigo-50 text-indigo-800',
     })),
-  ], [actions]);
+  ], [actions, t]);
 
   const frequenceOptions = useMemo(() => [
-    { value: 'ALL', label: 'Toutes Fréquences', badge: 'Période', badgeColor: 'bg-slate-100 text-slate-700' },
+    { value: 'ALL', label: t('preventive.filters.all_frequences', 'Toutes Fréquences'), badge: t('preventive.filters.badges.period', 'Période'), badgeColor: 'bg-slate-100 text-slate-700' },
     { value: 'Hebdo', label: 'Hebdomadaire (Hebdo)', sublabel: 'Toutes les semaines', badge: '7J', badgeColor: 'bg-blue-50 text-blue-800 border border-blue-200' },
     { value: 'Mensuel', label: 'Mensuel (Mois)', sublabel: 'Toutes les 4 semaines', badge: '30J', badgeColor: 'bg-teal-50 text-teal-800 border border-teal-200' },
     { value: 'Trimestriel', label: 'Trimestriel (3 Mois)', sublabel: 'Toutes les 12 semaines', badge: '90J', badgeColor: 'bg-amber-50 text-amber-800 border border-amber-200' },
     { value: 'Semestriel', label: 'Semestriel (6 Mois)', sublabel: 'Toutes les 26 semaines', badge: '180J', badgeColor: 'bg-purple-50 text-purple-800 border border-purple-200' },
     { value: 'Annuel', label: 'Annuel (1 An)', sublabel: '1 fois par an (52 semaines)', badge: '365J', badgeColor: 'bg-rose-50 text-rose-800 border border-rose-200' },
-  ], []);
+  ], [t]);
 
   const weekOptions = useMemo(() => [
-    { value: 'ALL', label: 'Toutes Semaines (S1-S52)', badge: '52S', badgeColor: 'bg-slate-100 text-slate-700' },
+    { value: 'ALL', label: `${t('preventive.filters.all_weeks', 'Toutes Semaines')} (S1-S52)`, badge: '52S', badgeColor: 'bg-slate-100 text-slate-700' },
     ...Array.from({ length: 52 }, (_, i) => {
       const weekNum = i + 1;
       const s = `S${weekNum}`;
       const isCurrent = weekNum === Number(currentWeekNumber);
       return {
         value: s,
-        label: isCurrent ? `Semaine ${s} (En cours)` : `Semaine ${s}`,
-        sublabel: isCurrent ? 'Semaine calendaire active' : undefined,
+        label: isCurrent ? `${t('preventive.filters.iso_week', 'Semaine')} ${s} (En cours)` : `${t('preventive.filters.iso_week', 'Semaine')} ${s}`,
+        sublabel: isCurrent ? 'Semaine active' : undefined,
         badge: isCurrent ? 'ACTIF' : s,
         badgeColor: isCurrent
           ? 'bg-emerald-100 text-emerald-900 border border-emerald-300 font-black'
           : 'bg-slate-100 text-slate-700',
       };
     }),
-  ], [currentWeekNumber]);
+  ], [currentWeekNumber, t]);
 
   const techOptions = useMemo(() => [
     {
       value: 'ALL',
-      label: `Tous Techniciens (${Math.max(0, techList.length - 1)})`,
-      badge: 'Équipe',
+      label: `${t('preventive.filters.all_technicians', 'Tous Techniciens')} (${Math.max(0, techList.length - 1)})`,
+      badge: t('common.technician', 'Équipe'),
       badgeColor: 'bg-slate-100 text-slate-700',
     },
-    ...techList.filter((t) => t !== 'ALL').map((tName) => {
+    ...techList.filter((tName) => tName !== 'ALL').map((tName) => {
       const masterTech = Array.isArray(technicians)
-        ? technicians.find((t) => {
-            const full = typeof t === 'string' ? t : (t?.nom ? `${t.nom} ${t.prenom || ''}`.trim() : (t?.nom_technicien || t?.name || t?.id_technician));
+        ? technicians.find((tech) => {
+            const full = typeof tech === 'string' ? tech : (tech?.nom ? `${tech.nom} ${tech.prenom || ''}`.trim() : (tech?.nom_technicien || tech?.name || tech?.id_technician));
             return full === tName;
           })
         : null;
       return {
         value: tName,
         label: tName,
-        sublabel: (masterTech && typeof masterTech === 'object' && masterTech.specialite) ? masterTech.specialite : 'Technicien de Maintenance',
-        badge: 'Tech',
+        sublabel: (masterTech && typeof masterTech === 'object' && masterTech.specialite) ? masterTech.specialite : undefined,
+        badge: t('preventive.filters.badges.assigned', 'Tech'),
         badgeColor: 'bg-purple-50 text-purple-800 border border-purple-200',
       };
     }),
-  ], [techList, technicians]);
+  ], [techList, technicians, t]);
 
   // Unified available inventory combining Stock PDR Magasin and Entrepôt Réserve
   const availableInventory = useMemo(() => {
@@ -595,7 +597,7 @@ export default function TabMainView({
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-black tracking-wider uppercase text-slate-500">
-              Total Programme
+              {t('preventive.kpis.total_program', 'Total Programme')}
             </span>
             <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 shadow-2xs group-hover:scale-110 transition-transform">
               <Calendar className="w-4 h-4" />
@@ -606,11 +608,11 @@ export default function TabMainView({
               {stats.total}
             </span>
             <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
-              S1-S52
+              {t('preventive.kpis.weeks_range', 'S1-S52')}
             </span>
           </div>
           <p className="text-[10.5px] text-slate-400 mt-1 truncate">
-            {Math.max(0, machineList.length - 1)} machines enregistrées
+            {t('preventive.kpis.registered_machines', { count: Math.max(0, machineList.length - 1) })}
           </p>
         </div>
 
@@ -623,7 +625,7 @@ export default function TabMainView({
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-black tracking-wider uppercase text-blue-700">
-              À Réaliser
+              {t('preventive.kpis.to_do', 'À Réaliser')}
             </span>
             <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 shadow-2xs group-hover:scale-110 transition-transform">
               <Clock className="w-4 h-4" />
@@ -634,11 +636,11 @@ export default function TabMainView({
               {stats.aFaire}
             </span>
             <span className="text-[11px] font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-md">
-              Planifiées
+              {t('preventive.kpis.planned', 'Planifiées')}
             </span>
           </div>
           <p className="text-[10.5px] text-slate-400 mt-1">
-            En attente d'exécution
+            {t('preventive.kpis.waiting_execution', 'En attente d\'exécution')}
           </p>
         </div>
 
@@ -651,7 +653,7 @@ export default function TabMainView({
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-black tracking-wider uppercase text-emerald-700">
-              Fait & Conforme
+              {t('preventive.kpis.done_compliant', 'Fait & Conforme')}
             </span>
             <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shadow-2xs group-hover:scale-110 transition-transform">
               <CheckCircle2 className="w-4 h-4" />
@@ -682,7 +684,7 @@ export default function TabMainView({
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-black tracking-wider uppercase text-rose-700">
-              En Retard
+              {t('preventive.kpis.overdue', 'En Retard')}
             </span>
             <div className="w-8 h-8 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-700 shadow-2xs group-hover:scale-110 transition-transform">
               <AlertTriangle className="w-4 h-4" />
@@ -693,11 +695,11 @@ export default function TabMainView({
               {stats.enRetard}
             </span>
             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${stats.enRetard > 0 ? 'bg-rose-100 text-rose-800 animate-pulse' : 'bg-slate-100 text-slate-500'}`}>
-              {stats.enRetard > 0 ? 'Action Requise' : 'Aucun'}
+              {stats.enRetard > 0 ? t('preventive.kpis.action_required', 'Action Requise') : t('preventive.kpis.none', 'Aucun')}
             </span>
           </div>
           <p className="text-[10.5px] text-slate-400 mt-1">
-            Déclenchement BT possible
+            {t('preventive.kpis.trigger_wo', 'Déclenchement BT possible')}
           </p>
         </div>
 
@@ -705,7 +707,7 @@ export default function TabMainView({
         <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.08)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 transition-all duration-300 col-span-2 lg:col-span-1 group">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-black tracking-wider uppercase text-amber-700">
-              Budget PDR Réalisé
+              {t('preventive.kpis.pdr_budget', 'Budget PDR Réalisé')}
             </span>
             <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shadow-2xs group-hover:scale-110 transition-transform">
               <DollarSign className="w-4 h-4" />
@@ -716,11 +718,11 @@ export default function TabMainView({
               {stats.totalCost.toFixed(2)} <span className="text-xs font-normal text-slate-500">DT</span>
             </span>
             <span className="text-[10.5px] font-bold text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded-md">
-              Pièces
+              {t('preventive.kpis.parts', 'Pièces')}
             </span>
           </div>
           <p className="text-[10.5px] text-slate-400 mt-1 truncate">
-            Coût cumulé préventif
+            {t('preventive.kpis.cumulative_cost', 'Coût cumulé préventif')}
           </p>
         </div>
       </div>
@@ -736,19 +738,19 @@ export default function TabMainView({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-900">
-                  Filtres & Affichage Matrice
+                  {t('common.filters.title')}
                 </span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
                   {filteredTasks.length} / {tasks.length}
                 </span>
                 {activeFiltersCount > 0 && (
                   <span className="px-1.5 py-0.2 rounded-md text-[9.5px] font-bold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
-                    {activeFiltersCount} actif{activeFiltersCount > 1 ? 's' : ''}
+                    {activeFiltersCount}
                   </span>
                 )}
               </div>
               <p className="text-[10.5px] text-slate-400 font-medium">
-                Matrice 52 Semaines · Planning Dynamique & Fiches Métier
+                {t('preventive.filters.subtitle', 'Matrice 52 Semaines · Planning Dynamique & Fiches Métier')}
               </p>
             </div>
           </div>
@@ -767,7 +769,7 @@ export default function TabMainView({
                 title="Grille Planning Mensuel Excel par Jours (J1→J31)"
               >
                 <CalendarRange className="w-3.5 h-3.5 text-cyan-600" />
-                <span className="hidden sm:inline">Grille Jours J1-J31</span>
+                <span className="hidden sm:inline">{t('preventive.view_modes.days_grid', 'Grille Jours J1-J31')}</span>
               </button>
 
               <button
@@ -781,7 +783,7 @@ export default function TabMainView({
                 title="Matrice Annuelle 52 Semaines"
               >
                 <Grid className="w-3.5 h-3.5 text-indigo-600" />
-                <span className="hidden sm:inline">Matrice S1-S52</span>
+                <span className="hidden sm:inline">{t('preventive.view_modes.weeks_matrix', 'Matrice S1-S52')}</span>
               </button>
 
               <button
@@ -795,7 +797,7 @@ export default function TabMainView({
                 title="Vue Machines & Tâches Groupées (Accordéon)"
               >
                 <Factory className="w-3.5 h-3.5 text-indigo-600" />
-                <span className="hidden sm:inline">Par Machine</span>
+                <span className="hidden sm:inline">{t('preventive.view_modes.by_machine', 'Par Machine')}</span>
               </button>
 
               <button
@@ -809,7 +811,7 @@ export default function TabMainView({
                 title="Vue Calendrier Mensuel avec Badges Machines"
               >
                 <CalendarDays className="w-3.5 h-3.5 text-teal-600" />
-                <span className="hidden sm:inline">Calendrier Mensuel</span>
+                <span className="hidden sm:inline">{t('preventive.view_modes.monthly_calendar', 'Calendrier Mensuel')}</span>
               </button>
 
               <button
@@ -823,7 +825,7 @@ export default function TabMainView({
                 title="Tableau Détaillé Liste"
               >
                 <List className="w-3.5 h-3.5 text-slate-600" />
-                <span className="hidden sm:inline">Liste Tâches</span>
+                <span className="hidden sm:inline">{t('preventive.view_modes.tasks_list', 'Liste Tâches')}</span>
               </button>
             </div>
 
@@ -835,7 +837,7 @@ export default function TabMainView({
               title="Exporter la matrice vers un fichier CSV / Excel"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
-              <span className="hidden md:inline">Export Excel</span>
+              <span className="hidden md:inline">{t('common.filters.export_excel', 'Export Excel')}</span>
             </button>
 
             {/* Print Planning */}
@@ -854,7 +856,7 @@ export default function TabMainView({
                 type="button"
                 onClick={clearAllFilters}
                 className="h-8 w-8 rounded-full border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-700 flex items-center justify-center transition cursor-pointer shadow-2xs active:scale-95 relative group"
-                title="Réinitialiser tous les filtres"
+                title={t('common.filters.reset_tooltip', 'Réinitialiser tous les filtres')}
               >
                 <RotateCcw className="w-3.5 h-3.5 transition-transform group-hover:-rotate-45" />
                 <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-white text-[9px] font-bold flex items-center justify-center shadow-xs">
@@ -869,13 +871,13 @@ export default function TabMainView({
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs no-scrollbar">
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 mr-1 shrink-0">
             <Activity className="w-3 h-3 text-slate-400" />
-            Statut Rapide :
+            {t('common.filters.status', 'Statut :')}
           </span>
           {[
-            { key: 'ALL', label: 'Toutes les Tâches', count: tasks.length, colorDot: null },
-            { key: 'À faire', label: 'À Réaliser', count: stats.aFaire, colorDot: 'bg-blue-500' },
-            { key: 'Fait', label: 'Fait & Conforme', count: stats.fait, colorDot: 'bg-emerald-500' },
-            { key: 'En retard', label: 'En Retard (Alerte)', count: stats.enRetard, colorDot: 'bg-rose-500' },
+            { key: 'ALL', label: t('preventive.filters.all_tasks', 'Toutes les Tâches'), count: tasks.length, colorDot: null },
+            { key: 'À faire', label: t('preventive.filters.to_do', 'À réaliser'), count: stats.aFaire, colorDot: 'bg-blue-500' },
+            { key: 'Fait', label: t('preventive.filters.done', 'Fait & Conforme'), count: stats.fait, colorDot: 'bg-emerald-500' },
+            { key: 'En retard', label: t('preventive.filters.overdue', 'En retard'), count: stats.enRetard, colorDot: 'bg-rose-500' },
           ].map((preset) => {
             const isSelected = selectedStatus === preset.key;
             return (
@@ -922,7 +924,7 @@ export default function TabMainView({
           </div>
           <input
             type="text"
-            placeholder="Recherche multi-mots : machine (ex: FRM-01), organe (ex: Roulement), action (ex: C, N, G), technicien..."
+            placeholder={t('preventive.filters.search_placeholder', 'Recherche multi-mots : machine (ex: FRM-01), organe, action, technicien...')}
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -934,7 +936,7 @@ export default function TabMainView({
               type="button"
               onClick={() => setSearchQuery('')}
               className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer transition-colors"
-              title="Effacer la recherche"
+              title={t('common.cancel', 'Effacer la recherche')}
             >
               <X className="w-4 h-4" />
             </button>
@@ -946,9 +948,9 @@ export default function TabMainView({
           {/* 1. Zone Filter */}
           <div>
             <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Zone</span>
+              <span>{t('common.zone', 'Zone')}</span>
               <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                Site
+                {t('preventive.filters.badges.site', 'Site')}
               </span>
             </div>
             <CustomSelect
@@ -962,16 +964,16 @@ export default function TabMainView({
                 setSelectedZone(val);
               }}
               options={zoneOptions}
-              placeholder="Toutes Zones"
+              placeholder={t('preventive.filters.all_zones', 'Toutes Zones')}
             />
           </div>
 
           {/* 2. Machine Filter */}
           <div>
             <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Machine</span>
+              <span>{t('common.machine', 'Machine')}</span>
               <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
-                Équip.
+                {t('preventive.filters.badges.equip', 'Équip.')}
               </span>
             </div>
             <CustomSelect
@@ -985,16 +987,16 @@ export default function TabMainView({
                 setSelectedMachine(val);
               }}
               options={machineOptions}
-              placeholder="Toutes Machines"
+              placeholder={t('preventive.filters.all_machines', 'Toutes Machines')}
             />
           </div>
 
           {/* 3. Action AFNOR Filter */}
           <div>
             <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Action AFNOR</span>
+              <span>{t('preventive.filters.action_afnor', 'Action AFNOR')}</span>
               <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
-                Type
+                {t('preventive.filters.badges.type', 'Type')}
               </span>
             </div>
             <CustomSelect
@@ -1008,16 +1010,16 @@ export default function TabMainView({
                 setSelectedAction(val);
               }}
               options={actionOptions}
-              placeholder="Toutes Actions"
+              placeholder={t('preventive.filters.all_actions', 'Toutes Actions')}
             />
           </div>
 
           {/* 4. Fréquence Filter */}
           <div>
             <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Fréquence</span>
+              <span>{t('preventive.matrix.frequence', 'Fréquence')}</span>
               <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
-                Période
+                {t('preventive.filters.badges.period', 'Période')}
               </span>
             </div>
             <CustomSelect
@@ -1031,16 +1033,16 @@ export default function TabMainView({
                 setSelectedFrequence(val);
               }}
               options={frequenceOptions}
-              placeholder="Toutes Fréquences"
+              placeholder={t('preventive.filters.all_frequences', 'Toutes Fréquences')}
             />
           </div>
 
           {/* 5. Semaine ISO Filter */}
           <div>
             <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Semaine ISO</span>
+              <span>{t('preventive.filters.iso_week', 'Semaine ISO')}</span>
               <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-teal-50 text-teal-700 border border-teal-200/80">
-                S1-S52
+                {t('preventive.filters.badges.weeks_range', 'S1-S52')}
               </span>
             </div>
             <CustomSelect
@@ -1054,16 +1056,16 @@ export default function TabMainView({
                 setSelectedWeek(val);
               }}
               options={weekOptions}
-              placeholder="Toutes Semaines"
+              placeholder={t('preventive.filters.all_weeks', 'Toutes Semaines')}
             />
           </div>
 
           {/* 6. Technicien Filter */}
           <div>
             <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Technicien</span>
+              <span>{t('common.technician', 'Technicien')}</span>
               <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200/80">
-                Assigné
+                {t('preventive.filters.badges.assigned', 'Assigné')}
               </span>
             </div>
             <CustomSelect
@@ -1077,7 +1079,7 @@ export default function TabMainView({
                 setSelectedTech(val);
               }}
               options={techOptions}
-              placeholder="Tous Techniciens"
+              placeholder={t('preventive.filters.all_technicians', 'Tous Techniciens')}
             />
           </div>
         </div>
@@ -1087,12 +1089,12 @@ export default function TabMainView({
           <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-slate-100 text-xs">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
               <Filter className="w-3 h-3 text-indigo-500" />
-              Filtres actifs :
+              {t('common.filters.active_filters', 'Filtres actifs :')}
             </span>
 
             {searchQuery && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-900 border border-indigo-200 font-medium">
-                <span>Recherche : <b>"{searchQuery}"</b></span>
+                <span>{t('common.filters.search', 'Recherche :')} <b>"{searchQuery}"</b></span>
                 <button type="button" onClick={() => setSearchQuery('')} className="text-indigo-500 hover:text-indigo-800 cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
@@ -1102,7 +1104,7 @@ export default function TabMainView({
             {selectedZone !== 'ALL' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-200 font-medium">
                 <MapPin className="w-3 h-3 text-emerald-600" />
-                <span>Zone : <b>{selectedZone}</b></span>
+                <span>{t('common.zone', 'Zone')} : <b>{selectedZone}</b></span>
                 <button type="button" onClick={() => setSelectedZone('ALL')} className="text-emerald-500 hover:text-emerald-800 cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
@@ -1112,7 +1114,7 @@ export default function TabMainView({
             {selectedMachine !== 'ALL' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 border border-blue-200 font-medium">
                 <Factory className="w-3 h-3 text-blue-600" />
-                <span>Machine : <b>{selectedMachine}</b></span>
+                <span>{t('common.machine', 'Machine')} : <b>{selectedMachine}</b></span>
                 <button type="button" onClick={() => setSelectedMachine('ALL')} className="text-blue-500 hover:text-blue-800 cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
@@ -1122,7 +1124,7 @@ export default function TabMainView({
             {selectedAction !== 'ALL' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-900 border border-indigo-200 font-medium">
                 <Wrench className="w-3 h-3 text-indigo-600" />
-                <span>Action : <b>{selectedAction}</b></span>
+                <span>{t('preventive.filters.action_afnor', 'Action')} : <b>{selectedAction}</b></span>
                 <button type="button" onClick={() => setSelectedAction('ALL')} className="text-indigo-500 hover:text-indigo-800 cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
@@ -1132,7 +1134,7 @@ export default function TabMainView({
             {selectedFrequence !== 'ALL' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 font-medium">
                 <Clock className="w-3 h-3 text-amber-600" />
-                <span>Fréquence : <b>{selectedFrequence}</b></span>
+                <span>{t('preventive.matrix.frequence', 'Fréquence')} : <b>{selectedFrequence}</b></span>
                 <button type="button" onClick={() => setSelectedFrequence('ALL')} className="text-amber-500 hover:text-amber-800 cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
@@ -1142,7 +1144,7 @@ export default function TabMainView({
             {selectedWeek !== 'ALL' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-50 text-teal-900 border border-teal-200 font-medium">
                 <CalendarDays className="w-3 h-3 text-teal-600" />
-                <span>Semaine : <b>{selectedWeek}</b></span>
+                <span>{t('preventive.filters.iso_week', 'Semaine')} : <b>{selectedWeek}</b></span>
                 <button type="button" onClick={() => setSelectedWeek('ALL')} className="text-teal-500 hover:text-teal-800 cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
@@ -1152,7 +1154,7 @@ export default function TabMainView({
             {selectedStatus !== 'ALL' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-900 border border-rose-200 font-medium">
                 <Activity className="w-3 h-3 text-rose-600" />
-                <span>Statut : <b>{selectedStatus}</b></span>
+                <span>{t('common.status', 'Statut')} : <b>{selectedStatus}</b></span>
                 <button type="button" onClick={() => setSelectedStatus('ALL')} className="text-rose-500 hover:text-rose-800 cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
@@ -1162,7 +1164,7 @@ export default function TabMainView({
             {selectedTech !== 'ALL' && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-900 border border-purple-200 font-medium">
                 <User className="w-3 h-3 text-purple-600" />
-                <span>Technicien : <b>{selectedTech}</b></span>
+                <span>{t('common.technician', 'Technicien')} : <b>{selectedTech}</b></span>
                 <button type="button" onClick={() => setSelectedTech('ALL')} className="text-purple-500 hover:text-purple-800 cursor-pointer">
                   <X className="w-3 h-3" />
                 </button>
@@ -1175,7 +1177,7 @@ export default function TabMainView({
               className="ml-auto text-xs font-bold text-rose-700 hover:text-rose-900 underline flex items-center gap-1 cursor-pointer"
             >
               <RotateCcw className="w-3 h-3" />
-              Effacer tous les filtres
+              {t('common.filters.reset_all', 'Effacer tous les filtres')}
             </button>
           </div>
         )}

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import TablePaginationCard from '../../../components/common/TablePaginationCard';
 import GmaoIndustrialDataGrid from '../../../components/common/GmaoIndustrialDataGrid.jsx';
+import { useI18n } from '../../../../i18n/I18nContext';
 import {
   ShieldAlert,
   Plus,
@@ -31,6 +32,7 @@ export default function PannesCatalogTab({
   onDeletePanne,
   showToast,
 }) {
+  const { t } = useI18n();
   // View mode state: 'excel' (Tableau) | 'grid' (Cartes)
   const [displayMode, setDisplayMode] = useState('excel');
 
@@ -128,7 +130,7 @@ export default function PannesCatalogTab({
     () => [
       {
         key: 'category',
-        label: 'CATÉGORIE',
+        label: t('corrective.pannes.col_category', 'CATÉGORIE'),
         colLetter: 'Col A',
         icon: ShieldAlert,
         align: 'center',
@@ -139,14 +141,14 @@ export default function PannesCatalogTab({
           };
           return (
             <span className={`px-2.5 py-0.5 rounded-md text-[10.5px] font-bold border ${meta.color} whitespace-nowrap`}>
-              {panne.category} • {meta.label}
+              {panne.category} • {t(`corrective.categories.${panne.category}`, meta.label)}
             </span>
           );
         },
       },
       {
         key: 'code',
-        label: 'CODE ANOMALIE',
+        label: t('corrective.pannes.col_code', 'CODE ANOMALIE'),
         colLetter: 'Col B',
         icon: Radio,
         align: 'center',
@@ -158,7 +160,7 @@ export default function PannesCatalogTab({
       },
       {
         key: 'name',
-        label: 'DÉSIGNATION / LIBELLÉ DE LA PANNE',
+        label: t('designations.col_name', 'DÉSIGNATION / LIBELLÉ DE LA PANNE'),
         colLetter: 'Col C',
         icon: BookOpen,
         render: (panne) => (
@@ -169,7 +171,7 @@ export default function PannesCatalogTab({
       },
       {
         key: 'actions_types',
-        label: 'SOLUTIONS & ACTIONS TYPES',
+        label: t('corrective.pannes.col_actions', 'SOLUTIONS & ACTIONS TYPES'),
         colLetter: 'Col D',
         icon: Wrench,
         render: (panne) => {
@@ -187,13 +189,13 @@ export default function PannesCatalogTab({
               ))}
             </div>
           ) : (
-            <span className="text-[10.5px] text-slate-400 italic">Aucune action définie</span>
+            <span className="text-[10.5px] text-slate-400 italic">{t('corrective.actions.empty', 'Aucune action définie')}</span>
           );
         },
       },
       {
         key: 'actions_gmao',
-        label: 'ACTIONS GMAO',
+        label: t('common.actions', 'ACTIONS GMAO'),
         colLetter: 'Col E',
         icon: Zap,
         align: 'center',
@@ -210,7 +212,7 @@ export default function PannesCatalogTab({
                 }
               }}
               className="px-2 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10.5px] transition inline-flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
-              title="Créer une Demande d'Intervention directe"
+              title={t('corrective.pannes.preset_action', 'Créer une Demande d\'Intervention directe')}
             >
               <Plus className="w-3 h-3" />
               <span>DI</span>
@@ -220,7 +222,7 @@ export default function PannesCatalogTab({
               type="button"
               onClick={() => handleOpenEditModal(panne)}
               className="p-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 transition cursor-pointer border border-slate-200/80"
-              title="Modifier le code de l'anomalie"
+              title={t('corrective.pannes.edit_title', 'Modifier le code de l\'anomalie')}
             >
               <Edit2 className="w-3.5 h-3.5" />
             </button>
@@ -229,7 +231,7 @@ export default function PannesCatalogTab({
               type="button"
               onClick={() => setPanneToDelete(panne)}
               className="p-1 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 transition cursor-pointer border border-slate-200/80"
-              title="Supprimer cette anomalie du catalogue"
+              title={t('corrective.pannes.delete_title', 'Supprimer cette anomalie du catalogue')}
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -237,7 +239,7 @@ export default function PannesCatalogTab({
         ),
       },
     ],
-    [CATEGORY_META, onAddDemandeWithPreset]
+    [CATEGORY_META, onAddDemandeWithPreset, t]
   );
 
   return (
@@ -248,24 +250,26 @@ export default function PannesCatalogTab({
         <div className="flex items-center gap-2 flex-wrap text-xs text-slate-600">
           <span className="font-bold text-slate-800 flex items-center gap-1.5">
             <ShieldAlert className="w-4 h-4 text-amber-600" />
-            <span>Référentiel des Pannes & Anomalies</span>
+            <span>{t('corrective.pannes.title', 'Référentiel des Pannes & Anomalies')}</span>
           </span>
 
           <span className="text-slate-300">|</span>
 
           <span>
             {totalItems > 0 ? (
-              <>
-                Affichage de <b>{startIndex + 1}</b> à <b>{endIndex}</b> sur <b>{totalItems}</b> pannes cataloguées
-              </>
+              t('corrective.pannes.display_count', 'Affichage de {{start}} à {{end}} sur {{total}} pannes cataloguées', {
+                start: startIndex + 1,
+                end: endIndex,
+                total: totalItems,
+              })
             ) : (
-              'Aucune anomalie trouvée'
+              t('corrective.pannes.empty', 'Aucune anomalie trouvée')
             )}
           </span>
 
           {selectedCategory !== 'ALL' && (
             <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-              Catégorie : {selectedCategory} ({CATEGORY_META[selectedCategory]?.label || selectedCategory})
+              {t('corrective.pannes.col_category', 'Catégorie')} : {selectedCategory} ({t(`corrective.categories.${selectedCategory}`, CATEGORY_META[selectedCategory]?.label || selectedCategory)})
             </span>
           )}
         </div>
@@ -277,10 +281,10 @@ export default function PannesCatalogTab({
             type="button"
             onClick={handleOpenAddModal}
             className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-            title="Ajouter une nouvelle anomalie / panne au catalogue d'usine"
+            title={t('corrective.pannes.add_title', "Ajouter une nouvelle anomalie")}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Nouvelle Panne</span>
+            <span>{t('corrective.pannes.add_button', 'Nouvelle Panne')}</span>
           </button>
 
           <div className="inline-flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 shadow-2xs">
@@ -292,10 +296,10 @@ export default function PannesCatalogTab({
                   ? 'bg-white text-slate-900 shadow-2xs border border-slate-200 font-black'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
-              title="Affichage en tableau Excel avec 20 lignes fixes"
+              title={t('corrective.pannes.view_table', 'Vue Tableau')}
             >
               <Table className="w-3.5 h-3.5 text-amber-600" />
-              <span>Tableau Excel</span>
+              <span>{t('corrective.pannes.view_table', 'Tableau Excel')}</span>
             </button>
 
             <button
@@ -306,10 +310,10 @@ export default function PannesCatalogTab({
                   ? 'bg-white text-slate-900 shadow-2xs border border-slate-200 font-black'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
-              title="Affichage en cartes / grille"
+              title={t('corrective.pannes.view_cards', 'Vue Cartes')}
             >
               <LayoutGrid className="w-3.5 h-3.5 text-blue-600" />
-              <span>Cartes / Grille</span>
+              <span>{t('corrective.pannes.view_cards', 'Cartes / Grille')}</span>
             </button>
           </div>
         </div>
@@ -361,7 +365,7 @@ export default function PannesCatalogTab({
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <span className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border ${meta.color}`}>
-                        {panne.category} • {meta.label}
+                        {panne.category} • {t(`corrective.categories.${panne.category}`, meta.label)}
                       </span>
                       <span className="font-mono text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                         {panne.code}
@@ -511,7 +515,7 @@ export default function PannesCatalogTab({
                 >
                   {categoryKeys.map((cat) => (
                     <option key={cat} value={cat}>
-                      {cat} - {CATEGORY_META[cat]?.label || cat}
+                      {cat} - {t(`corrective.categories.${cat}`, CATEGORY_META[cat]?.label || cat)}
                     </option>
                   ))}
                 </select>

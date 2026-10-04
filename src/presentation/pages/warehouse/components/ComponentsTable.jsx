@@ -24,6 +24,7 @@ import {
 import { CubeIcon } from '../../../components/common/icons/CubeIcon';
 import GmaoIndustrialDataGrid from '../../../components/common/GmaoIndustrialDataGrid.jsx';
 import { EntrepotItem } from '../../../../core/domain';
+import { useTranslation } from '../../../../i18n/I18nContext';
 
 export default function ComponentsTable({
   displayedData = [],
@@ -53,11 +54,12 @@ export default function ComponentsTable({
   onNavigateToZone,
   handleOpenAddModal,
 }) {
+  const { t } = useTranslation();
   const columns = useMemo(
     () => [
       {
         key: 'id_warehouse_item',
-        label: 'CODE COMPOSANT & RÉF',
+        label: t('entrepot.columns.code_cmp'),
         colLetter: 'A',
         icon: Tag,
         sortable: true,
@@ -65,7 +67,7 @@ export default function ComponentsTable({
       },
       {
         key: 'id_family',
-        label: 'FAMILLE & TEMPLATE',
+        label: t('entrepot.columns.family_tpl'),
         colLetter: 'D',
         icon: CubeIcon,
         sortable: true,
@@ -73,7 +75,7 @@ export default function ComponentsTable({
       },
       {
         key: 'designation',
-        label: 'DÉSIGNATION & SPÉCIFICATIONS',
+        label: t('entrepot.columns.designation_specs'),
         colLetter: 'C',
         icon: Package,
         sortable: true,
@@ -81,7 +83,7 @@ export default function ComponentsTable({
       },
       {
         key: 'id_machine_registered',
-        label: 'MACHINE & LOCALISATION',
+        label: t('entrepot.columns.machine_loc'),
         colLetter: 'E',
         icon: Factory,
         sortable: true,
@@ -89,7 +91,7 @@ export default function ComponentsTable({
       },
       {
         key: 'technician',
-        label: 'RESPONSABLE',
+        label: t('entrepot.columns.responsible'),
         colLetter: 'F',
         icon: User,
         sortable: true,
@@ -97,7 +99,7 @@ export default function ComponentsTable({
       },
       {
         key: 'status',
-        label: 'STATUT',
+        label: t('entrepot.columns.status'),
         colLetter: 'G',
         icon: Activity,
         sortable: true,
@@ -105,7 +107,7 @@ export default function ComponentsTable({
       },
       {
         key: 'stockActuel',
-        label: 'STOCK & SOLDE',
+        label: t('entrepot.columns.stock'),
         colLetter: 'H',
         icon: TrendingUp,
         sortable: true,
@@ -119,12 +121,12 @@ export default function ComponentsTable({
         headerClassName: 'w-20 tracking-widest text-slate-400 font-bold',
       },
     ],
-    []
+    [t]
   );
 
   return (
     <GmaoIndustrialDataGrid
-      title="Tableau Composants Machines • Twin Niveau 4 (Moteurs, Pompes, Réducteurs...)"
+      title={t('entrepot.table.title')}
       icon={<CubeIcon className="w-4 h-4 text-blue-600" />}
       excelMapping="id_warehouse_item (A) | nature: COMPONENT (B) | designation (C) | famille/template (D) | machine/zone (E) | responsable (F) | statut (G) | stock (H)"
       bannerColor="blue"
@@ -141,14 +143,14 @@ export default function ComponentsTable({
       minWidth="min-w-[980px]"
       maxHeight="max-h-[62vh]"
       emptyIcon={<CubeIcon className="w-10 h-10 text-blue-300 stroke-1" />}
-      emptyMessage="Aucun composant trouvé"
+      emptyMessage={t('entrepot.table.empty_msg')}
       emptyAction={
         handleOpenAddModal ? (
           <button
             onClick={handleOpenAddModal}
             className="mt-2 px-4 py-2 rounded-xl bg-blue-50 text-blue-700 font-bold hover:bg-blue-100 border border-blue-200 transition cursor-pointer"
           >
-            Ajouter un Composant
+            {t('entrepot.buttons.add_component')}
           </button>
         ) : null
       }

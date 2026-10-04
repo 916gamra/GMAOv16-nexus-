@@ -9,32 +9,30 @@ import Action3DButton from '../../components/common/Action3DButton';
 import { useSmartTableLoader } from '../../hooks/useSmartTableLoader';
 import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import MachinesKPIBar from './components/MachinesKPIBar';
+import IndustrialFilterCard, { FilterField, FilterSearchInput } from '../../components/common/IndustrialFilterCard';
+import { useI18n } from '../../../i18n/I18nContext';
 import {
   Factory,
-  Search,
   MapPin,
   Users,
   CheckCircle2,
   AlertTriangle,
   Trash2,
   Edit2,
-  SlidersHorizontal,
   ArrowUpDown,
   ChevronDown,
   ArrowDown,
   ArrowUp,
   Activity,
   Cpu,
-  X,
   Radio,
+  X,
   FileText,
   Calculator,
   MoreVertical,
   Calendar,
   Hash,
   Wrench,
-  FileSpreadsheet,
-  RotateCcw,
   ShieldCheck,
   Clock,
   Sparkles,
@@ -145,6 +143,7 @@ export default function MachinesRegisteredView({
   onNavigateToQuickSortie = () => {},
   onNavigateToPreventive = () => {},
 }) {
+  const { t } = useI18n();
   const machines = Array.isArray(propMachines) ? propMachines : [];
 
   const families = useMemo(() => {
@@ -394,6 +393,74 @@ export default function MachinesRegisteredView({
     setSortOrder('asc');
   };
 
+  const machineFilterPresets = useMemo(() => [
+    { key: 'ALL', label: t('common.filters.all'), count: machines.length },
+    { key: 'En Service', label: t('machines.filters.in_service', 'En Service'), count: kpis.enService, colorDot: 'bg-emerald-500', activeBg: 'bg-emerald-600 text-white border-emerald-600 shadow-xs' },
+    { key: 'En Maintenance', label: t('machines.filters.in_maintenance', 'En Maintenance'), count: kpis.enMaintenance, colorDot: 'bg-amber-500', activeBg: 'bg-amber-600 text-white border-amber-600 shadow-xs' },
+    { key: 'Arrêt', label: t('machines.filters.stopped', "À l'Arrêt"), count: kpis.enArret, colorDot: 'bg-rose-500', activeBg: 'bg-rose-600 text-white border-rose-600 shadow-xs' },
+  ].map((p) => ({
+    ...p,
+    isActive: statusFilter === p.key,
+    onClick: () => setStatusFilter(p.key),
+  })), [machines.length, kpis, statusFilter, t]);
+
+  const activeMachineFilterChips = useMemo(() => {
+    const chips = [];
+    if (localSearch) {
+      chips.push({
+        key: 'search',
+        label: `${t('machines.filters.filter_search', t('common.filters.search'))}: "${localSearch}"`,
+        onRemove: () => setLocalSearch(''),
+      });
+    }
+    if (statusFilter !== 'ALL') {
+      const presetFound = machineFilterPresets.find((p) => p.key === statusFilter);
+      chips.push({
+        key: 'status',
+        label: `${t('machines.filters.filter_status', t('common.filters.status'))}: ${presetFound?.label || statusFilter}`,
+        onRemove: () => setStatusFilter('ALL'),
+      });
+    }
+    if (mchFamilyFilter !== 'ALL') {
+      const famName = families.find((f) => f.id_family === mchFamilyFilter)?.libelle || mchFamilyFilter;
+      chips.push({
+        key: 'family',
+        label: `${t('machines.filters.filter_family')}: ${famName}`,
+        onRemove: () => {
+          setMchFamilyFilter('ALL');
+          setMchTemplateFilter('ALL');
+        },
+      });
+    }
+    if (mchTemplateFilter !== 'ALL') {
+      const tplName = templates.find((t) => t.id_templates === mchTemplateFilter)?.libelle || mchTemplateFilter;
+      chips.push({
+        key: 'template',
+        label: `${t('machines.filters.filter_template')}: ${tplName}`,
+        onRemove: () => setMchTemplateFilter('ALL'),
+      });
+    }
+    if (mchZoneFilter !== 'ALL') {
+      const znName = getZoneByRef(mchZoneFilter, zones)?.libelle || mchZoneFilter;
+      chips.push({
+        key: 'zone',
+        label: `${t('machines.filters.filter_zone')}: ${znName}`,
+        onRemove: () => setMchZoneFilter('ALL'),
+      });
+    }
+    if (sortField !== 'id_machine_registered' || sortOrder !== 'asc') {
+      chips.push({
+        key: 'sort',
+        label: `${t('common.filters.sort')}: ${sortField} (${sortOrder === 'asc' ? t('common.filters.asc') : t('common.filters.desc')})`,
+        onRemove: () => {
+          setSortField('id_machine_registered');
+          setSortOrder('asc');
+        },
+      });
+    }
+    return chips;
+  }, [localSearch, statusFilter, mchFamilyFilter, mchTemplateFilter, mchZoneFilter, sortField, sortOrder, families, templates, zones, machineFilterPresets, t]);
+
   // Export Filtered Machines to Excel (.xlsx)
   const handleExportFilteredMachines = () => {
     const exportRows = sortedData
@@ -438,14 +505,14 @@ export default function MachinesRegisteredView({
     () => [
       {
         key: 'id_machine_registered',
-        label: 'CODE MACHINE',
+        label: t('machines.fields.code', 'CODE MACHINE'),
         colLetter: 'B',
         icon: Factory,
         sortable: true,
       },
       {
         key: 'designation',
-        label: 'DÉSIGNATION',
+        label: t('machines.fields.designation', 'DÉSIGNATION'),
         colLetter: 'C',
         icon: Cpu,
         sortable: true,
@@ -453,21 +520,21 @@ export default function MachinesRegisteredView({
       },
       {
         key: 'serial_number',
-        label: 'MISE EN SERVICE',
+        label: t('machines.fields.commissioning', 'MISE EN SERVICE'),
         colLetter: 'N° Série',
         sortable: true,
         headerClassName: 'min-w-[170px]',
       },
       {
         key: 'id_family',
-        label: 'FAMILLE & TEMPLATE',
+        label: t('machines.fields.family_template', 'FAMILLE & TEMPLATE'),
         colLetter: 'D+E',
         sortable: true,
         headerClassName: 'min-w-[200px]',
       },
       {
         key: 'id_blueprint',
-        label: 'BLUEPRINT',
+        label: t('machines.fields.blueprint', 'BLUEPRINT'),
         colLetter: 'Plan',
         icon: FileText,
         sortable: true,
@@ -475,14 +542,14 @@ export default function MachinesRegisteredView({
       },
       {
         key: 'id_zone_default',
-        label: 'ZONE & TECHNICIEN',
+        label: t('machines.fields.zone_technician', 'ZONE & TECHNICIEN'),
         colLetter: 'F+G',
         sortable: true,
         headerClassName: 'min-w-[210px]',
       },
       {
         key: 'status',
-        label: 'STATUT',
+        label: t('machines.fields.status', 'STATUT'),
         colLetter: 'H',
         icon: Radio,
         sortable: true,
@@ -490,7 +557,7 @@ export default function MachinesRegisteredView({
       },
       {
         key: 'sorties',
-        label: 'INTERVENTIONS',
+        label: t('machines.fields.interventions', 'INTERVENTIONS'),
         colLetter: 'Flux',
         icon: Activity,
         sortable: true,
@@ -503,7 +570,7 @@ export default function MachinesRegisteredView({
         headerClassName: 'w-24 tracking-widest text-slate-400 font-bold',
       },
     ],
-    []
+    [t]
   );
 
   return (
@@ -520,14 +587,10 @@ export default function MachinesRegisteredView({
           </div>
           <div>
             <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              Parc Machines & Équipements Enregistrés
+              {t('machines.title')}
             </h2>
             <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-              Répertoire central des équipements de production et lignes industrielles. Lié dynamiquement avec{' '}
-              <b className="text-cyan-700 font-semibold">Familles (D)</b>,{' '}
-              <b className="text-amber-700 font-semibold">Templates (E)</b>,{' '}
-              <b className="text-purple-700 font-semibold">Zones (F)</b> et{' '}
-              <b className="text-blue-700 font-semibold">Techniciens (G)</b>.
+              {t('machines.subtitle')}
             </p>
           </div>
         </div>
@@ -544,7 +607,7 @@ export default function MachinesRegisteredView({
             icon={Factory}
             showAddBadge={true}
             onClick={onOpenAddMachine}
-            title="Nouvelle Machine"
+            title={t('machines.buttons.new_machine')}
           />
         </div>
       </div>
@@ -556,151 +619,38 @@ export default function MachinesRegisteredView({
         setStatusFilter={setStatusFilter}
       />
 
-      {/* Filter Bar with Cascading Selects, Status Presets, Search & Active Chips */}
-      <div className="relative z-30 bg-white border border-slate-200 rounded-2xl p-4 md:p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out space-y-4">
-        {/* Header Toolbar inside Filter Card */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-200/80 flex items-center justify-center text-emerald-700 shadow-2xs">
-              <SlidersHorizontal className="w-4 h-4 text-emerald-700" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-900">
-                  Filtres & Recherche Avancée
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  {filteredMachines.length} / {machines.length}
-                </span>
-              </div>
-              <p className="text-[10.5px] text-slate-400 font-medium">
-                Parc Machines · Liaisons Excel Twin Colonnes B → H
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-end sm:self-auto">
-            {/* Direct Excel Export Button */}
-            <button
-              type="button"
-              onClick={handleExportFilteredMachines}
-              className="h-8 px-3 rounded-xl border border-emerald-300/90 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-              title="Exporter la liste filtrée vers un classeur Excel (.xlsx)"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
-              <span className="hidden sm:inline">Export Excel</span>
-            </button>
-
-            {/* Quick Reset Button (Circular Iconic) */}
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={clearAllFilters}
-                className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in"
-                title="Réinitialiser tous les filtres actifs"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Quick Status Presets Row */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs no-scrollbar">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 shrink-0 flex items-center gap-1">
-            <Radio className="w-3 h-3 text-slate-400" /> Statut :
-          </span>
-          {[
-            { key: 'ALL', label: 'Toutes', count: machines.length, color: 'slate' },
-            { key: 'En Service', label: 'En Service', count: kpis.enService, color: 'emerald' },
-            { key: 'En Maintenance', label: 'En Maintenance', count: kpis.enMaintenance, color: 'amber' },
-            { key: 'Arrêt', label: "À l'Arrêt", count: kpis.enArret, color: 'rose' },
-          ].map((preset) => (
-            <button
-              key={preset.key}
-              type="button"
-              onClick={() => setStatusFilter(preset.key)}
-              className={`h-7 px-2.5 rounded-lg border text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                statusFilter === preset.key
-                  ? preset.color === 'emerald'
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                    : preset.color === 'amber'
-                    ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                    : preset.color === 'rose'
-                    ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
-                    : 'bg-slate-800 text-white border-slate-800 shadow-xs'
-                  : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'
-              }`}
-            >
-              {preset.key !== 'ALL' && (
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    statusFilter === preset.key
-                      ? 'bg-white'
-                      : preset.color === 'emerald'
-                      ? 'bg-emerald-500'
-                      : preset.color === 'amber'
-                      ? 'bg-amber-500'
-                      : 'bg-rose-500'
-                  }`}
-                />
-              )}
-              <span>{preset.label}</span>
-              <span
-                className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${
-                  statusFilter === preset.key
-                    ? 'bg-white/25 text-white'
-                    : 'bg-slate-200/70 text-slate-700'
-                }`}
-              >
-                {preset.count}
-              </span>
-            </button>
-          ))}
-        </div>
-
+      {/* Central Unified Industrial Filter & Search Card */}
+      <IndustrialFilterCard
+        title={t('common.filters.title')}
+        subtitle={t('machines.filters.subtitle', "Parc Machines · Liaisons Excel Twin Colonnes B → H")}
+        color="emerald"
+        filteredCount={filteredMachines.length}
+        totalCount={machines.length}
+        hasActiveFilters={hasActiveFilters}
+        onReset={clearAllFilters}
+        onExportExcel={handleExportFilteredMachines}
+        exportLabel={t('machines.buttons.export_excel')}
+        presets={machineFilterPresets}
+        presetsLabel={t('machines.filters.status_label', t('common.filters.status'))}
+        activeFilters={activeMachineFilterChips}
+        onClearAll={clearAllFilters}
+      >
         {/* 5-Column Multi-Criteria Filter Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 items-end">
           {/* 1. Omni-Text Search */}
-          <div className="w-full sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Recherche</span>
-              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200/80">
-                Omni
-              </span>
-            </div>
-            <div className="relative">
-              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shadow-2xs pointer-events-none">
-                <Search className="w-3 h-3" />
-              </div>
-              <input
-                type="text"
-                placeholder="Code, Nom, Zone, Tech..."
-                value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
-                className="w-full h-9 pl-9 pr-7 rounded-xl border border-slate-200 bg-slate-50/70 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors"
-              />
-              {localSearch && (
-                <button
-                  type="button"
-                  onClick={() => setLocalSearch('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 cursor-pointer"
-                  title="Effacer la recherche"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
+          <FilterSearchInput
+            value={localSearch}
+            onChange={setLocalSearch}
+            onClear={() => setLocalSearch('')}
+            placeholder={t('machines.filters.search_placeholder', 'Code, Nom, Zone, Tech...')}
+            colBadge="Omni"
+            colBadgeColor="slate"
+            focusRingColor="focus:ring-emerald-500"
+            className="w-full sm:col-span-2 lg:col-span-1"
+          />
 
           {/* 2. Family Filter (D) */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Famille</span>
-              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-cyan-50 text-cyan-700 border border-cyan-200/80">
-                Col. D
-              </span>
-            </div>
+          <FilterField label={t('machines.filters.family', 'Famille')} colBadge="Col. D" colBadgeColor="cyan">
             <CustomSelect
               value={mchFamilyFilter}
               prefixIcon={
@@ -713,23 +663,17 @@ export default function MachinesRegisteredView({
                 setMchTemplateFilter('ALL');
               }}
               options={[
-                { value: 'ALL', label: `Toutes Familles (${machineFamilies.length})` },
+                { value: 'ALL', label: `${t('machines.filters.all_families', 'Toutes Familles')} (${machineFamilies.length})` },
                 ...machineFamilies.map((f) => ({
                   value: f.id_family,
                   label: `${f.libelle} (${f.id_family})`,
                 })),
               ]}
             />
-          </div>
+          </FilterField>
 
           {/* 3. Cascading Template Filter (E) */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Template Modèle</span>
-              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
-                Col. E
-              </span>
-            </div>
+          <FilterField label={t('machines.filters.template', 'Template Modèle')} colBadge="Col. E" colBadgeColor="amber">
             <CustomSelect
               value={mchTemplateFilter}
               prefixIcon={
@@ -739,23 +683,17 @@ export default function MachinesRegisteredView({
               }
               onChange={(val) => setMchTemplateFilter(val)}
               options={[
-                { value: 'ALL', label: `Tous Templates (${availableTemplates.length})` },
+                { value: 'ALL', label: `${t('machines.filters.all_templates', 'Tous Templates')} (${availableTemplates.length})` },
                 ...availableTemplates.map((t) => ({
                   value: t.id_templates,
                   label: `${t.libelle} (${t.id_templates})`,
                 })),
               ]}
             />
-          </div>
+          </FilterField>
 
           {/* 4. Zone & Secteur Filter (F) */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Secteur / Zone</span>
-              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200/80">
-                Col. F
-              </span>
-            </div>
+          <FilterField label={t('machines.filters.zone', 'Secteur / Zone')} colBadge="Col. F" colBadgeColor="purple">
             <CustomSelect
               value={
                 mchZoneFilter === 'ALL'
@@ -771,7 +709,7 @@ export default function MachinesRegisteredView({
               }
               onChange={(val) => setMchZoneFilter(val)}
               options={[
-                { value: 'ALL', label: `Tous Secteurs & Zones (${zones.length})` },
+                { value: 'ALL', label: `${t('machines.filters.all_zones', 'Tous Secteurs & Zones')} (${zones.length})` },
                 ...zones.map((z) => {
                   const codeZ = z.code_zone || z.code || z.id_zone;
                   const idZ = z.id_zone;
@@ -783,14 +721,14 @@ export default function MachinesRegisteredView({
                 }),
               ]}
             />
-          </div>
+          </FilterField>
 
           {/* 5. Sort Menu Button & Popover */}
           <div className="relative" ref={sortMenuRef}>
             <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Tri & Ordre</span>
+              <span>{t('machines.filters.sort_and_order', t('common.filters.sort_and_order'))}</span>
               <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
-                Ordre
+                {t('machines.filters.order', t('common.filters.order'))}
               </span>
             </div>
             <button
@@ -807,8 +745,8 @@ export default function MachinesRegisteredView({
                   <ArrowUpDown className="w-3 h-3" />
                 </span>
                 <span className="truncate">
-                  Tri : <b className="font-mono text-slate-900">{sortField.slice(0, 10).toUpperCase()}</b> (
-                  {sortOrder === 'asc' ? 'A→Z' : 'Z→A'})
+                  {t('machines.filters.sort_by', t('common.filters.sort_prefix'))} <b className="font-mono text-slate-900">{sortField.slice(0, 10).toUpperCase()}</b> (
+                  {sortOrder === 'asc' ? t('common.filters.asc') : t('common.filters.desc')})
                 </span>
               </div>
               <ChevronDown
@@ -820,21 +758,21 @@ export default function MachinesRegisteredView({
             {showSortMenu && (
               <div className="absolute right-0 mt-1 w-64 bg-white rounded-2xl border border-slate-200 shadow-xl z-50 p-2.5 space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  <span>Sélectionner la Colonne de Tri</span>
+                  <span>{t('machines.filters.sort_columns_title', 'Sélectionner la Colonne de Tri')}</span>
                   <span>A→H</span>
                 </div>
                 <div className="grid grid-cols-1 gap-1 text-xs max-h-60 overflow-y-auto pr-0.5">
                   {[
-                    { key: 'id_machine_registered', label: 'Code Machine' },
-                    { key: 'designation', label: 'Désignation' },
-                    { key: 'serial_number', label: 'Date / N° Série' },
-                    { key: 'id_family', label: 'Famille' },
-                    { key: 'id_templates', label: 'Template Modèle' },
-                    { key: 'id_blueprint', label: 'Blueprint / Schéma' },
-                    { key: 'id_zone_default', label: 'Zone Défaut' },
-                    { key: 'technician', label: 'Technicien Assigné' },
-                    { key: 'status', label: 'Statut Opérationnel' },
-                    { key: 'sorties', label: 'Interventions / Sorties' },
+                    { key: 'id_machine_registered', label: t('machines.fields.code', 'Code Machine') },
+                    { key: 'designation', label: t('machines.fields.designation', 'Désignation') },
+                    { key: 'serial_number', label: t('machines.fields.serial_number', 'N° Série') },
+                    { key: 'id_family', label: t('machines.fields.family', 'Famille') },
+                    { key: 'id_templates', label: t('machines.fields.template', 'Template Modèle') },
+                    { key: 'id_blueprint', label: t('machines.fields.blueprint', 'Blueprint / Schéma') },
+                    { key: 'id_zone_default', label: t('machines.fields.zone', 'Zone Défaut') },
+                    { key: 'technician', label: t('machines.fields.technician', 'Technicien Assigné') },
+                    { key: 'status', label: t('machines.fields.status', 'Statut Opérationnel') },
+                    { key: 'sorties', label: t('machines.fields.interventions', 'Interventions / Sorties') },
                   ].map((col) => (
                     <button
                       key={col.key}
@@ -863,100 +801,7 @@ export default function MachinesRegisteredView({
             )}
           </div>
         </div>
-
-        {/* Active Filter Chips & Summary Bar (From Entrepôt) */}
-        {hasActiveFilters && (
-          <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 flex-wrap gap-2 animate-in fade-in">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-bold text-slate-600 text-[11px]">Filtres actifs :</span>
-              {localSearch && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 font-mono text-[11px] font-semibold text-slate-800 border border-slate-200">
-                  <span>Recherche: "{localSearch}"</span>
-                  <button
-                    type="button"
-                    onClick={() => setLocalSearch('')}
-                    className="hover:text-rose-600 cursor-pointer"
-                    title="Supprimer ce filtre"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {statusFilter !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 font-bold text-[11px] border border-emerald-200">
-                  <span>Statut: {statusFilter}</span>
-                  <button
-                    type="button"
-                    onClick={() => setStatusFilter('ALL')}
-                    className="hover:text-rose-600 cursor-pointer"
-                    title="Supprimer ce filtre"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {mchFamilyFilter !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-50 text-cyan-800 font-bold text-[11px] border border-cyan-200">
-                  <span>Famille: {families.find((f) => f.id_family === mchFamilyFilter)?.libelle || mchFamilyFilter}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMchFamilyFilter('ALL');
-                      setMchTemplateFilter('ALL');
-                    }}
-                    className="hover:text-rose-600 cursor-pointer"
-                    title="Supprimer ce filtre"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {mchTemplateFilter !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-800 font-bold text-[11px] border border-amber-200">
-                  <span>Template: {templates.find((t) => t.id_templates === mchTemplateFilter)?.libelle || mchTemplateFilter}</span>
-                  <button
-                    type="button"
-                    onClick={() => setMchTemplateFilter('ALL')}
-                    className="hover:text-rose-600 cursor-pointer"
-                    title="Supprimer ce filtre"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {mchZoneFilter !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-50 text-purple-800 font-bold text-[11px] border border-purple-200">
-                  <span>Zone: {getZoneByRef(mchZoneFilter, zones)?.libelle || mchZoneFilter}</span>
-                  <button
-                    type="button"
-                    onClick={() => setMchZoneFilter('ALL')}
-                    className="hover:text-rose-600 cursor-pointer"
-                    title="Supprimer ce filtre"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {(sortField !== 'id_machine_registered' || sortOrder !== 'asc') && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-semibold text-[11px] border border-slate-200">
-                  <span>Tri: {sortField} ({sortOrder === 'asc' ? 'A→Z' : 'Z→A'})</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSortField('id_machine_registered');
-                      setSortOrder('asc');
-                    }}
-                    className="hover:text-rose-600 cursor-pointer"
-                    title="Réinitialiser le tri"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      </IndustrialFilterCard>
 
       {/* Unified Industrial Data Grid */}
       <GmaoIndustrialDataGrid

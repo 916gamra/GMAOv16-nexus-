@@ -27,6 +27,7 @@ import { CorrectiveCalculationService } from '../../../domain/corrective/service
 import * as XLSX from 'xlsx';
 import CustomSelect from '../../components/common/CustomSelect';
 import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function ClotureRapportsTab({
   interventions = [],
@@ -36,6 +37,7 @@ export default function ClotureRapportsTab({
   onUpdateIntervention: _onUpdateIntervention,
   showToast,
 }) {
+  const { t } = useI18n();
   const resolveTechNom = (item) => {
     if (item.technicien_matricule) {
       const found = (technicians || []).find(
@@ -492,7 +494,7 @@ export default function ClotureRapportsTab({
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10.5px] font-extrabold text-slate-500 uppercase tracking-wider">
-                Total Rapports Enregistrés
+                {t('corrective.cloture.closed_summary')}
               </span>
               <CheckCircle className="w-6 h-6 text-emerald-600 shrink-0 group-hover:scale-110 transition-transform" />
             </div>
@@ -626,7 +628,7 @@ export default function ClotureRapportsTab({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-900">
-                  Filtres & Recherche Avancée Rapport
+                  {t('common.filters.title')}
                 </span>
                 <span className="bg-emerald-50 text-emerald-800 px-3 py-1 rounded-lg text-xs font-bold border border-emerald-200/70 shadow-2xs">
                   {filteredInterventions.length} rapport{filteredInterventions.length > 1 ? 's' : ''} affiché{filteredInterventions.length > 1 ? 's' : ''} / {interventions.length}

@@ -26,6 +26,7 @@ import {
 import * as XLSX from 'xlsx';
 import CustomSelect from '../../components/common/CustomSelect';
 import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function DemandesInterventionTab({
   interventions = [],
@@ -48,6 +49,7 @@ export default function DemandesInterventionTab({
   presetData = null,
   onClearPreset,
 }) {
+  const { t } = useI18n();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(null); // holds selected DI
   const [showTravauxSelector, setShowTravauxSelector] = useState(false);
@@ -660,7 +662,7 @@ export default function DemandesInterventionTab({
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10.5px] font-extrabold text-slate-500 uppercase tracking-wider">
-                Total Demandes (DI)
+                {t('corrective.di.title')}
               </span>
               <Flame className="w-6 h-6 text-amber-600 shrink-0 group-hover:scale-110 transition-transform" />
             </div>
@@ -697,7 +699,7 @@ export default function DemandesInterventionTab({
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10.5px] font-extrabold text-slate-500 uppercase tracking-wider">
-                En Attente de Validation
+                {t('corrective.di.status')} (En Attente)
               </span>
               <Clock className="w-6 h-6 text-rose-600 shrink-0 group-hover:scale-110 transition-transform" />
             </div>
@@ -732,7 +734,7 @@ export default function DemandesInterventionTab({
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10.5px] font-extrabold text-slate-500 uppercase tracking-wider">
-                Converties en BT Actifs
+                {t('corrective.bt.title')}
               </span>
               <Wrench className="w-6 h-6 text-blue-600 shrink-0 group-hover:scale-110 transition-transform" />
             </div>
@@ -803,10 +805,10 @@ export default function DemandesInterventionTab({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-900">
-                  Filtres & Recherche Avancée DI
+                  {t('common.filters.title')}
                 </span>
                 <span className="bg-amber-50 text-amber-800 px-3 py-1 rounded-lg text-xs font-bold border border-amber-200/70 shadow-2xs">
-                  {filteredDis.length} demande{filteredDis.length > 1 ? 's' : ''} affichée{filteredDis.length > 1 ? 's' : ''} / {interventions.length}
+                  {filteredDis.length} / {interventions.length}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400">
@@ -823,7 +825,7 @@ export default function DemandesInterventionTab({
               title="Exporter les demandes filtrées vers Excel (.xlsx)"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="hidden sm:inline">Export Excel</span>
+              <span className="hidden sm:inline">{t('corrective.filters.export_excel')}</span>
             </button>
 
             {hasActiveFilters && (
@@ -842,7 +844,7 @@ export default function DemandesInterventionTab({
               className="h-8 px-3.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm shadow-amber-600/25 active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Créer DI</span>
+              <span>{t('corrective.filters.create_di')}</span>
             </button>
           </div>
         </div>
@@ -851,33 +853,33 @@ export default function DemandesInterventionTab({
         <div className="flex items-center gap-2 flex-wrap text-xs">
           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 mr-1">
             <Flame className="w-3 h-3 text-slate-400" />
-            Statut DI :
+            {t('corrective.di.status')} :
           </span>
           {[
             {
               key: 'ALL',
-              label: 'Toutes Demandes',
+              label: t('corrective.filters.all_demandes'),
               count: interventions.length,
               activeBg: 'bg-slate-900 text-white shadow-xs',
               colorDot: null,
             },
             {
               key: 'DEMANDE',
-              label: 'En Attente',
+              label: t('corrective.filters.en_attente'),
               count: kpiStats.pending,
               activeBg: 'bg-rose-600 text-white shadow-xs',
               colorDot: 'bg-rose-500',
             },
             {
               key: 'EN_COURS',
-              label: 'Converties BT',
+              label: t('corrective.filters.converties_bt'),
               count: kpiStats.converted,
               activeBg: 'bg-blue-600 text-white shadow-xs',
               colorDot: 'bg-blue-500',
             },
             {
               key: 'ARRET',
-              label: 'Arrêt Machine',
+              label: t('corrective.filters.arret_machine'),
               count: kpiStats.arret,
               activeBg: 'bg-purple-600 text-white shadow-xs',
               colorDot: 'bg-purple-500',
@@ -923,7 +925,7 @@ export default function DemandesInterventionTab({
           {/* 1. Omni-Text Search */}
           <div className="w-full sm:col-span-2 lg:col-span-1">
             <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Recherche</span>
+              <span>{t('corrective.filters.search')}</span>
               <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200/80">
                 Col. A+J
               </span>
@@ -961,7 +963,7 @@ export default function DemandesInterventionTab({
           {/* 2. Machine Filter (Col. A) */}
           <div>
             <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Machine</span>
+              <span>{t('corrective.filters.machine')}</span>
               <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
                 Col. A
               </span>
@@ -979,7 +981,7 @@ export default function DemandesInterventionTab({
               }}
               searchable
               options={[
-                { value: 'ALL', label: `Toutes les Machines (${allMachineOptions.length})` },
+                { value: 'ALL', label: `${t('corrective.filters.all_machines')} (${allMachineOptions.length})` },
                 ...allMachineOptions.map((m) => {
                   const code = m.code || m.id_machine_registered || m.id;
                   return {
@@ -995,7 +997,7 @@ export default function DemandesInterventionTab({
           {/* 3. Type Panne Filter (Col. I) */}
           <div>
             <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Type de Panne</span>
+              <span>{t('corrective.filters.type_panne')}</span>
               <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-cyan-50 text-cyan-700 border border-cyan-200/80">
                 Col. I
               </span>
@@ -1012,7 +1014,7 @@ export default function DemandesInterventionTab({
                 setCurrentPage(1);
               }}
               options={[
-                { value: 'ALL', label: `Tous Types (${availableCategories.length})` },
+                { value: 'ALL', label: `${t('corrective.filters.all_types')} (${availableCategories.length})` },
                 ...availableCategories.map((cat) => ({
                   value: cat,
                   label: `Type ${cat} (${panneCategories[cat]?.length || 0} anomalies)`,
@@ -1024,7 +1026,7 @@ export default function DemandesInterventionTab({
           {/* 4. Urgence / Priorité */}
           <div>
             <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Urgence / Priorité</span>
+              <span>{t('corrective.filters.urgence')}</span>
               <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200/80">
                 Priorité
               </span>
@@ -1041,10 +1043,10 @@ export default function DemandesInterventionTab({
                 setCurrentPage(1);
               }}
               options={[
-                { value: 'ALL', label: 'Toutes les Urgences' },
-                { value: 'HAUTE', label: '🔴 HAUTE (Urgent)' },
-                { value: 'MOYENNE', label: '🟡 MOYENNE (Normal)' },
-                { value: 'BASSE', label: '⚪ BASSE (Faible)' },
+                { value: 'ALL', label: t('corrective.filters.all_urgences') },
+                { value: 'HAUTE', label: t('corrective.filters.haute') },
+                { value: 'MOYENNE', label: t('corrective.filters.moyenne') },
+                { value: 'BASSE', label: t('corrective.filters.basse') },
               ]}
             />
           </div>

@@ -1,10 +1,13 @@
 import { Factory, CheckCircle2, AlertTriangle, Activity } from 'lucide-react';
+import { useI18n } from '../../../../i18n/I18nContext';
 
 export default function MachinesKPIBar({
   kpis = {},
   statusFilter,
   setStatusFilter,
 }) {
+  const { t } = useI18n();
+
   return (
     <div id="machines-kpis-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
       {/* Card 1: Total Machines */}
@@ -19,13 +22,13 @@ export default function MachinesKPIBar({
       >
         <div>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-            Parc Global
+            {t('machines.kpis.global_park', 'Parc Global')}
           </span>
           <span className="text-2xl font-black text-slate-900 mt-0.5 block font-mono">
             {kpis.total}
           </span>
           <span className="text-[11px] text-slate-500 mt-0.5 block">
-            {kpis.activeFamiliesCount} Familles actives
+            {t('machines.kpis.active_families', `${kpis.activeFamiliesCount} Familles actives`, { count: kpis.activeFamiliesCount || 0 })}
           </span>
         </div>
         <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 border border-slate-200/80 group-hover:scale-110 group-hover:border-emerald-200 transition-transform duration-200">
@@ -45,13 +48,13 @@ export default function MachinesKPIBar({
       >
         <div>
           <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">
-            En Service (Opérationnel)
+            {t('machines.kpis.in_service', 'En Service (Opérationnel)')}
           </span>
           <span className="text-2xl font-black text-emerald-700 mt-0.5 block font-mono">
             {kpis.enService}
           </span>
           <span className="text-[11px] text-emerald-600/80 mt-0.5 block">
-            {kpis.total > 0 ? Math.round((kpis.enService / kpis.total) * 100) : 0}% du parc en ligne
+            {t('machines.kpis.fleet_online', `${kpis.total > 0 ? Math.round((kpis.enService / kpis.total) * 100) : 0}% du parc en ligne`, { percent: kpis.total > 0 ? Math.round((kpis.enService / kpis.total) * 100) : 0 })}
           </span>
         </div>
         <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/80 group-hover:scale-110 transition-transform duration-200">
@@ -71,13 +74,13 @@ export default function MachinesKPIBar({
       >
         <div>
           <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block">
-            En Maintenance / Arrêt
+            {t('machines.kpis.maintenance_stopped', 'En Maintenance / Arrêt')}
           </span>
           <span className="text-2xl font-black text-amber-700 mt-0.5 block font-mono">
             {(kpis.enMaintenance || 0) + (kpis.enArret || 0)}
           </span>
           <span className="text-[11px] text-amber-600/80 mt-0.5 block">
-            Interventions requises
+            {t('machines.kpis.interventions_required', 'Interventions requises')}
           </span>
         </div>
         <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/80 group-hover:scale-110 transition-transform duration-200">
@@ -89,12 +92,12 @@ export default function MachinesKPIBar({
       <div id="machines-kpi-interventions" className="group bg-white p-4 rounded-2xl border border-slate-200/90 shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-between">
         <div>
           <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">
-            Interventions Enregistrées
+            {t('machines.kpis.registered_interventions', 'Interventions Enregistrées')}
           </span>
           <span className="text-2xl font-black text-indigo-700 mt-0.5 block font-mono">
             {kpis.totalInterventions}
           </span>
-          <span className="text-[11px] text-indigo-500 mt-0.5 block">
+          <span className="text-[11px] text-indigo-500 mt-0.5 block font-mono">
             =COUNTIF(Mvt[Machine])
           </span>
         </div>

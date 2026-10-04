@@ -7,6 +7,7 @@ import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGr
 import { Engine } from '../../components/common/icons/Engine';
 import { CubeIcon } from '../../components/common/icons/CubeIcon';
 import { SpokeIcon } from '../../components/common/icons/SpokeIcon';
+import { useI18n } from '../../../i18n/I18nContext';
 import {
   Search,
   ArrowRight,
@@ -50,6 +51,7 @@ export default function CompTemplateView({
   _onNavigateToQuickSortie,
   onNavigateToCompGroups,
 }) {
+  const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [internalGroupFilter, setInternalGroupFilter] = useState('');
   const activeGroupFilter =
@@ -263,7 +265,7 @@ export default function CompTemplateView({
     () => [
       {
         key: 'id_templates',
-        label: 'ID DÉSIGNATION',
+        label: t('components.template.col_id', 'ID DÉSIGNATION'),
         colLetter: 'A',
         icon: Tag,
         sortable: true,
@@ -278,7 +280,7 @@ export default function CompTemplateView({
       },
       {
         key: 'groupe',
-        label: 'GROUPE (NIV 1)',
+        label: t('components.template.col_group', 'GROUPE (NIV 1)'),
         colLetter: '',
         icon: Boxes,
         render: (item) => {
@@ -302,7 +304,7 @@ export default function CompTemplateView({
       },
       {
         key: 'libelle',
-        label: 'MODÈLE / LIBELLÉ',
+        label: t('components.template.col_libelle', 'MODÈLE / LIBELLÉ'),
         colLetter: 'B',
         icon: CubeIcon,
         sortable: true,
@@ -314,7 +316,7 @@ export default function CompTemplateView({
       },
       {
         key: 'id_family',
-        label: 'FAMILLE (NIV 2)',
+        label: t('components.template.col_family', 'FAMILLE (NIV 2)'),
         colLetter: 'C',
         icon: SpokeIcon,
         sortable: true,
@@ -327,7 +329,7 @@ export default function CompTemplateView({
                 onNavigateToCompFamilies && onNavigateToCompFamilies(item.id_family)
               }
               className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-semibold transition cursor-pointer"
-              title="Voir le type de composants"
+              title={t('components.template.view_type_title', 'Voir le type de composants')}
             >
               <Engine className="w-3 h-3 text-teal-600 animate-pulse-slow" />
               <span className="font-mono">{item.id_family}</span>
@@ -338,7 +340,7 @@ export default function CompTemplateView({
       },
       {
         key: 'warehouse_count',
-        label: 'COMPOSANTS EN ENTREPÔT',
+        label: t('components.template.col_warehouse', 'COMPOSANTS EN ENTREPÔT'),
         colLetter: 'D',
         icon: Warehouse,
         render: (item) => {
@@ -356,10 +358,10 @@ export default function CompTemplateView({
                 onNavigateToEntrepotByTemplate(templateId, item.id_family)
               }
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
-              title="Filtrer Entrepôt sur cette désignation de composant"
+              title={t('components.template.filter_warehouse_title', 'Filtrer Entrepôt sur cette désignation de composant')}
             >
               <Warehouse className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{cCount} composants</span>
+              <span>{cCount} {t('components.template.component_unit', 'composants')}</span>
               <ArrowRight className="w-3 h-3 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
             </button>
           );
@@ -468,22 +470,20 @@ export default function CompTemplateView({
 
   return (
     <AnimatedPage className="space-y-4">
-      {/* Top Banner (BDR Light GMAO Header Card with 3D Tactile Elevation) */}
+      {/* Top Banner */}
       <div className="bg-white p-5 md:p-6 rounded-2xl border border-slate-200/90 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden group/header">
-        {/* Subtle Ambient Gradient Background Highlight */}
         <div className="absolute -top-12 -right-12 w-48 h-48 bg-purple-500/5 rounded-full blur-2xl pointer-events-none group-hover/header:bg-purple-500/10 transition-colors duration-500" />
 
         <div className="min-w-0 flex-1 flex items-start sm:items-center gap-3.5 relative">
-          {/* 3D Elevated Page Badge Icon */}
           <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent border border-purple-200/90 shadow-[0_4px_12px_rgba(168,85,247,0.12)] flex items-center justify-center text-purple-700 group-hover/header:scale-105 group-hover/header:border-purple-400/80 transition-all duration-300 shrink-0">
             <CubeIcon className="w-6 h-6 text-purple-700 transition-transform duration-300 group-hover/header:scale-110" />
           </div>
           <div>
             <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              Désignations de Composants d&apos;Entrepôt
+              {t('components.template.title', "Désignations de Composants d'Entrepôt")}
             </h2>
             <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-              Modèles et spécifications standardisés des sous-systèmes stockés en entrepôt rattachés aux Types de Composants.
+              {t('components.template.subtitle', 'Modèles et spécifications standardisés des sous-systèmes stockés en entrepôt rattachés aux Types de Composants.')}
             </p>
           </div>
         </div>
@@ -491,7 +491,7 @@ export default function CompTemplateView({
         <div className="flex items-center gap-2.5 shrink-0 relative">
           <FormulasModalButton
             onClick={() => setShowFormulasModal(true)}
-            title="Formules Excel (Désignations Composants)"
+            title={t('components.template.formulas_button', 'Formules Excel (Désignations Composants)')}
           />
 
           <Action3DButton
@@ -508,14 +508,14 @@ export default function CompTemplateView({
               });
               setShowAddModal(true);
             }}
-            title="Nouvelle Désignation"
+            title={t('components.template.add_button', 'Nouvelle Désignation')}
           />
         </div>
       </div>
 
       {/* Filter Bar */}
       <div className="relative z-30 bg-white border border-slate-200 rounded-2xl p-4 md:p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out space-y-4">
-        {/* Header Toolbar: Icon + Title + Count Badge + Excel Export + Circular Reset */}
+        {/* Header Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-200/80 flex items-center justify-center text-amber-700 shadow-2xs shrink-0">
@@ -524,14 +524,14 @@ export default function CompTemplateView({
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Filtres & Recherche Avancée
+                  {t('components.template.filter_title', 'Filtres & Recherche Avancée')}
                 </span>
                 <span className="bg-amber-50 text-amber-800 px-2.5 py-0.5 rounded-lg text-[11px] font-bold border border-amber-200/70 shadow-2xs font-mono">
                   {filtered.length} / {compTemplates.length}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium">
-                Référentiel des Modèles & Désignations de Composants Entrepôt • Colonnes A → E
+                {t('components.template.filter_subtitle', 'Référentiel des Modèles & Désignations de Composants Entrepôt • Colonnes A → E')}
               </p>
             </div>
           </div>
@@ -541,10 +541,10 @@ export default function CompTemplateView({
             <button
               onClick={handleExportExcel}
               className="h-8 px-3 rounded-xl border border-emerald-200/80 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-              title="Exporter le tableau vers Excel / CSV"
+              title={t('common.export_excel_title', 'Exporter le tableau vers Excel / CSV')}
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Export Excel</span>
+              <span>{t('components.template.export_excel', 'Export Excel')}</span>
             </button>
 
             {/* Circular Reset Button */}
@@ -557,7 +557,7 @@ export default function CompTemplateView({
                   setSortField('id_templates');
                   setSortOrder('asc');
                 }}
-                title="Réinitialiser tous les filtres actifs"
+                title={t('components.template.reset_filters', 'Réinitialiser tous les filtres actifs')}
                 className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in shrink-0"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -574,7 +574,7 @@ export default function CompTemplateView({
                 <Boxes className="w-3.5 h-3.5" />
               </span>
               <span>
-                Affichage filtré :
+                {t('common.filtered_display', 'Affichage filtré :')}
                 {activeGroupFilter && activeGroupFilter !== 'ALL' && (
                   <> Groupe <strong className="font-mono font-bold text-indigo-950 px-1.5 py-0.5 rounded bg-white border border-indigo-200 mx-1">{activeGroupFilter}</strong></>
                 )}
@@ -590,7 +590,7 @@ export default function CompTemplateView({
                   className="px-2.5 py-1 text-[11px] font-bold text-indigo-700 hover:text-indigo-900 hover:bg-white/80 rounded-lg transition cursor-pointer flex items-center gap-1 border border-indigo-200/60"
                 >
                   <FolderTree className="w-3 h-3" />
-                  <span>Tous les Groupes</span>
+                  <span>{t('components.template.all_groups', 'Tous les Groupes')}</span>
                 </button>
               )}
               <button
@@ -599,7 +599,7 @@ export default function CompTemplateView({
                   setCompTemplateFamilyFilter && setCompTemplateFamilyFilter('');
                 }}
                 className="p-1 hover:bg-indigo-200/60 text-indigo-600 hover:text-indigo-900 rounded-full transition cursor-pointer"
-                title="Supprimer les filtres de hiérarchie"
+                title={t('common.remove_filters', 'Supprimer les filtres de hiérarchie')}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -612,10 +612,10 @@ export default function CompTemplateView({
           <div className="w-full">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                RECHERCHE LIBRE
+                {t('components.template.search_label', 'RECHERCHE LIBRE')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                Col. A + B
+                {t('components.template.search_fields', 'Col. A + B')}
               </span>
             </div>
             <div className="relative flex items-center">
@@ -624,7 +624,7 @@ export default function CompTemplateView({
               </span>
               <input
                 type="text"
-                placeholder="Rechercher désignation, modèle..."
+                placeholder={t('components.template.search_placeholder', 'Rechercher désignation, modèle...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full h-10 pl-9 pr-8 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
@@ -644,17 +644,16 @@ export default function CompTemplateView({
           <div className="w-full">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                GROUPE COMPOSANT (NIV 1)
+                {t('components.template.group_label', 'GROUPE COMPOSANT (NIV 1)')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
-                Niveau 1
+                {t('components.template.level1_badge', 'Niveau 1')}
               </span>
             </div>
             <CustomSelect
               value={activeGroupFilter || 'ALL'}
               onChange={(val) => {
                 setActiveGroupFilter(val === 'ALL' ? '' : val);
-                // When changing group, if the active family doesn't belong to the new group, reset it
                 if (compTemplateFamilyFilter && val !== 'ALL') {
                   const currFam = compFamilies.find((f) => f.id_family === compTemplateFamilyFilter);
                   if (currFam && currFam.id_groupe !== val) {
@@ -670,7 +669,7 @@ export default function CompTemplateView({
               options={[
                 {
                   value: 'ALL',
-                  label: `Tous les Groupes (${compGroups.length})`,
+                  label: `${t('components.template.group_select_all', 'Tous les Groupes')} (${compGroups.length})`,
                   badge: `${compTemplates.length}`,
                   badgeColor: 'bg-slate-100 text-slate-700 font-bold',
                 },
@@ -692,7 +691,7 @@ export default function CompTemplateView({
           <div className="w-full">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                FAMILLE COMPOSANT (NIV 2)
+                {t('components.template.family_label', 'FAMILLE COMPOSANT (NIV 2)')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
                 Col. C
@@ -711,7 +710,7 @@ export default function CompTemplateView({
               options={[
                 {
                   value: 'ALL',
-                  label: `Toutes les familles (${availableFamilies.length})`,
+                  label: `${t('components.template.family_select_all', 'Toutes les familles')} (${availableFamilies.length})`,
                   badge: `${compTemplates.length}`,
                   badgeColor: 'bg-slate-100 text-slate-700 font-bold',
                 },
@@ -732,10 +731,10 @@ export default function CompTemplateView({
           <div className="w-full relative" ref={sortMenuRef}>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                TRI DES ENREGISTREMENTS
+                {t('components.template.sort_label', 'TRI DES ENREGISTREMENTS')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                Ordre A-Z
+                {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
               </span>
             </div>
             <button
@@ -751,7 +750,7 @@ export default function CompTemplateView({
                   <ArrowUpDown className="w-3 h-3" />
                 </span>
                 <span>
-                  Tri : <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
+                  {t('common.sort_by', 'Tri')} : <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
                   {sortOrder === 'asc' ? 'A→Z' : 'Z→A'})
                 </span>
               </div>
@@ -892,7 +891,7 @@ export default function CompTemplateView({
 
       {/* Unified Industrial Data Grid */}
       <GmaoIndustrialDataGrid
-        title="Tableau Désignations de Composants (Entrepôt)"
+        title={t('components.template.grid_title', 'Tableau Désignations de Composants (Entrepôt)')}
         icon={<CubeIcon className="w-4 h-4 text-teal-600" />}
         excelMapping="id_templates (A) | groupe | libelle (B) | id_family (C) | warehouse_items (D)"
         bannerColor="slate"
@@ -905,7 +904,7 @@ export default function CompTemplateView({
         startIndex={startIndex}
         showRowNumber={true}
         emptyIcon={<CubeIcon className="w-8 h-8 text-slate-300" />}
-        emptyMessage="Aucune désignation de composant trouvée"
+        emptyMessage={t('components.template.empty', 'Aucune désignation de composant trouvée')}
         pagination={{
           currentPage,
           setCurrentPage,
@@ -914,7 +913,7 @@ export default function CompTemplateView({
           totalItems,
           pageSizeOptions: [25, 50, 100, 200, 0],
           color: 'teal',
-          itemLabel: 'désignations',
+          itemLabel: t('components.template.item_label', 'désignations'),
         }}
       />
 

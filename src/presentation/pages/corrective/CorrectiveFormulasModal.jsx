@@ -6,16 +6,10 @@ import {
   TrendingUp,
   Layers,
 } from 'lucide-react';
+import { useI18n } from '../../../i18n/I18nContext';
 
-/**
- * CorrectiveFormulasModal — Excel Twin Formulas Documentation for Corrective Nexus
- * Transparently documents the calculation logic mirroring Excel formulas:
- * - Working time calculation with automatic lunch pause and shift deductions (NETWORKDAYS.INTL)
- * - MTTR (Mean Time To Repair) & MTBF (Mean Time Between Failures)
- * - Availability Rate (%)
- * - Pareto 80/20 Law
- */
 export default function CorrectiveFormulasModal({ isOpen, onClose }) {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState('time'); // 'time' | 'mttr' | 'pareto'
 
   if (!isOpen) return null;
@@ -39,14 +33,14 @@ export default function CorrectiveFormulasModal({ isOpen, onClose }) {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-black text-slate-900 tracking-tight">
-                  Formules Excel & Moteur de Calculs Correctifs
+                  {t('corrective.formulas.title')}
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-200">
                   GMAO Twin
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Spécification mathématique des calculs industriels conformes aux feuilles Excel d'origine.
+                {t('corrective.formulas.subtitle')}
               </p>
             </div>
           </div>
@@ -54,7 +48,7 @@ export default function CorrectiveFormulasModal({ isOpen, onClose }) {
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full border border-slate-200 bg-white hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shadow-2xs"
-            aria-label="Fermer"
+            aria-label={t('corrective.buttons.close')}
           >
             <X className="w-4 h-4" />
           </button>

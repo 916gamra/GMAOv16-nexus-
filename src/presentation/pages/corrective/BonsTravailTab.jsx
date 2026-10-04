@@ -23,6 +23,7 @@ import {
 import * as XLSX from 'xlsx';
 import CustomSelect from '../../components/common/CustomSelect';
 import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function BonsTravailTab({
   interventions = [],
@@ -38,6 +39,7 @@ export default function BonsTravailTab({
   travauxAFaire: _travauxAFaire = [],
   showToast,
 }) {
+  const { t } = useI18n();
   const resolveTechNom = (bt) => {
     if (bt.technicien_matricule) {
       const found = (technicians || []).find(
@@ -492,7 +494,7 @@ export default function BonsTravailTab({
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10.5px] font-extrabold text-slate-500 uppercase tracking-wider">
-                BTs En Cours d'Atelier
+                {t('corrective.bt.title')}
               </span>
               <Play className="w-6 h-6 text-amber-600 shrink-0 group-hover:scale-110 transition-transform" />
             </div>
@@ -598,7 +600,7 @@ export default function BonsTravailTab({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-900">
-                  Filtres & Recherche Avancée BT
+                  {t('common.filters.title')}
                 </span>
                 <span className="bg-blue-50 text-blue-800 px-3 py-1 rounded-lg text-xs font-bold border border-blue-200/70 shadow-2xs">
                   {filteredBts.length} BT{filteredBts.length > 1 ? 's' : ''} affiché{filteredBts.length > 1 ? 's' : ''} / {bts.length}

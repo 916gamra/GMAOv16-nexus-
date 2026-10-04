@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import ReferentielPannesTravauxTab from './ReferentielPannesTravauxTab';
 import Action3DButton from '../../components/common/Action3DButton';
+import { useI18n } from '../../../i18n/I18nContext';
 import * as XLSX from 'xlsx';
 
 export default function CatalogueDonneesView({
@@ -37,6 +38,7 @@ export default function CatalogueDonneesView({
   showToast,
   onNavigateToTab,
 }) {
+  const { t } = useI18n();
   const [activeSubTab, setActiveSubTab] = useState('pannes'); // 'pannes', 'travaux', 'actions', 'intervenants'
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -152,28 +154,28 @@ export default function CatalogueDonneesView({
   const subTabsConfig = [
     {
       id: 'pannes',
-      label: '1. Pannes par Catégorie',
+      label: t('corrective.catalogue.tab_pannes', '1. Pannes Catalogue'),
       icon: ShieldAlert,
       badge: totalPannesCount,
       badgeColor: 'bg-amber-100 text-amber-900 border border-amber-300',
     },
     {
       id: 'travaux',
-      label: '2. Tâches & Travaux Standards',
+      label: t('corrective.catalogue.tab_travaux', '2. Travaux Standards'),
       icon: BookOpen,
       badge: totalTravauxCount,
       badgeColor: 'bg-blue-100 text-blue-900 border border-blue-300',
     },
     {
       id: 'actions',
-      label: '3. Matrices Actions Correctives',
+      label: t('corrective.catalogue.tab_actions', '3. Matrices Actions'),
       icon: Wrench,
       badge: totalActionsKeysCount,
       badgeColor: 'bg-emerald-100 text-emerald-900 border border-emerald-300',
     },
     {
       id: 'intervenants',
-      label: '4. Équipe Intervenants Habilités',
+      label: t('corrective.catalogue.tab_intervenants', '4. Équipe Intervenants'),
       icon: Users,
       badge: totalIntervenantsCount,
       badgeColor: 'bg-purple-100 text-purple-900 border border-purple-300',
@@ -197,10 +199,10 @@ export default function CatalogueDonneesView({
 
             <div>
               <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                Catalogue & Données GMAO (الكواليس)
+                {t('corrective.catalogue.title', 'Catalogue & Données GMAO (الكواليس)')}
               </h2>
               <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-                Espace réservé à la configuration et sauvegarde des référentiels maîtres : <b>{totalPannesCount} pannes cataloguées</b>, <b>{totalTravauxCount} tâches standards</b>, <b>{totalActionsKeysCount} matrices d'actions correctives</b> et <b>{totalIntervenantsCount} techniciens habilités</b>.
+                {t('corrective.catalogue.subtitle', 'Espace réservé à la configuration et sauvegarde des référentiels maîtres : pannes cataloguées, tâches standards, matrices d\'actions correctives et techniciens habilités.')}
               </p>
             </div>
           </div>
@@ -214,7 +216,7 @@ export default function CatalogueDonneesView({
               icon={RefreshCw}
               onClick={handleForceSync}
               disabled={isSyncing}
-              title="Actualiser & Synchroniser les Données Usine"
+              title={t('corrective.catalogue.sync_data', 'Actualiser & Synchroniser les Données Usine')}
               ariaLabel="Actualiser Données"
             />
 
@@ -224,7 +226,7 @@ export default function CatalogueDonneesView({
               color="emerald"
               icon={FileSpreadsheet}
               onClick={handleExportExcel}
-              title="Exporter le Référentiel GMAO (.xlsx)"
+              title={t('corrective.catalogue.export_excel', 'Exporter le Référentiel GMAO (.xlsx)')}
               ariaLabel="Exporter Excel"
             />
 
@@ -238,7 +240,7 @@ export default function CatalogueDonneesView({
                   onNavigateToTab('corrective');
                 }
               }}
-              title="Retour au Correctif Hub (الصفحة الرئيسية)"
+              title={t('corrective.catalogue.return_hub', 'Retour au Correctif Hub')}
               ariaLabel="Correctif Hub"
             />
           </div>

@@ -38,6 +38,7 @@ import { HubIcon } from '../../components/common/icons/HubIcon';
 import { CategoryIcon } from '../../components/common/icons/CategoryIcon';
 import { SpokeIcon } from '../../components/common/icons/SpokeIcon';
 import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const STATUS_OPTIONS = [
   { value: 'Approuvé', label: 'Approuvé' },
@@ -73,6 +74,7 @@ export default function BlueprintMachineView({
   onNavigateToTemplate: _onNavigateToTemplate = () => {},
   onNavigateToTab = () => {},
 }) {
+  const { t } = useI18n();
   const [localSearch, setLocalSearch] = useState('');
   const [search, setSearch] = useState('');
 
@@ -425,14 +427,14 @@ export default function BlueprintMachineView({
     () => [
       {
         key: 'id_blueprint',
-        label: 'CODE BLUEPRINT',
+        label: t('machines.blueprint.col_code', 'CODE BLUEPRINT (A)'),
         colLetter: 'A',
         icon: FingerprintPattern,
         sortable: true,
       },
       {
         key: 'libelle',
-        label: 'LIBELLÉ DU PLAN (BOM)',
+        label: t('machines.blueprint.col_libelle', 'LIBELLÉ DU PLAN (BOM) (B)'),
         colLetter: 'B',
         icon: FileText,
         sortable: true,
@@ -440,49 +442,49 @@ export default function BlueprintMachineView({
       },
       {
         key: 'id_family',
-        label: 'FAMILLE & MODÈLE',
+        label: t('machines.blueprint.col_family_model', 'FAMILLE & MODÈLE (C+D)'),
         colLetter: 'C+D',
         sortable: true,
         headerClassName: 'min-w-[170px]',
       },
       {
         key: 'specs',
-        label: 'SPÉCIFICATIONS',
+        label: t('machines.blueprint.col_specs', 'SPÉCIFICATIONS'),
         colLetter: 'Specs',
         icon: Sliders,
         headerClassName: 'min-w-[150px]',
       },
       {
         key: 'composants',
-        label: 'COMPOSANTS',
+        label: t('machines.blueprint.col_components', 'COMPOSANTS (E)'),
         colLetter: 'E',
         icon: SpokeIcon,
         align: 'center',
       },
       {
         key: 'parts',
-        label: 'PARTS',
+        label: t('machines.blueprint.col_parts', 'PARTS (F)'),
         colLetter: 'F',
         icon: LayersIcon,
         align: 'center',
       },
       {
         key: 'pdr',
-        label: 'PDR',
+        label: t('machines.blueprint.col_pdr', 'PDR (G)'),
         colLetter: 'G',
         icon: CubeIcon,
         align: 'center',
       },
       {
         key: 'machines',
-        label: 'MACHINES',
+        label: t('machines.blueprint.col_machines', 'MACHINES'),
         colLetter: 'Flux',
         icon: Factory,
         align: 'center',
       },
       {
         key: 'statut',
-        label: 'STATUT',
+        label: t('machines.blueprint.col_status', 'STATUT (H)'),
         colLetter: 'H',
         icon: Radio,
         sortable: true,
@@ -495,7 +497,7 @@ export default function BlueprintMachineView({
         headerClassName: 'w-24 tracking-widest text-slate-400 font-bold',
       },
     ],
-    []
+    [t]
   );
 
   return (
@@ -512,11 +514,10 @@ export default function BlueprintMachineView({
           </div>
           <div>
             <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              Blueprints Machines (Level 3 - BOM & Spécifications)
+              {t('machines.blueprint.title')}
             </h2>
             <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-              Définissez la <b>Nomenclature Maîtresse (BOM)</b> à 4 volets : Spécifications techniques (Loi), Composants (Entrepôt),
-              Pièces détachées (Entrepôt) et PDR Consommables critiques. Liaison directe avec les Machines Registered et Nexus.
+              {t('machines.blueprint.subtitle')}
             </p>
           </div>
         </div>
@@ -524,7 +525,7 @@ export default function BlueprintMachineView({
         <div className="flex items-center gap-2.5 shrink-0 relative">
           <FormulasModalButton
             onClick={() => setShowFormulasModal(true)}
-            title="Formules Excel (Blueprints BOM)"
+            title={t('machines.blueprint.formulas_button', 'Formules Excel (Blueprints BOM)')}
           />
 
           <Action3DButton
@@ -542,7 +543,7 @@ export default function BlueprintMachineView({
             icon={FingerprintPattern}
             showAddBadge={true}
             onClick={handleOpenAddModal}
-            title="Nouveau Blueprint (BOM)"
+            title={t('machines.blueprint.new_blueprint_button', 'Nouveau Blueprint (BOM)')}
           />
         </div>
       </div>
@@ -558,14 +559,14 @@ export default function BlueprintMachineView({
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Filtres & Recherche Avancée
+                  {t('common.filters.title')}
                 </span>
                 <span className="bg-indigo-50 text-indigo-800 px-2.5 py-0.5 rounded-lg text-[11px] font-bold border border-indigo-200/70 shadow-2xs font-mono">
                   {filteredBlueprints.length} / {blueprints.length}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium">
-                Nomenclature Maîtresse BOM des Machines • Colonnes A → H
+                {t('machines.blueprint.filters_subtitle', 'Nomenclature Maîtresse BOM des Machines • Colonnes A → H')}
               </p>
             </div>
           </div>
@@ -575,10 +576,10 @@ export default function BlueprintMachineView({
             <button
               onClick={handleExportExcel}
               className="h-8 px-3 rounded-xl border border-emerald-200/80 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-              title="Exporter le tableau vers Excel / CSV"
+              title={t('common.filters.export_excel')}
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Export Excel</span>
+              <span>{t('common.filters.export_excel')}</span>
             </button>
 
             {/* Circular Reset Button */}
@@ -592,7 +593,7 @@ export default function BlueprintMachineView({
                   setSortField('id_blueprint');
                   setSortOrder('asc');
                 }}
-                title="Réinitialiser tous les filtres actifs"
+                title={t('common.filters.reset_tooltip')}
                 className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in shrink-0"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -606,7 +607,7 @@ export default function BlueprintMachineView({
           <div className="w-full">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                RECHERCHE LIBRE
+                {t('common.filters.search')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
                 Col. A + B
@@ -618,7 +619,7 @@ export default function BlueprintMachineView({
               </span>
               <input
                 type="text"
-                placeholder="Rechercher blueprint, ref plan, schema..."
+                placeholder={t('machines.blueprint.search_placeholder')}
                 value={localSearch}
                 onChange={(e) => setLocalSearch(e.target.value)}
                 className="w-full h-10 pl-9 pr-8 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
@@ -641,7 +642,7 @@ export default function BlueprintMachineView({
           <div className="w-full">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                FAMILLE MACHINE
+                {t('machines.blueprint.family_filter_label')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
                 Col. C
@@ -661,7 +662,7 @@ export default function BlueprintMachineView({
               options={[
                 {
                   value: 'ALL',
-                  label: `Toutes les Familles (${families.length})`,
+                  label: `${t('machines.blueprint.all_families')} (${families.length})`,
                   badge: `${blueprints.length}`,
                   badgeColor: 'bg-slate-100 text-slate-700 font-bold',
                 },
@@ -682,7 +683,7 @@ export default function BlueprintMachineView({
           <div className="w-full">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                MODÈLE / TEMPLATE
+                {t('machines.blueprint.template_filter_label')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
                 Col. D
@@ -699,7 +700,7 @@ export default function BlueprintMachineView({
               options={[
                 {
                   value: 'ALL',
-                  label: `Tous les Modèles (${availableFilterTemplates.length})`,
+                  label: `${t('machines.blueprint.all_templates')} (${availableFilterTemplates.length})`,
                   badge: `${filteredBlueprints.length}`,
                   badgeColor: 'bg-slate-100 text-slate-700 font-bold',
                 },
@@ -720,10 +721,10 @@ export default function BlueprintMachineView({
           <div className="w-full relative" ref={sortMenuRef}>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                TRI DES ENREGISTREMENTS
+                {t('common.filters.sort')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                Ordre A-Z
+                {sortOrder === 'asc' ? 'A→Z' : 'Z→A'}
               </span>
             </div>
             <button
@@ -739,7 +740,7 @@ export default function BlueprintMachineView({
                   <ArrowUpDown className="w-3 h-3" />
                 </span>
                 <span>
-                  Tri : <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
+                  {t('common.filters.sort_prefix')} <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
                   {sortOrder === 'asc' ? 'A→Z' : 'Z→A'})
                 </span>
               </div>

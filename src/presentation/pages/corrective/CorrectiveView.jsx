@@ -17,6 +17,7 @@ import AnalyseCorrectiveTab from './AnalyseCorrectiveTab';
 import CorrectiveFormulasModal from './CorrectiveFormulasModal';
 import Action3DButton from '../../components/common/Action3DButton';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
+import { useI18n } from '../../../i18n/I18nContext';
 import * as XLSX from 'xlsx';
 
 export default function CorrectiveView({
@@ -53,6 +54,8 @@ export default function CorrectiveView({
   showToast,
   onNavigateToTab: _onNavigateToTab,
 }) {
+  const { t } = useI18n();
+
   // Local active tab fallback if not controlled from router
   const [activeTab, setActiveTab] = useState(subTab || 'corrective_di');
   const [showFormulasModal, setShowFormulasModal] = useState(false);
@@ -152,34 +155,34 @@ export default function CorrectiveView({
   const tabs = [
     {
       id: 'corrective_di',
-      label: 'Demandes (DI)',
+      label: t('corrective.tabs.di'),
       icon: Flame,
       badge: pendingDiCount,
       badgeColor: 'bg-amber-100 text-amber-900 border border-amber-300',
     },
     {
       id: 'corrective_bt',
-      label: 'Bons de Travail (BT)',
+      label: t('corrective.tabs.bt'),
       icon: Wrench,
       badge: inProgressBtCount,
       badgeColor: 'bg-blue-100 text-blue-900 border border-blue-300',
     },
     {
       id: 'corrective_live',
-      label: 'Live & Chrono',
+      label: t('corrective.tabs.live'),
       icon: Play,
       isPulsing: isLiveRunning,
     },
     {
       id: 'corrective_cloture',
-      label: 'Clôture & Rapports',
+      label: t('corrective.tabs.cloture'),
       icon: FileText,
       badge: closedCount,
       badgeColor: 'bg-emerald-100 text-emerald-900 border border-emerald-300',
     },
     {
       id: 'corrective_analyse',
-      label: 'Analyse & Pareto 80/20',
+      label: t('corrective.tabs.analyse'),
       icon: BarChart3,
     },
   ];
@@ -201,17 +204,17 @@ export default function CorrectiveView({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                <span>Maintenance Corrective & GMAO Twin Excel</span>
+                <span>{t('corrective.title')}</span>
               </h2>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 font-mono">
                 Feuilles Rapport & Base
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono">
-                {interventions.length.toLocaleString()} Interventions
+                {t('corrective.interventions_count', { count: interventions.length.toLocaleString() })}
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-              Supervision complète du flux de dépannage : <b>Demandes (DI)</b> • <b>Bons de Travail (BT)</b> • <b>Chronomètre Live</b> (08:00 - 17:00, déduction pause 13:15-14:00) • <b>Sortie PDR</b> & <b>Pareto 80/20</b>.
+              {t('corrective.subtitle')}
             </p>
           </div>
         </div>
@@ -223,7 +226,7 @@ export default function CorrectiveView({
             {/* 3D Formula Circular Trigger Button */}
             <FormulasModalButton
               onClick={() => setShowFormulasModal(true)}
-              title="Formules Excel & Calcul Temps Ouvré (GMAO Twin)"
+              title={t('corrective.buttons.formulas')}
             />
 
             {/* 3D Circular Nouvelle Demande DI Button */}
@@ -236,8 +239,8 @@ export default function CorrectiveView({
                 handleTabChange('corrective_di');
                 setTriggerCreateDiModal(true);
               }}
-              title="Nouvelle Demande d'Intervention (DI)"
-              ariaLabel="Nouvelle Demande DI"
+              title={t('corrective.buttons.new_di')}
+              ariaLabel={t('corrective.buttons.new_di')}
             />
 
             {/* 3D Circular Exporter Excel Button */}
@@ -246,7 +249,7 @@ export default function CorrectiveView({
               color="emerald"
               icon={FileSpreadsheet}
               onClick={handleExportAllCorrective}
-              title="Exporter tout le Rapport Correctif (.xlsx)"
+              title={t('corrective.buttons.export_excel')}
               ariaLabel="Exporter Excel"
             />
 
@@ -266,7 +269,7 @@ export default function CorrectiveView({
                   showToast?.('Données correctives réinitialisées avec succès (800 interventions)', 'success');
                 }
               }}
-              title="Réinitialiser aux 800 interventions d'origine"
+              title={t('corrective.buttons.reset_seed')}
               ariaLabel="Réinitialiser données"
             />
           </div>

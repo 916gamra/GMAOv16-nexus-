@@ -6,6 +6,7 @@ import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGr
 import CustomSelect from '../../components/common/CustomSelect';
 import PartInfoIcon from '../../components/common/icons/PartInfoIcon';
 import { LayersIcon } from '../../components/common/icons/LayersIcon';
+import { useI18n } from '../../../i18n/I18nContext';
 import {
   Search,
   Tag,
@@ -40,6 +41,7 @@ export default function PartDesignationView({
   onNavigateToEntrepotByPart,
   _onNavigateToQuickSortie,
 }) {
+  const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showFormulasModal, setShowFormulasModal] = useState(false);
@@ -187,7 +189,7 @@ export default function PartDesignationView({
     () => [
       {
         key: 'ref',
-        label: 'REF / CODE',
+        label: t('designations.col_code', 'REF / CODE'),
         colLetter: 'A',
         icon: Tag,
         sortable: true,
@@ -199,7 +201,7 @@ export default function PartDesignationView({
       },
       {
         key: 'designation',
-        label: 'DÉSIGNATION DE LA PIÈCE',
+        label: t('designations.col_name', 'DÉSIGNATION DE LA PIÈCE'),
         colLetter: 'B',
         icon: PartInfoIcon,
         sortable: true,
@@ -212,7 +214,7 @@ export default function PartDesignationView({
       },
       {
         key: 'id_type',
-        label: 'TYPE DE PART PARENT',
+        label: t('designations.col_parent_type', 'TYPE DE PART PARENT'),
         colLetter: 'C',
         icon: LayersIcon,
         sortable: true,
@@ -225,7 +227,7 @@ export default function PartDesignationView({
                 onNavigateToPartTypes && onNavigateToPartTypes(item.id_type)
               }
               className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-semibold transition cursor-pointer"
-              title="Voir le type de part parent"
+              title={t('designations.view_parent_type', 'Voir le type de part parent')}
             >
               <LayersIcon className="w-3 h-3 text-emerald-600" />
               <span className="font-mono">{item.id_type}</span>
@@ -236,7 +238,7 @@ export default function PartDesignationView({
       },
       {
         key: 'seuil',
-        label: "SEUIL D'ALERTE",
+        label: t('designations.col_alert', "SEUIL D'ALERTE"),
         colLetter: 'D',
         icon: AlertTriangle,
         render: (item) => (
@@ -248,19 +250,19 @@ export default function PartDesignationView({
       },
       {
         key: 'emplacement',
-        label: 'EMPLACEMENT',
+        label: t('designations.col_location', 'EMPLACEMENT'),
         colLetter: 'E',
         icon: MapPin,
         render: (item) => (
           <span className="inline-flex items-center gap-1 text-slate-600 text-xs font-mono font-medium">
             <MapPin className="w-3 h-3 text-slate-400" />
-            {item.emplacement || 'Non assigné'}
+            {item.emplacement || t('common.unassigned', 'Non assigné')}
           </span>
         ),
       },
       {
         key: 'warehouse_parts',
-        label: 'PARTS EN ENTREPÔT',
+        label: t('designations.col_warehouse', 'PARTS EN ENTREPÔT'),
         colLetter: 'F',
         icon: Warehouse,
         render: (item) => {
@@ -279,10 +281,10 @@ export default function PartDesignationView({
                 onNavigateToEntrepotByPart(item.ref || item.id_part, item.id_type)
               }
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
-              title="Filtrer Entrepôt sur cette désignation de part"
+              title={t('designations.filter_warehouse', 'Filtrer Entrepôt sur cette désignation de part')}
             >
               <Warehouse className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{pCount} parts</span>
+              <span>{pCount} {t('designations.part_unit', 'parts')}</span>
               <ArrowRight className="w-3 h-3 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
             </button>
           );
@@ -313,7 +315,7 @@ export default function PartDesignationView({
                     }
                   }}
                   className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
-                  title="Filtrer l'entrepôt sur cette désignation"
+                  title={t('designations.filter_warehouse', 'Filtrer l\'entrepôt sur cette désignation')}
                 >
                   <Warehouse className="w-3.5 h-3.5 text-slate-900" />
                 </button>
@@ -327,7 +329,7 @@ export default function PartDesignationView({
                       ? 'bg-slate-100 text-emerald-700 font-bold'
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
-                  title="Actions et options"
+                  title={t('designations.action_menu_title', 'Actions et options')}
                 >
                   <MoreVertical className="w-3.5 h-3.5" />
                 </button>
@@ -337,7 +339,7 @@ export default function PartDesignationView({
                 <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-200/90 z-50 p-1.5 animate-in fade-in zoom-in-95 duration-150 text-left space-y-0.5">
                   <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Actions Désignation Part
+                      {t('designations.action_menu_header', 'Actions Désignation Part')}
                     </span>
                     <span className="text-xs font-mono font-bold text-emerald-700 truncate block mt-0.5">
                       {rowKey}
@@ -354,7 +356,7 @@ export default function PartDesignationView({
                     className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer group"
                   >
                     <Warehouse className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
-                    <span>Filtrer l'Entrepôt ({pCount})</span>
+                    <span>{t('designations.menu_filter_warehouse', "Filtrer l'Entrepôt")} ({pCount})</span>
                   </button>
                   <button
                     type="button"
@@ -374,7 +376,7 @@ export default function PartDesignationView({
                     className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer border-t border-slate-100 mt-1 pt-2"
                   >
                     <Edit2 className="w-3.5 h-3.5 text-teal-600" />
-                    <span>Modifier la Désignation</span>
+                    <span>{t('designations.menu_edit', 'Modifier la Désignation')}</span>
                   </button>
                   <button
                     type="button"
@@ -385,7 +387,7 @@ export default function PartDesignationView({
                     className="w-full px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                    <span>Supprimer du Référentiel</span>
+                    <span>{t('designations.menu_delete', 'Supprimer du Référentiel')}</span>
                   </button>
                 </div>
               )}
@@ -394,7 +396,7 @@ export default function PartDesignationView({
         },
       },
     ],
-    [partTypes, warehouseItems, activeActionMenuId, onNavigateToEntrepotByPart, onNavigateToPartTypes]
+    [t, partTypes, warehouseItems, activeActionMenuId, onNavigateToEntrepotByPart, onNavigateToPartTypes]
   );
 
   return (
@@ -411,10 +413,10 @@ export default function PartDesignationView({
           </div>
           <div>
             <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              Désignations de Parts d&apos;Entrepôt
+              {t('nav.designation_pdr', 'Désignations de Parts d’Entrepôt')}
             </h2>
             <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-              Catalogue des désignations et spécifications de pièces détachées rattachées aux Types de Parts.
+              {t('designations.subtitle', 'Catalogue des désignations et spécifications de pièces détachées rattachées aux Types de Parts.')}
             </p>
           </div>
         </div>
@@ -422,7 +424,7 @@ export default function PartDesignationView({
         <div className="flex items-center gap-2.5 shrink-0 relative">
           <FormulasModalButton
             onClick={() => setShowFormulasModal(true)}
-            title="Formules Excel (Désignations Parts)"
+            title={t('header.formulas_excel', 'Formules Excel (Désignations Parts)')}
           />
 
           <Action3DButton
@@ -442,7 +444,7 @@ export default function PartDesignationView({
               });
               setShowAddModal(true);
             }}
-            title="Nouvelle Désignation Part"
+            title={t('common.add', 'Nouvelle Désignation Part')}
           />
         </div>
       </div>
@@ -458,14 +460,14 @@ export default function PartDesignationView({
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Filtres & Recherche Avancée
+                  {t('common.filters.title', 'Filtres & Recherche Avancée')}
                 </span>
                 <span className="bg-amber-50 text-amber-800 px-2.5 py-0.5 rounded-lg text-[11px] font-bold border border-amber-200/70 shadow-2xs font-mono">
                   {filtered.length} / {partDesignations.length}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium">
-                Référentiel des Désignations de Pièces Entrepôt • Colonnes A → F
+                {t('designations.filters_subtitle', 'Référentiel des Désignations de Pièces Entrepôt • Colonnes A → F')}
               </p>
             </div>
           </div>
@@ -475,10 +477,10 @@ export default function PartDesignationView({
             <button
               onClick={handleExportExcel}
               className="h-8 px-3 rounded-xl border border-emerald-200/80 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-              title="Exporter le tableau vers Excel / CSV"
+              title={t('common.filters.export_excel', 'Exporter le tableau vers Excel / CSV')}
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Export Excel</span>
+              <span>{t('common.filters.export_excel', 'Export Excel')}</span>
             </button>
 
             {/* Circular Reset Button */}
@@ -490,7 +492,7 @@ export default function PartDesignationView({
                   setSortField('ref');
                   setSortOrder('asc');
                 }}
-                title="Réinitialiser tous les filtres actifs"
+                title={t('common.filters.reset_tooltip', 'Réinitialiser tous les filtres actifs')}
                 className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in shrink-0"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -504,10 +506,10 @@ export default function PartDesignationView({
           <div className="w-full">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                RECHERCHE LIBRE
+                {t('common.filters.search', 'RECHERCHE LIBRE')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                Tous champs
+                {t('common.all', 'Tous champs')}
               </span>
             </div>
             <div className="relative flex items-center">
@@ -516,7 +518,7 @@ export default function PartDesignationView({
               </span>
               <input
                 type="text"
-                placeholder="Rechercher par référence, désignation, emplacement..."
+                placeholder={t('common.filters.search_placeholder', 'Rechercher par référence, désignation, emplacement...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full h-10 pl-9 pr-8 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
@@ -536,7 +538,7 @@ export default function PartDesignationView({
           <div className="w-full">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                TYPE DE PART
+                {t('common.type', 'TYPE DE PART')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
                 Col. C
@@ -555,7 +557,7 @@ export default function PartDesignationView({
               options={[
                 {
                   value: 'ALL',
-                  label: `Tous les types de parts (${partTypes.length})`,
+                  label: `${t('common.all', 'Tous les types de parts')} (${partTypes.length})`,
                   badge: `${partDesignations.length}`,
                   badgeColor: 'bg-slate-100 text-slate-700 font-bold',
                 },
@@ -576,10 +578,10 @@ export default function PartDesignationView({
           <div className="w-full relative" ref={sortMenuRef}>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                TRI DES ENREGISTREMENTS
+                {t('common.filters.sort_and_order', 'TRI DES ENREGISTREMENTS')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                Ordre A-Z
+                {t('common.filters.order', 'Ordre A-Z')}
               </span>
             </div>
             <button
@@ -595,7 +597,7 @@ export default function PartDesignationView({
                   <ArrowUpDown className="w-3 h-3" />
                 </span>
                 <span>
-                  Tri : <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
+                  {t('common.filters.sort_prefix', 'Tri :')} <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
                   {sortOrder === 'asc' ? 'A→Z' : 'Z→A'})
                 </span>
               </div>
@@ -772,7 +774,7 @@ export default function PartDesignationView({
 
       {/* Unified Industrial Data Grid */}
       <GmaoIndustrialDataGrid
-        title="Tableau Désignations de Parts (Entrepôt)"
+        title={t('designations.grid_title', 'Tableau Désignations de Parts (Entrepôt)')}
         icon={<PartInfoIcon className="w-4 h-4 text-blue-600" />}
         excelMapping="ref (A) | designation (B) | id_type (C) | seuil (D) | emplacement (E) | warehouse_parts (F)"
         bannerColor="slate"
@@ -785,7 +787,7 @@ export default function PartDesignationView({
         startIndex={startIndex}
         showRowNumber={true}
         emptyIcon={<PartInfoIcon className="w-8 h-8 text-slate-300" />}
-        emptyMessage="Aucune désignation de part trouvée"
+        emptyMessage={t('designations.empty', 'Aucune désignation de part trouvée')}
         pagination={{
           currentPage,
           setCurrentPage,
@@ -794,7 +796,7 @@ export default function PartDesignationView({
           totalItems,
           pageSizeOptions: [25, 50, 100, 200, 0],
           color: 'emerald',
-          itemLabel: 'désignations',
+          itemLabel: t('designations.item_label', 'désignations'),
         }}
       />
 

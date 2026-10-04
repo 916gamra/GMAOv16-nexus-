@@ -15,6 +15,7 @@ import PreventiveService from '../../../application/services/PreventiveService';
 import TabPlanBuilder from './components/TabPlanBuilder';
 import TabGuide from './components/TabGuide';
 import TabActions from './components/TabActions';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function PreventiveSecondaryView({
   actions = [],
@@ -39,6 +40,7 @@ export default function PreventiveSecondaryView({
   showToast,
   initialSubTab = 'BUILDER',
 }) {
+  const { t } = useI18n();
   // Active secondary sub-tab: 'BUILDER' | 'GUIDE' | 'ACTIONS'
   const [activeSubTab, setActiveSubTab] = useState(initialSubTab);
 
@@ -143,14 +145,14 @@ export default function PreventiveSecondaryView({
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                  Ingénierie & Référentiel Préventif (Page Secondaire)
+                  {t('preventive.referentiel.title', 'Ingénierie & Référentiel Préventif (Page Secondaire)')}
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-50 text-purple-800 border border-purple-200 shadow-2xs">
-                  MODULES DE CONFIGURATION
+                  {t('preventive.referentiel.subtitle_badge', 'MODULES DE CONFIGURATION')}
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-                Configurez le concepteur de plans récurrents, le guide organe-action avec liaison PDR stock, et le catalogue des actions normalisées AFNOR.
+                {t('preventive.referentiel.subtitle', 'Configurez le concepteur de plans récurrents, le guide organe-action avec liaison PDR stock, et le catalogue des actions normalisées AFNOR.')}
               </p>
             </div>
           </div>
@@ -170,7 +172,7 @@ export default function PreventiveSecondaryView({
                 }`}
               >
                 <Sparkles className={`w-3.5 h-3.5 shrink-0 ${activeSubTab === 'BUILDER' ? 'text-emerald-600' : 'text-slate-500'}`} />
-                <span>Concepteur de Plans</span>
+                <span>{t('preventive.referentiel.tab_builder', 'Concepteur de Plans')}</span>
               </button>
 
               {/* SUB-TAB 2: GUIDE ORGANES & PDR */}
@@ -184,7 +186,7 @@ export default function PreventiveSecondaryView({
                 }`}
               >
                 <BookOpen className={`w-3.5 h-3.5 shrink-0 ${activeSubTab === 'GUIDE' ? 'text-purple-600' : 'text-slate-500'}`} />
-                <span>Guide & PDR ({totalGuides})</span>
+                <span>{t('preventive.referentiel.tab_guide', 'Guide & PDR')} ({totalGuides})</span>
               </button>
 
               {/* SUB-TAB 3: CATALOGUE ACTIONS */}
@@ -198,7 +200,7 @@ export default function PreventiveSecondaryView({
                 }`}
               >
                 <Wrench className={`w-3.5 h-3.5 shrink-0 ${activeSubTab === 'ACTIONS' ? 'text-indigo-600' : 'text-slate-500'}`} />
-                <span>Catalogue Actions ({totalActions})</span>
+                <span>{t('preventive.referentiel.tab_actions', 'Catalogue Actions')} ({totalActions})</span>
               </button>
             </div>
 
@@ -210,7 +212,7 @@ export default function PreventiveSecondaryView({
                   color="indigo"
                   icon={Calendar}
                   onClick={onNavigateToMainView}
-                  title="Retour à la Matrice & Planning Annuel (Page Principale)"
+                  title="Retour à la Matrice & Planning Annuel"
                 />
               )}
             </div>
@@ -224,8 +226,8 @@ export default function PreventiveSecondaryView({
               <Sparkles className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider truncate">Assistant Plan</p>
-              <p className="text-xs font-black text-slate-800 truncate">Génération Clé en Main</p>
+              <p className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider truncate">{t('preventive.referentiel.stat_builder', 'Assistant Plan')}</p>
+              <p className="text-xs font-black text-slate-800 truncate">{t('preventive.referentiel.stat_builder_desc', 'Génération Clé en Main')}</p>
             </div>
           </div>
 
@@ -234,8 +236,8 @@ export default function PreventiveSecondaryView({
               <BookOpen className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider truncate">Fiches Guides</p>
-              <p className="text-xs font-black text-slate-800 truncate">{totalGuides} Organes Métier</p>
+              <p className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider truncate">{t('preventive.referentiel.stat_guide', 'Fiches Guides')}</p>
+              <p className="text-xs font-black text-slate-800 truncate">{t('preventive.referentiel.stat_guide_desc', '{{count}} Organes Métier', { count: totalGuides })}</p>
             </div>
           </div>
 
@@ -244,8 +246,8 @@ export default function PreventiveSecondaryView({
               <Package className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider truncate">PDR Associées</p>
-              <p className="text-xs font-black text-slate-800 truncate">{totalPdrLinked} Pièces au Stock</p>
+              <p className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider truncate">{t('preventive.referentiel.stat_pdr', 'PDR Associées')}</p>
+              <p className="text-xs font-black text-slate-800 truncate">{t('preventive.referentiel.stat_pdr_desc', '{{count}} Pièces au Stock', { count: totalPdrLinked })}</p>
             </div>
           </div>
 
@@ -254,8 +256,8 @@ export default function PreventiveSecondaryView({
               <Wrench className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider truncate">Actions AFNOR</p>
-              <p className="text-xs font-black text-slate-800 truncate">{totalActions} Codes Standards</p>
+              <p className="text-[10.5px] font-bold text-slate-400 uppercase tracking-wider truncate">{t('preventive.referentiel.stat_actions', 'Actions AFNOR')}</p>
+              <p className="text-xs font-black text-slate-800 truncate">{t('preventive.referentiel.stat_actions_desc', '{{count}} Codes Standards', { count: totalActions })}</p>
             </div>
           </div>
         </div>

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { AvailabilityCalculationService } from '../../../domain/services/AvailabilityCalculationService';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function AnalyseCorrectiveTab({
   interventions = [],
@@ -30,6 +31,7 @@ export default function AnalyseCorrectiveTab({
   onAddPreventiveTask,
   showToast,
 }) {
+  const { t } = useI18n();
   const [selectedZone, setSelectedZone] = useState('ALL');
   const [selectedTypePanne, setSelectedTypePanne] = useState('ALL');
 
@@ -293,7 +295,7 @@ export default function AnalyseCorrectiveTab({
           <div>
             <div className="flex items-center justify-between mb-2.5">
               <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
-                Disponibilité Usine
+                {t('corrective.analyse.disponibilite')}
               </span>
               <Activity className="w-5 h-5 text-emerald-600 shrink-0 group-hover:scale-110 transition-transform" />
             </div>

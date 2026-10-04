@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import GmaoIndustrialDataGrid from '../../../components/common/GmaoIndustrialDataGrid.jsx';
 import { EntrepotItem } from '../../../../core/domain';
+import { useTranslation } from '../../../../i18n/I18nContext';
 
 export default function PartsTable({
   displayedData = [],
@@ -51,11 +52,12 @@ export default function PartsTable({
   onNavigateToZone,
   handleOpenAddModal,
 }) {
+  const { t } = useTranslation();
   const columns = useMemo(
     () => [
       {
         key: 'id_warehouse_item',
-        label: 'CODE PART & RÉFÉRENCE',
+        label: t('entrepot.columns.code_ref'),
         colLetter: 'A',
         icon: Tag,
         sortable: true,
@@ -63,7 +65,7 @@ export default function PartsTable({
       },
       {
         key: 'id_type',
-        label: 'TYPE DE PART & CLASSIFICATION',
+        label: t('entrepot.columns.type_class'),
         colLetter: 'D',
         icon: LayersIcon,
         sortable: true,
@@ -71,7 +73,7 @@ export default function PartsTable({
       },
       {
         key: 'designation',
-        label: 'DÉSIGNATION DE LA PIÈCE',
+        label: t('entrepot.columns.designation'),
         colLetter: 'C',
         icon: Package,
         sortable: true,
@@ -79,7 +81,7 @@ export default function PartsTable({
       },
       {
         key: 'rattachement_type',
-        label: 'RATTACHEMENT & MAGASIN PDR',
+        label: t('entrepot.columns.rattachement'),
         colLetter: 'E',
         icon: MapPin,
         sortable: true,
@@ -87,7 +89,7 @@ export default function PartsTable({
       },
       {
         key: 'technician',
-        label: 'RESPONSABLE',
+        label: t('entrepot.columns.responsible'),
         colLetter: 'F',
         icon: User,
         sortable: true,
@@ -95,7 +97,7 @@ export default function PartsTable({
       },
       {
         key: 'statut',
-        label: 'STATUT',
+        label: t('entrepot.columns.status'),
         colLetter: 'G',
         icon: Activity,
         sortable: true,
@@ -103,7 +105,7 @@ export default function PartsTable({
       },
       {
         key: 'stock',
-        label: 'STOCK ACTUEL (TWIN)',
+        label: t('entrepot.columns.stock'),
         colLetter: 'H',
         icon: TrendingUp,
         sortable: true,
@@ -117,11 +119,11 @@ export default function PartsTable({
         headerClassName: 'w-20 tracking-widest text-slate-400 font-bold',
       },
     ],
-    []
+    [t]
   );
   return (
     <GmaoIndustrialDataGrid
-      title="Tableau Pièces de Rechange (Parts) • Twin PDR Stock (Roulements, Courroies, Joints...)"
+      title={t('entrepot.table.title')}
       icon={<LayersIcon className="w-4 h-4 text-indigo-600" />}
       excelMapping="id_warehouse_item (A) | nature: PART (B) | designation (C) | type/diag (D) | rattachement/magasin (E) | responsable (F) | statut (G) | stock (H)"
       bannerColor="indigo"
@@ -138,14 +140,14 @@ export default function PartsTable({
       minWidth="min-w-[980px]"
       maxHeight="max-h-[62vh]"
       emptyIcon={<LayersIcon className="w-10 h-10 text-indigo-300 stroke-1" />}
-      emptyMessage="Aucune pièce de rechange (part) trouvée"
+      emptyMessage={t('entrepot.table.empty_msg')}
       emptyAction={
         handleOpenAddModal ? (
           <button
             onClick={handleOpenAddModal}
             className="mt-2 px-4 py-2 rounded-xl bg-indigo-50 text-indigo-700 font-bold hover:bg-indigo-100 border border-indigo-200 transition cursor-pointer"
           >
-            Ajouter un Part
+            {t('entrepot.buttons.add_part')}
           </button>
         ) : null
       }

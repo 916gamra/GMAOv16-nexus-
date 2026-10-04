@@ -9,8 +9,6 @@ import {
   User,
   DollarSign,
   Printer,
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   ChevronUp,
   CheckCircle2,
@@ -18,6 +16,8 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import ViewSwitchButtonGroup from './ViewSwitchButtonGroup';
+import TablePaginationCard from '../../../components/common/TablePaginationCard';
+import { useI18n } from '../../../../i18n/I18nContext';
 
 const ACTION_PILL_MAP = {
   C: { bg: 'bg-blue-500/10 text-blue-800 border-blue-200/80', dot: 'bg-blue-600', label: 'Contrôle' },
@@ -49,6 +49,7 @@ export default function DetailedTaskListView({
   hasActiveFilters = false,
   clearAllFilters = () => {},
 }) {
+  const { t } = useI18n();
   const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
   const [groupByMachine, setGroupByMachine] = useState(true);
@@ -89,7 +90,6 @@ export default function DetailedTaskListView({
   // Pagination calculations on sorted tasks
   const totalItems = sortedTasks.length;
   const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
-  const totalPages = pageSize === 0 ? 1 : Math.max(1, Math.ceil(totalItems / effectivePageSize));
   const startIndex = (currentPage - 1) * effectivePageSize;
 
   const rawDisplayedTasks = useMemo(() => {
@@ -135,11 +135,11 @@ export default function DetailedTaskListView({
             <div className="flex items-center gap-2">
               <List className="w-4 h-4 text-indigo-600" />
               <span className="font-bold text-slate-800 text-[13px]">
-                Tableau Détaillé des Tâches Préventives (Groupé par Machine)
+                {t('preventive.table.detailed_list_title', 'Tableau Détaillé des Tâches Préventives (Groupé par Machine)')}
               </span>
             </div>
             <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-mono font-bold bg-indigo-50 text-indigo-800 border border-indigo-200">
-              {totalItems} Tâche{totalItems > 1 ? 's' : ''} ordonnée{totalItems > 1 ? 's' : ''}
+              {totalItems} {t('preventive.table.ordered_tasks_count', '{{count}} tâche(s) ordonnée(s)', { count: totalItems })}
             </span>
           </div>
 
@@ -154,10 +154,10 @@ export default function DetailedTaskListView({
                   ? 'bg-indigo-50 text-indigo-800 border-indigo-300 shadow-2xs'
                   : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
               }`}
-              title="Afficher avec bannières de regroupement par machine"
+              title={groupByMachine ? t('preventive.table.banners_active', 'Bannières Machine Actives') : t('preventive.table.continuous_view', 'Vue Continue')}
             >
               <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />
-              <span>{groupByMachine ? 'Bannières Machine Actives' : 'Vue Continue'}</span>
+              <span>{groupByMachine ? t('preventive.table.banners_active', 'Bannières Machine Actives') : t('preventive.table.continuous_view', 'Vue Continue')}</span>
             </button>
 
             {/* 3D Circular Switch Buttons on the RIGHT */}
@@ -174,55 +174,55 @@ export default function DetailedTaskListView({
             <thead className="sticky top-0 bg-slate-100 text-slate-700 uppercase font-black text-[10px] tracking-wider border-b border-slate-200 z-20 shadow-2xs select-none">
               <tr>
                 <th className="py-3 px-3 text-center w-12 text-slate-500 font-mono text-[10px] bg-slate-200/70 border-r border-slate-200">
-                  N°
+                  {t('preventive.table.col_num', 'N°')}
                 </th>
                 <th className="py-3 px-3.5 min-w-[150px] border-r border-slate-200">
                   <div className="flex items-center gap-1.5">
                     <Factory className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>MACHINE & ZONE</span>
+                    <span>{t('preventive.table.col_machine_zone', 'MACHINE & ZONE')}</span>
                   </div>
                 </th>
                 <th className="py-3 px-3.5 min-w-[180px] border-r border-slate-200">
                   <div className="flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>COMPOSANT & INSTRUCTIONS</span>
+                    <span>{t('preventive.table.col_composant_instructions', 'COMPOSANT & INSTRUCTIONS')}</span>
                   </div>
                 </th>
                 <th className="py-3 px-3 min-w-[90px] text-center border-r border-slate-200">
                   <div className="flex items-center justify-center gap-1.5">
                     <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>ACTION</span>
+                    <span>{t('preventive.table.col_action', 'ACTION')}</span>
                   </div>
                 </th>
                 <th className="py-3 px-3 min-w-[85px] border-r border-slate-200">
                   <div className="flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>FRÉQ.</span>
+                    <span>{t('preventive.table.col_frequence', 'FRÉQ.')}</span>
                   </div>
                 </th>
                 <th className="py-3 px-3 min-w-[90px] border-r border-slate-200">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>ÉCHÉANCE</span>
+                    <span>{t('preventive.table.col_echeance', 'ÉCHÉANCE')}</span>
                   </div>
                 </th>
                 <th className="py-3 px-3 min-w-[110px] border-r border-slate-200">
                   <div className="flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>RESPONSABLE</span>
+                    <span>{t('preventive.table.col_responsable', 'RESPONSABLE')}</span>
                   </div>
                 </th>
                 <th className="py-3 px-3 min-w-[90px] border-r border-slate-200">
                   <div className="flex items-center gap-1.5">
                     <DollarSign className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>COÛT (DT)</span>
+                    <span>{t('preventive.table.col_cout', 'COÛT (DT)')}</span>
                   </div>
                 </th>
                 <th className="py-3 px-3 min-w-[90px] text-center border-r border-slate-200">
-                  <span>STATUT</span>
+                  <span>{t('preventive.table.col_statut', 'STATUT')}</span>
                 </th>
                 <th className="py-3 px-3.5 text-center min-w-[120px]">
-                  <span>ACTIONS</span>
+                  <span>{t('preventive.table.col_actions', 'ACTIONS')}</span>
                 </th>
               </tr>
             </thead>
@@ -232,9 +232,9 @@ export default function DetailedTaskListView({
                   <td colSpan={10} className="p-12 text-center text-slate-400 text-xs">
                     <div className="max-w-md mx-auto space-y-2">
                       <List className="w-8 h-8 text-slate-300 mx-auto" />
-                      <p className="font-bold text-slate-600">Aucune tâche trouvée</p>
+                      <p className="font-bold text-slate-600">{t('preventive.table.empty_tasks', 'Aucune tâche trouvée')}</p>
                       <p className="text-[11px] text-slate-400">
-                        Ajustez vos critères de recherche ou vos filtres.
+                        {t('preventive.table.empty_tasks_sub', 'Ajustez vos critères de recherche ou vos filtres.')}
                       </p>
                       {hasActiveFilters && (
                         <button
@@ -242,7 +242,7 @@ export default function DetailedTaskListView({
                           onClick={clearAllFilters}
                           className="mt-2 px-3 py-1.5 text-xs font-bold bg-indigo-50 text-indigo-700 rounded-xl hover:bg-indigo-100 cursor-pointer"
                         >
-                          Réinitialiser les filtres
+                          {t('preventive.table.reset_filters', 'Réinitialiser les filtres')}
                         </button>
                       )}
                     </div>
@@ -290,24 +290,24 @@ export default function DetailedTaskListView({
 
                             <div className="flex items-center gap-2">
                               <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-white text-slate-700 border border-slate-300 shadow-2xs font-mono">
-                                {group.tasks.length} tâche{group.tasks.length > 1 ? 's' : ''}
+                                {group.tasks.length} {t('preventive.table.tasks_count', '{{count}} tâche(s)', { count: group.tasks.length })}
                               </span>
                               {pendingCount > 0 && (
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
                                   <Clock className="w-3 h-3" />
-                                  {pendingCount} à faire
+                                  {pendingCount} {t('preventive.table.status.todo', 'à faire')}
                                 </span>
                               )}
                               {doneCount > 0 && (
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                                   <CheckCircle2 className="w-3 h-3" />
-                                  {doneCount} fait
+                                  {doneCount} {t('preventive.table.status.done', 'fait')}
                                 </span>
                               )}
                               {lateCount > 0 && (
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1 animate-pulse">
                                   <AlertTriangle className="w-3 h-3" />
-                                  {lateCount} en retard
+                                  {lateCount} {t('preventive.table.status.late', 'en retard')}
                                 </span>
                               )}
                             </div>
@@ -317,19 +317,24 @@ export default function DetailedTaskListView({
 
                       {/* Machine Group Task Rows */}
                       {!isCollapsed &&
-                        group.tasks.map((t, idx) => {
+                        group.tasks.map((tItem, idx) => {
                           const rowNumber = group.startIndex + idx + 1;
-                          const actionMeta = ACTION_PILL_MAP[t.action_code] || {
+                          const actionMeta = ACTION_PILL_MAP[tItem.action_code] || {
                             bg: 'bg-indigo-50 text-indigo-700 border-indigo-200',
                             dot: 'bg-indigo-600',
-                            label: t.action_code,
+                            label: tItem.action_code,
                           };
+                          const localizedStatus = tItem.etat === 'Fait'
+                            ? t('preventive.table.status.done', 'Fait')
+                            : tItem.etat === 'En retard'
+                            ? t('preventive.table.status.late', 'En retard')
+                            : t('preventive.table.status.todo', 'À faire');
 
                           return (
                             <tr
-                              key={t.id || `task-${group.id_machine}-${idx}`}
+                              key={tItem.id || `task-${group.id_machine}-${idx}`}
                               className={`even:bg-slate-50/40 odd:bg-white hover:bg-indigo-50/50 border-b border-slate-200/70 transition-colors ${
-                                t.etat === 'En retard' ? 'bg-rose-50/20' : ''
+                                tItem.etat === 'En retard' ? 'bg-rose-50/20' : ''
                               }`}
                             >
                               <td className="py-2.5 px-3 text-center font-mono text-[11px] font-bold text-slate-400 border-r border-slate-200/70">
@@ -345,7 +350,7 @@ export default function DetailedTaskListView({
                                   </div>
                                   <div className="min-w-0">
                                     <span className="font-mono font-bold text-slate-900 block text-xs truncate">
-                                      {t.id_machine}
+                                      {tItem.id_machine}
                                     </span>
                                   </div>
                                 </div>
@@ -355,9 +360,9 @@ export default function DetailedTaskListView({
                                 <div className="flex items-start gap-1.5">
                                   <Layers className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
                                   <div className="min-w-0">
-                                    <span className="font-bold text-slate-900 block text-xs">{t.composant}</span>
-                                    {t.consigne && (
-                                      <span className="text-[11px] text-slate-500 block max-w-xs truncate">{t.consigne}</span>
+                                    <span className="font-bold text-slate-900 block text-xs">{tItem.composant}</span>
+                                    {tItem.consigne && (
+                                      <span className="text-[11px] text-slate-500 block max-w-xs truncate">{tItem.consigne}</span>
                                     )}
                                   </div>
                                 </div>
@@ -366,38 +371,38 @@ export default function DetailedTaskListView({
                               <td className="py-2.5 px-3 text-center border-r border-slate-200/70 whitespace-nowrap">
                                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-mono font-bold text-[10.5px] border ${actionMeta.bg}`}>
                                   <span className={`w-1.5 h-1.5 rounded-full ${actionMeta.dot || 'bg-indigo-600'}`} />
-                                  {t.action_code}
+                                  {tItem.action_code}
                                 </span>
                               </td>
 
                               <td className="py-2.5 px-3 font-semibold text-slate-700 border-r border-slate-200/70 whitespace-nowrap">
                                 <div className="flex items-center gap-1 text-[11px]">
                                   <Clock className="w-3 h-3 text-slate-400" />
-                                  <span>{t.frequence || 'Périodique'}</span>
+                                  <span>{tItem.frequence || 'Périodique'}</span>
                                 </div>
                               </td>
 
                               <td className="py-2.5 px-3 font-mono text-slate-700 font-semibold border-r border-slate-200/70 whitespace-nowrap">
                                 <div className="flex items-center gap-1 text-[11px]">
                                   <Calendar className="w-3 h-3 text-slate-400" />
-                                  <span>{t.prochaine_echeance || t.semaine_cible || 'S1'}</span>
+                                  <span>{tItem.prochaine_echeance || tItem.semaine_cible || 'S1'}</span>
                                 </div>
                               </td>
 
                               <td className="py-2.5 px-3 font-semibold text-slate-800 border-r border-slate-200/70 whitespace-nowrap">
                                 <div className="flex items-center gap-1 text-[11px]">
-                                  <User className="w-3 h-3 text-slate-400" />
-                                  <span>{t.responsable || 'Non assigné'}</span>
+                                  <User className="w-3.5 h-3.5 text-slate-400" />
+                                  <span>{tItem.responsable || t('common.technician', 'Non assigné')}</span>
                                 </div>
                               </td>
 
                               <td className="py-2.5 px-3 font-mono font-bold text-slate-900 border-r border-slate-200/70 whitespace-nowrap">
-                                {Number(t.cout_cumule || 0).toFixed(2)} DT
+                                {Number(tItem.cout_cumule || 0).toFixed(2)} DT
                               </td>
 
                               <td className="py-2.5 px-3 text-center border-r border-slate-200/70 whitespace-nowrap">
-                                <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border ${STATUT_BADGES[t.etat] || ''}`}>
-                                  {t.etat}
+                                <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border ${STATUT_BADGES[tItem.etat] || ''}`}>
+                                  {localizedStatus}
                                 </span>
                               </td>
 
@@ -405,26 +410,26 @@ export default function DetailedTaskListView({
                                 <div className="flex items-center justify-center gap-1.5">
                                   <button
                                     type="button"
-                                    onClick={() => onOpenPrint(t)}
+                                    onClick={() => onOpenPrint(tItem)}
                                     className="p-1 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 rounded-lg transition cursor-pointer"
-                                    title="Imprimer l'Ordre de Travail (OT)"
+                                    title={t('preventive.buttons.print_wo', "Imprimer l'Ordre de Travail (OT)")}
                                   >
                                     <Printer className="w-3.5 h-3.5" />
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => onOpenCorrective(t)}
+                                    onClick={() => onOpenCorrective(tItem)}
                                     className="px-2.5 py-1 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition cursor-pointer"
-                                    title="Déclencher un BT Correctif en cas d'anomalie"
+                                    title={t('preventive.buttons.create_corrective_bt', "Déclencher un BT Correctif en cas d'anomalie")}
                                   >
-                                    Anomalie BT
+                                    BT
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => onOpenValidate(t)}
+                                    onClick={() => onOpenValidate(tItem)}
                                     className="px-2.5 py-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition cursor-pointer"
                                   >
-                                    Valider
+                                    {t('common.confirm', 'Valider')}
                                   </button>
                                 </div>
                               </td>
@@ -436,19 +441,24 @@ export default function DetailedTaskListView({
                 })
               ) : (
                 // Flat sorted list without headers
-                rawDisplayedTasks.map((t, idx) => {
+                rawDisplayedTasks.map((tItem, idx) => {
                   const rowNumber = startIndex + idx + 1;
-                  const actionMeta = ACTION_PILL_MAP[t.action_code] || {
+                  const actionMeta = ACTION_PILL_MAP[tItem.action_code] || {
                     bg: 'bg-indigo-50 text-indigo-700 border-indigo-200',
                     dot: 'bg-indigo-600',
-                    label: t.action_code,
+                    label: tItem.action_code,
                   };
+                  const localizedStatus = tItem.etat === 'Fait'
+                    ? t('preventive.table.status.done', 'Fait')
+                    : tItem.etat === 'En retard'
+                    ? t('preventive.table.status.late', 'En retard')
+                    : t('preventive.table.status.todo', 'À faire');
 
                   return (
                     <tr
-                      key={t.id || `task-row-${idx}`}
+                      key={tItem.id || `task-row-${idx}`}
                       className={`even:bg-slate-50/50 odd:bg-white hover:bg-indigo-50/40 border-b border-slate-200/70 transition-colors group ${
-                        t.etat === 'En retard' ? 'bg-rose-50/20' : ''
+                        tItem.etat === 'En retard' ? 'bg-rose-50/20' : ''
                       }`}
                     >
                       <td className="py-2.5 px-3 text-center font-mono text-[11px] font-bold text-slate-400 border-r border-slate-200/70">
@@ -464,15 +474,15 @@ export default function DetailedTaskListView({
                           </div>
                           <div className="min-w-0">
                             <span className="font-mono font-black text-slate-900 block text-xs truncate">
-                              {t.id_machine}
+                              {tItem.id_machine}
                             </span>
                             <span className="text-[11px] text-slate-500 truncate block">
-                              {t.nom_machine || t.id_machine}
+                              {tItem.nom_machine || tItem.id_machine}
                             </span>
                           </div>
-                          {(t.id_zone || t.zone) && (
+                          {(tItem.id_zone || tItem.zone) && (
                             <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-[9.5px] font-bold shrink-0 ml-auto">
-                              {t.id_zone || t.zone}
+                              {tItem.id_zone || tItem.zone}
                             </span>
                           )}
                         </div>
@@ -482,9 +492,9 @@ export default function DetailedTaskListView({
                         <div className="flex items-start gap-1.5">
                           <Layers className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
                           <div className="min-w-0">
-                            <span className="font-bold text-slate-900 block text-xs">{t.composant}</span>
-                            {t.consigne && (
-                              <span className="text-[11px] text-slate-500 block max-w-xs truncate">{t.consigne}</span>
+                            <span className="font-bold text-slate-900 block text-xs">{tItem.composant}</span>
+                            {tItem.consigne && (
+                              <span className="text-[11px] text-slate-500 block max-w-xs truncate">{tItem.consigne}</span>
                             )}
                           </div>
                         </div>
@@ -493,38 +503,38 @@ export default function DetailedTaskListView({
                       <td className="py-2.5 px-3 text-center border-r border-slate-200/70 whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-mono font-bold text-[10.5px] border ${actionMeta.bg}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${actionMeta.dot || 'bg-indigo-600'}`} />
-                          {t.action_code}
+                          {tItem.action_code}
                         </span>
                       </td>
 
                       <td className="py-2.5 px-3 font-semibold text-slate-700 border-r border-slate-200/70 whitespace-nowrap">
                         <div className="flex items-center gap-1 text-[11px]">
                           <Clock className="w-3 h-3 text-slate-400" />
-                          <span>{t.frequence || 'Périodique'}</span>
+                          <span>{tItem.frequence || 'Périodique'}</span>
                         </div>
                       </td>
 
                       <td className="py-2.5 px-3 font-mono text-slate-700 font-semibold border-r border-slate-200/70 whitespace-nowrap">
                         <div className="flex items-center gap-1 text-[11px]">
                           <Calendar className="w-3 h-3 text-slate-400" />
-                          <span>{t.prochaine_echeance || t.semaine_cible || 'S1'}</span>
+                          <span>{tItem.prochaine_echeance || tItem.semaine_cible || 'S1'}</span>
                         </div>
                       </td>
 
                       <td className="py-2.5 px-3 font-semibold text-slate-800 border-r border-slate-200/70 whitespace-nowrap">
                         <div className="flex items-center gap-1 text-[11px]">
-                          <User className="w-3 h-3 text-slate-400" />
-                          <span>{t.responsable || 'Non assigné'}</span>
+                          <User className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{tItem.responsable || t('common.technician', 'Non assigné')}</span>
                         </div>
                       </td>
 
                       <td className="py-2.5 px-3 font-mono font-bold text-slate-900 border-r border-slate-200/70 whitespace-nowrap">
-                        {Number(t.cout_cumule || 0).toFixed(2)} DT
+                        {Number(tItem.cout_cumule || 0).toFixed(2)} DT
                       </td>
 
                       <td className="py-2.5 px-3 text-center border-r border-slate-200/70 whitespace-nowrap">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border ${STATUT_BADGES[t.etat] || ''}`}>
-                          {t.etat}
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border ${STATUT_BADGES[tItem.etat] || ''}`}>
+                          {localizedStatus}
                         </span>
                       </td>
 
@@ -532,26 +542,26 @@ export default function DetailedTaskListView({
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => onOpenPrint(t)}
+                            onClick={() => onOpenPrint(tItem)}
                             className="p-1 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 rounded-lg transition cursor-pointer"
-                            title="Imprimer l'Ordre de Travail (OT)"
+                            title={t('preventive.buttons.print_wo', "Imprimer l'Ordre de Travail (OT)")}
                           >
                             <Printer className="w-3.5 h-3.5" />
                           </button>
                           <button
                             type="button"
-                            onClick={() => onOpenCorrective(t)}
+                            onClick={() => onOpenCorrective(tItem)}
                             className="px-2.5 py-1 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition cursor-pointer"
-                            title="Déclencher un BT Correctif en cas d'anomalie"
+                            title={t('preventive.buttons.create_corrective_bt', "Déclencher un BT Correctif en cas d'anomalie")}
                           >
-                            Anomalie BT
+                            BT
                           </button>
                           <button
                             type="button"
-                            onClick={() => onOpenValidate(t)}
+                            onClick={() => onOpenValidate(tItem)}
                             className="px-2.5 py-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition cursor-pointer"
                           >
-                            Valider
+                            {t('common.confirm', 'Valider')}
                           </button>
                         </div>
                       </td>
@@ -564,101 +574,17 @@ export default function DetailedTaskListView({
         </div>
       </div>
 
-      {/* Pagination Footer */}
-      <div className="bg-white p-3 md:p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-3 mt-4">
-        <div className="text-xs text-slate-600 font-medium">
-          {totalItems > 0 ? (
-            <>
-              Affichage de <b>{startIndex + 1}</b> à <b>{Math.min(startIndex + effectivePageSize, totalItems)}</b> sur <b>{totalItems}</b> tâches (Page <b>{currentPage}</b> / <b>{totalPages}</b>)
-            </>
-          ) : (
-            '0 tâche'
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-slate-400 uppercase font-mono hidden sm:inline">Lignes :</span>
-          <div className="inline-flex items-center p-0.5 bg-slate-100 rounded-xl border border-slate-200/80">
-            {[20, 50, 100, 200, 0].map((size) => (
-              <button
-                key={size}
-                type="button"
-                onClick={() => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold font-mono transition cursor-pointer active:scale-95 ${
-                  pageSize === size
-                    ? 'bg-indigo-600 text-white shadow-2xs font-black'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {size === 0 ? 'Tout' : size}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage <= 1}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1 cursor-pointer active:scale-95 ${
-              currentPage <= 1
-                ? 'opacity-40 border-slate-200 text-slate-400 cursor-not-allowed'
-                : 'border-slate-200/90 bg-slate-50 hover:bg-slate-100 text-slate-700'
-            }`}
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Précédent</span>
-          </button>
-
-          {pageSize !== 0 && totalPages > 1 && (
-            Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
-
-              return (
-                <button
-                  key={pageNum}
-                  type="button"
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`w-8 h-8 rounded-xl text-xs font-bold font-mono transition flex items-center justify-center cursor-pointer active:scale-95 ${
-                    currentPage === pageNum
-                      ? 'bg-indigo-600 text-white shadow-2xs font-black'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200/80'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })
-          )}
-
-          <button
-            type="button"
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={pageSize === 0 || currentPage >= totalPages}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition flex items-center gap-1 cursor-pointer active:scale-95 ${
-              pageSize === 0 || currentPage >= totalPages
-                ? 'opacity-40 border-slate-200 text-slate-400 cursor-not-allowed'
-                : 'border-slate-200/90 bg-slate-50 hover:bg-slate-100 text-slate-700'
-            }`}
-          >
-            <span className="hidden sm:inline">Suivant</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+      {/* Standardized Table Pagination Footer */}
+      <TablePaginationCard
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        totalItems={totalItems}
+        pageSizeOptions={[20, 50, 100, 200, 0]}
+        color="indigo"
+        itemLabel={t('preventive.tabs.list', 'tâches')}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import Action3DButton from '../../components/common/Action3DButton';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
 import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import SequentialCodePicker from '../../components/common/SequentialCodePicker';
+import { useI18n } from '../../../i18n/I18nContext';
 import {
   Tag,
   Layers,
@@ -39,6 +40,7 @@ export default function TypeView({
   onNavigateToDesignationsFiltered,
   onQuickCreateDesignation,
 }) {
+  const { t } = useI18n();
   const [localSearch, setLocalSearch] = useState('');
   const [search, setSearch] = useState('');
 
@@ -229,12 +231,12 @@ export default function TypeView({
     () => [
       {
         key: 'id_type',
-        label: 'ID TYPE',
+        label: t('article_types.col_id', 'ID TYPE'),
         colLetter: 'A',
         icon: Tag,
         sortable: true,
-        render: (t) => {
-          const typeVal = String(t.id_type || t.libelle || '');
+        render: (item) => {
+          const typeVal = String(item.id_type || item.libelle || '');
           return (
             <span className="px-2.5 py-1 rounded-full bg-cyan-50 text-cyan-800 border border-cyan-200 text-[11px] font-mono font-bold">
               {typeVal}
@@ -244,23 +246,23 @@ export default function TypeView({
       },
       {
         key: 'libelle',
-        label: 'LIBELLÉ DU TYPE',
+        label: t('article_types.col_libelle', 'LIBELLÉ DU TYPE'),
         colLetter: 'B',
         icon: Layers,
         sortable: true,
-        render: (t) => {
-          const typeVal = String(t.id_type || t.libelle || '');
-          return <span className="font-semibold text-slate-800 text-[13px]">{t.libelle || typeVal}</span>;
+        render: (item) => {
+          const typeVal = String(item.id_type || item.libelle || '');
+          return <span className="font-semibold text-slate-800 text-[13px]">{item.libelle || typeVal}</span>;
         },
       },
       {
         key: 'desig_count',
-        label: 'DÉSIGNATIONS LIÉES',
+        label: t('article_types.col_desig_count', 'DÉSIGNATIONS LIÉES'),
         colLetter: 'C',
         icon: Boxes,
         sortable: true,
-        render: (t) => {
-          const typeVal = String(t.id_type || t.libelle || '');
+        render: (item) => {
+          const typeVal = String(item.id_type || item.libelle || '');
           const desigCount = designations.filter((d) => {
             const dIdType = String(d?.id_type || '').toLowerCase();
             const dType = String(d?.type || '').toLowerCase();
@@ -273,7 +275,7 @@ export default function TypeView({
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
             >
               <BadgeCheck className="w-3.5 h-3.5 text-indigo-600" />
-              <span>{desigCount} désignations</span>
+              <span>{desigCount} {t('article_types.desig_unit', 'désignations')}</span>
               <ArrowRight className="w-3 h-3 text-indigo-600 group-hover:translate-x-0.5 transition-transform" />
             </button>
           );
@@ -281,12 +283,12 @@ export default function TypeView({
       },
       {
         key: 'article_count',
-        label: 'ARTICLES EN STOCK',
+        label: t('article_types.col_article_count', 'ARTICLES EN STOCK'),
         colLetter: 'D',
         icon: Package,
         sortable: true,
-        render: (t) => {
-          const typeVal = String(t.id_type || t.libelle || '');
+        render: (item) => {
+          const typeVal = String(item.id_type || item.libelle || '');
           const articleCount = stockItems.filter((s) => {
             const sIdType = String(s?.id_type || '').toLowerCase();
             const sType = String(s?.type || '').toLowerCase();
@@ -299,7 +301,7 @@ export default function TypeView({
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-50 text-cyan-800 hover:bg-cyan-100 border border-cyan-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
             >
               <Package className="w-3.5 h-3.5 text-cyan-600" />
-              <span>{articleCount} articles</span>
+              <span>{articleCount} {t('article_types.article_unit', 'articles')}</span>
               <ArrowRight className="w-3 h-3 text-cyan-600 group-hover:translate-x-0.5 transition-transform" />
             </button>
           );
@@ -310,8 +312,8 @@ export default function TypeView({
         label: '•••',
         align: 'center',
         headerClassName: 'w-24 text-center font-bold text-slate-400 tracking-widest select-none',
-        render: (t) => {
-          const typeVal = String(t.id_type || t.libelle || '');
+        render: (item) => {
+          const typeVal = String(item.id_type || item.libelle || '');
           const desigCount = designations.filter((d) => {
             const dIdType = String(d?.id_type || '').toLowerCase();
             const dType = String(d?.type || '').toLowerCase();
@@ -339,7 +341,7 @@ export default function TypeView({
                     setActiveActionMenuId(null);
                   }}
                   className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
-                  title="Créer une Désignation pour ce type"
+                  title={t('article_types.quick_create_desig_title', 'Créer une Désignation pour ce type')}
                 >
                   <BadgePlus className="w-3.5 h-3.5 text-slate-900" />
                 </button>
@@ -353,7 +355,7 @@ export default function TypeView({
                       ? 'bg-slate-100 text-cyan-700 font-bold'
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
-                  title="Actions et options du type"
+                  title={t('article_types.action_options_title', 'Actions et options du type')}
                 >
                   <MoreVertical className="w-3.5 h-3.5" />
                 </button>
@@ -363,10 +365,10 @@ export default function TypeView({
                 <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50 text-left animate-in fade-in slide-in-from-top-2 duration-150 space-y-1">
                   <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Actions Type
+                      {t('article_types.action_header', 'Actions Type')}
                     </div>
                     <div className="font-mono font-bold text-xs text-slate-800 truncate mt-0.5">
-                      {t.id_type} • {t.libelle || t.id_type}
+                      {item.id_type} • {item.libelle || item.id_type}
                     </div>
                   </div>
                   <div className="space-y-0.5">
@@ -384,7 +386,7 @@ export default function TypeView({
                     >
                       <div className="flex items-center gap-2">
                         <BadgePlus className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
-                        <span>Nouvelle Désignation</span>
+                        <span>{t('article_types.new_designation', 'Nouvelle Désignation')}</span>
                       </div>
                       <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-bold border border-emerald-200/60">
                         +
@@ -402,7 +404,7 @@ export default function TypeView({
                     >
                       <div className="flex items-center gap-2">
                         <BadgeCheck className="w-3.5 h-3.5 text-indigo-600 group-hover:scale-110 transition-transform" />
-                        <span>Voir les Désignations</span>
+                        <span>{t('article_types.view_designations', 'Voir les Désignations')}</span>
                       </div>
                       <span className="text-[10px] font-mono text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded font-bold border border-emerald-200/60">
                         {desigCount}
@@ -420,7 +422,7 @@ export default function TypeView({
                     >
                       <div className="flex items-center gap-2">
                         <Package className="w-3.5 h-3.5 text-cyan-600 group-hover:scale-110 transition-transform" />
-                        <span>Voir Articles du Stock</span>
+                        <span>{t('article_types.view_articles', 'Voir Articles du Stock')}</span>
                       </div>
                       <span className="text-[10px] font-mono text-cyan-700 bg-cyan-50 px-1.5 py-0.2 rounded font-bold border border-emerald-200/60">
                         {articleCount}
@@ -430,23 +432,23 @@ export default function TypeView({
                       type="button"
                       onClick={() => {
                         setActiveActionMenuId(null);
-                        setToEdit({ ...t });
+                        setToEdit({ ...item });
                       }}
                       className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-blue-700 hover:bg-blue-50 flex items-center gap-2 transition cursor-pointer group border-t border-slate-100 mt-1 pt-2"
                     >
                       <Edit2 className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
-                      <span>Modifier ce Type</span>
+                      <span>{t('article_types.edit_type', 'Modifier ce Type')}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => {
                         setActiveActionMenuId(null);
-                        setToDelete(t);
+                        setToDelete(item);
                       }}
                       className="w-full px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-rose-700 hover:bg-rose-50 flex items-center gap-2 transition cursor-pointer group"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-rose-600 group-hover:scale-110 transition-transform" />
-                      <span>Supprimer ce Type</span>
+                      <span>{t('article_types.delete_type', 'Supprimer ce Type')}</span>
                     </button>
                   </div>
                 </div>
@@ -456,7 +458,7 @@ export default function TypeView({
         },
       },
     ],
-    [designations, stockItems, activeActionMenuId]
+    [designations, stockItems, activeActionMenuId, t]
   );
 
   return (
@@ -473,10 +475,10 @@ export default function TypeView({
           </div>
           <div>
             <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              Types d&apos;Articles (Types & Catégories)
+              {t('article_types.title', "Types d'Articles (Types & Catégories)")}
             </h2>
             <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-              Équivalent des familles pour les machines (ex: Foret, Vis, Roulement). Gérez les types et catégories d&apos;articles de stock.
+              {t('article_types.subtitle', "Équivalent des familles pour les machines (ex: Foret, Vis, Roulement). Gérez les types et catégories d'articles de stock.")}
             </p>
           </div>
         </div>
@@ -484,7 +486,7 @@ export default function TypeView({
         <div className="flex items-center gap-2.5 shrink-0 relative">
           <FormulasModalButton
             onClick={() => setShowFormulasModal(true)}
-            title="Formules Excel (Types d'Articles)"
+            title={t('article_types.formulas_button', "Formules Excel (Types d'Articles)")}
           />
 
           <Action3DButton
@@ -493,7 +495,7 @@ export default function TypeView({
             icon={Tag}
             showAddBadge={true}
             onClick={() => setShowAddModal(true)}
-            title="Nouveau Type"
+            title={t('article_types.new_type_button', 'Nouveau Type')}
           />
         </div>
       </div>
@@ -511,14 +513,14 @@ export default function TypeView({
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Filtres & Recherche Avancée
+                  {t('common.filters.title', 'Filtres & Recherche Avancée')}
                 </span>
                 <span className="bg-amber-50 text-amber-800 px-2.5 py-0.5 rounded-lg text-[11px] font-bold border border-amber-200/70 shadow-2xs font-mono">
                   {filtered.length} / {types.length}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium">
-                Référentiel des Familles & Types de Pièces de Rechange • Colonnes A → D
+                {t('article_types.filters_subtitle', 'Référentiel des Familles & Types de Pièces de Rechange • Colonnes A → D')}
               </p>
             </div>
           </div>
@@ -528,10 +530,10 @@ export default function TypeView({
             <button
               onClick={handleExportExcel}
               className="h-8 px-3 rounded-xl border border-emerald-200/80 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-              title="Exporter le tableau vers Excel / CSV"
+              title={t('common.filters.export_excel', 'Exporter le tableau vers Excel / CSV')}
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Export Excel</span>
+              <span>{t('common.filters.export_excel', 'Export Excel')}</span>
             </button>
 
             {/* Circular Reset Button */}
@@ -542,7 +544,7 @@ export default function TypeView({
                   setSortField('id_type');
                   setSortOrder('asc');
                 }}
-                title="Réinitialiser tous les filtres actifs"
+                title={t('common.filters.reset_tooltip', 'Réinitialiser tous les filtres actifs')}
                 className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in shrink-0"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -556,10 +558,10 @@ export default function TypeView({
           <div className="relative w-full">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                RECHERCHE LIBRE
+                {t('article_types.search_free', 'RECHERCHE LIBRE')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                Col. A + B
+                {t('article_types.col_a_b', 'Col. A + B')}
               </span>
             </div>
             <div className="relative flex items-center">
@@ -568,7 +570,7 @@ export default function TypeView({
               </span>
               <input
                 type="text"
-                placeholder="Rechercher par code ou libellé (Foret, Vis, Roulement...)..."
+                placeholder={t('article_types.search_placeholder', 'Rechercher par code ou libellé (Foret, Vis, Roulement...)...')}
                 value={localSearch}
                 onChange={(e) => setLocalSearch(e.target.value)}
                 className="w-full h-10 pl-9 pr-8 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
@@ -588,10 +590,10 @@ export default function TypeView({
           <div className="w-full relative" ref={sortMenuRef}>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                TRI DES ENREGISTREMENTS
+                {t('article_types.sorting_title', 'TRI DES ENREGISTREMENTS')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                Ordre A-Z
+                {t('article_types.order_a_z', 'Ordre A-Z')}
               </span>
             </div>
             <button
@@ -607,7 +609,7 @@ export default function TypeView({
                   <ArrowUpDown className="w-3 h-3" />
                 </span>
                 <span>
-                  Tri : <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
+                  {t('article_types.sort_prefix', 'Tri :')} <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
                   {sortOrder === 'asc' ? 'A→Z' : 'Z→A'})
                 </span>
               </div>
@@ -621,7 +623,7 @@ export default function TypeView({
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   <span className="flex items-center gap-1.5 text-slate-700 font-semibold">
                     <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-600" />
-                    Trier par
+                    {t('article_types.sort_by_title', 'Trier par')}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 gap-1 text-xs">
@@ -633,7 +635,7 @@ export default function TypeView({
                         : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>Code / ID Type (A)</span>
+                    <span>{t('article_types.sort_code', 'Code / ID Type (A)')}</span>
                     {sortField === 'id_type' &&
                       (sortOrder === 'asc' ? (
                         <ArrowUp className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
@@ -650,7 +652,7 @@ export default function TypeView({
                         : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>Libellé / Nom du Type (B)</span>
+                    <span>{t('article_types.sort_label', 'Libellé / Nom du Type (B)')}</span>
                     {sortField === 'libelle' &&
                       (sortOrder === 'asc' ? (
                         <ArrowUp className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
@@ -667,7 +669,7 @@ export default function TypeView({
                         : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>Nb Désignations Liées (C)</span>
+                    <span>{t('article_types.sort_desig_count', 'Nb Désignations Liées (C)')}</span>
                     {sortField === 'desig_count' &&
                       (sortOrder === 'asc' ? (
                         <ArrowUp className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
@@ -684,7 +686,7 @@ export default function TypeView({
                         : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>Nb Articles en Stock (D)</span>
+                    <span>{t('article_types.sort_article_count', 'Nb Articles en Stock (D)')}</span>
                     {sortField === 'article_count' &&
                       (sortOrder === 'asc' ? (
                         <ArrowUp className="w-3.5 h-3.5 text-cyan-600 shrink-0" />
@@ -701,10 +703,10 @@ export default function TypeView({
         {/* Active Filter Chips */}
         {localSearch && (
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 text-xs">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Filtre actif :</span>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t('article_types.active_filter', 'Filtre actif :')}</span>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-50 border border-cyan-200 text-cyan-800 text-xs font-semibold">
               <Search className="w-3 h-3 text-cyan-600" />
-              Recherche: &quot;{localSearch}&quot;
+              {t('article_types.active_search_prefix', 'Recherche: ')}&quot;{localSearch}&quot;
               <button
                 onClick={() => setLocalSearch('')}
                 className="hover:bg-cyan-200/60 p-0.5 rounded-full transition cursor-pointer"
@@ -718,9 +720,9 @@ export default function TypeView({
 
       {/* Unified Industrial Data Grid */}
       <GmaoIndustrialDataGrid
-        title="Tableau Types d'Articles • Colonnes A → D"
+        title={t('article_types.grid_title', "Tableau Types d'Articles • Colonnes A → D")}
         icon={<Tag className="w-4 h-4 text-cyan-600" />}
-        excelMapping="id_type (A) | libelle (B) | nb_designations (C) | nb_articles (D)"
+        excelMapping={t('article_types.excel_mapping', 'id_type (A) | libelle (B) | nb_designations (C) | nb_articles (D)')}
         bannerColor="slate"
         columns={typeColumns}
         data={displayedData}
@@ -731,7 +733,7 @@ export default function TypeView({
         startIndex={startIndex}
         showRowNumber={true}
         emptyIcon={<Tag className="w-8 h-8 text-slate-300" />}
-        emptyMessage="Aucun type d'article trouvé"
+        emptyMessage={t('article_types.empty_message', "Aucun type d'article trouvé")}
         pagination={{
           currentPage,
           setCurrentPage,
@@ -740,17 +742,16 @@ export default function TypeView({
           totalItems,
           pageSizeOptions: [20, 50, 100, 200, 0],
           color: 'cyan',
-          itemLabel: 'types',
+          itemLabel: t('article_types.item_label', 'types'),
         }}
       />
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-200">
-            <h3 className="font-bold text-base text-slate-900 mb-1">Nouveau Type d'Article</h3>
+            <h3 className="font-bold text-base text-slate-900 mb-1">{t('article_types.add_title', "Nouveau Type d'Article")}</h3>
             <p className="text-xs text-slate-500 mb-4">
-              Créez une catégorie parent (ex: Foret, Vis, Roulement) pour regrouper les
-              désignations.
+              {t('article_types.add_desc', "Créez une catégorie parent (ex: Foret, Vis, Roulement) pour regrouper les désignations.")}
             </p>
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
@@ -766,17 +767,17 @@ export default function TypeView({
                   }
                   autoGeneratedCode={autoTypeId}
                   takenNumbers={takenTypeNumbers}
-                  label="ID / Code Type (ex: TYP-01)"
-                  helperText="Code séquentiel du type avec choix libre du numéro ou saisie directe"
+                  label={t('article_types.code_label', 'ID / Code Type (ex: TYP-01)')}
+                  helperText={t('article_types.code_helper', 'Code séquentiel du type avec choix libre du numéro ou saisie directe')}
                 />
               </div>
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  Libellé du Type
+                  {t('article_types.libelle_label', 'Libellé du Type')}
                 </label>
                 <input
                   type="text"
-                  placeholder="Forêts & Mèches de perçage..."
+                  placeholder={t('article_types.libelle_placeholder', 'Forêts & Mèches de perçage...')}
                   value={form.libelle}
                   onChange={(e) => setForm({ ...form, libelle: e.target.value })}
                   className="mt-1 w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50 text-xs"
@@ -789,13 +790,13 @@ export default function TypeView({
                   onClick={() => setShowAddModal(false)}
                   className="flex-1 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-medium"
                 >
-                  Annuler
+                  {t('common.cancel', 'Annuler')}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 h-10 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold transition shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer"
                 >
-                  Enregistrer
+                  {t('common.save', 'Enregistrer')}
                 </button>
               </div>
             </form>
@@ -806,7 +807,7 @@ export default function TypeView({
       {toEdit && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-200">
-            <h3 className="font-bold text-base text-slate-900 mb-1">Modifier Type</h3>
+            <h3 className="font-bold text-base text-slate-900 mb-1">{t('article_types.edit_title', 'Modifier Type')}</h3>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -816,7 +817,7 @@ export default function TypeView({
               className="space-y-3"
             >
               <div>
-                <label className="text-[11px] font-bold text-slate-500">ID Type</label>
+                <label className="text-[11px] font-bold text-slate-500">{t('article_types.code_label', 'ID Type')}</label>
                 <input
                   type="text"
                   value={toEdit.id_type}
@@ -825,7 +826,7 @@ export default function TypeView({
                 />
               </div>
               <div>
-                <label className="text-[11px] font-bold text-slate-500">Libellé</label>
+                <label className="text-[11px] font-bold text-slate-500">{t('article_types.libelle_label', 'Libellé')}</label>
                 <input
                   type="text"
                   value={toEdit.libelle}
@@ -840,13 +841,13 @@ export default function TypeView({
                   onClick={() => setToEdit(null)}
                   className="flex-1 h-10 rounded-xl bg-slate-100 text-xs font-medium"
                 >
-                  Annuler
+                  {t('common.cancel', 'Annuler')}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 h-10 rounded-xl bg-blue-600 text-white text-xs font-semibold"
                 >
-                  Enregistrer
+                  {t('common.save', 'Enregistrer')}
                 </button>
               </div>
             </form>
@@ -858,17 +859,17 @@ export default function TypeView({
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-4">
             <div className="flex flex-col items-center text-center">
               <AlertTriangle className="w-8 h-8 text-rose-600 mb-2" />
-              <h3 className="font-bold text-lg text-slate-900">Supprimer ce type ?</h3>
+              <h3 className="font-bold text-lg text-slate-900">{t('article_types.delete_title', 'Supprimer ce type ?')}</h3>
             </div>
             <p className="text-sm text-center text-slate-600">
-              Confirmez-vous la suppression de <b>{toDelete.libelle}</b> ?
+              {t('article_types.delete_confirm', 'Confirmez-vous la suppression de {{name}} ?', { name: toDelete.libelle })}
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setToDelete(null)}
                 className="flex-1 h-10 rounded-xl bg-slate-100 text-slate-700 text-xs font-medium"
               >
-                Annuler
+                {t('common.cancel', 'Annuler')}
               </button>
               <button
                 onClick={() => {
@@ -877,7 +878,7 @@ export default function TypeView({
                 }}
                 className="flex-1 h-10 rounded-xl bg-rose-600 text-white text-xs font-semibold"
               >
-                Supprimer
+                {t('common.delete', 'Supprimer')}
               </button>
             </div>
           </div>
@@ -894,8 +895,8 @@ export default function TypeView({
                   <Calculator className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-900 text-base">Formules Excel — Types d'Articles</h3>
-                  <p className="text-xs text-slate-500">Formules miroir de l'onglet Types (GMAO)</p>
+                  <h3 className="font-black text-slate-900 text-base">{t('article_types.formulas_title', "Formules Excel — Types d'Articles")}</h3>
+                  <p className="text-xs text-slate-500">{t('article_types.formulas_subtitle', "Formules miroir de l'onglet Types (GMAO)")}</p>
                 </div>
               </div>
               <button
@@ -909,45 +910,45 @@ export default function TypeView({
             <div className="space-y-3.5 max-h-[60vh] overflow-y-auto pr-1">
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/90 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Formule D — Nombre de Désignations</span>
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">{t('article_types.formula_desig_title', 'Formule D — Nombre de Désignations')}</span>
                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-800">COUNTIF</span>
                 </div>
                 <div className="font-mono text-xs text-indigo-800 font-bold bg-white p-2 rounded-lg border border-indigo-100">
                   =COUNTIF(Designations!C:C, [@id_type])
                 </div>
-                <p className="text-[11px] text-slate-500">Compte les désignations de pièces rattachées à ce type.</p>
+                <p className="text-[11px] text-slate-500">{t('article_types.formula_desig_desc', 'Compte les désignations de pièces rattachées à ce type.')}</p>
               </div>
 
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/90 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Formule E — Nombre d'Articles en Stock</span>
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">{t('article_types.formula_stock_title', "Formule E — Nombre d'Articles en Stock")}</span>
                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-100 text-cyan-800">COUNTIF</span>
                 </div>
                 <div className="font-mono text-xs text-cyan-800 font-bold bg-white p-2 rounded-lg border border-cyan-100">
                   =COUNTIF(Stock_Actuel!D:D, [@id_type])
                 </div>
-                <p className="text-[11px] text-slate-500">Compte les articles de stock associés à ce type.</p>
+                <p className="text-[11px] text-slate-500">{t('article_types.formula_stock_desc', 'Compte les articles de stock associés à ce type.')}</p>
               </div>
 
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/90 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Liaison Stock — Somme Quantité Stock</span>
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">{t('article_types.formula_sum_title', 'Liaison Stock — Somme Quantité Stock')}</span>
                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">SUMIF</span>
                 </div>
                 <div className="font-mono text-xs text-emerald-800 font-bold bg-white p-2 rounded-lg border border-emerald-100">
                   =SUMIF(Stock!D:D, [@id_type], Stock!H:H)
                 </div>
-                <p className="text-[11px] text-slate-500">Calcule la somme totale du stock physique pour ce type d'article.</p>
+                <p className="text-[11px] text-slate-500">{t('article_types.formula_sum_desc', "Calcule la somme totale du stock physique pour ce type d'article.")}</p>
               </div>
             </div>
 
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-medium">Modèle GMAO_Light_Template_V2</span>
+              <span className="text-xs text-slate-400 font-medium">{t('article_types.template_version', 'Modèle GMAO_Light_Template_V2')}</span>
               <button
                 onClick={() => setShowFormulasModal(false)}
                 className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer"
               >
-                Fermer
+                {t('common.close', 'Fermer')}
               </button>
             </div>
           </div>

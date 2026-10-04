@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from '../../../i18n/I18nContext';
 
 const COLOR_CLASSES = {
   emerald: 'text-emerald-800',
@@ -22,6 +23,7 @@ export default function TablePaginationCard({
   itemLabel = '',
   className = '',
 }) {
+  const { t } = useTranslation();
   const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / pageSize);
   const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
   const startIndex = (currentPage - 1) * effectivePageSize;
@@ -34,7 +36,9 @@ export default function TablePaginationCard({
     >
       {/* Rows per page selection */}
       <div className="flex items-center gap-3">
-        <span className="text-xs font-semibold text-slate-600">Lignes par page :</span>
+        <span className="text-xs font-semibold text-slate-600">
+          {t('common.pagination.rows_per_page')}
+        </span>
         <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
           {pageSizeOptions.map((size) => (
             <button
@@ -50,48 +54,49 @@ export default function TablePaginationCard({
                   : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
               }`}
             >
-              {size === 0 ? 'Tout' : size}
+              {size === 0 ? t('common.pagination.all') : size}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Counter & Navigation Controls */}
-      <div className="flex items-center gap-4">
-        <div className="text-xs font-semibold text-slate-500">
-          Affichage <b className="text-slate-900">{totalItems === 0 ? 0 : startIndex + 1}</b> à{' '}
-          <b className="text-slate-900">{Math.min(startIndex + effectivePageSize, totalItems)}</b>{' '}
-          sur <b className="text-slate-900">{totalItems}</b> {itemLabel ? itemLabel : ''}
-        </div>
+        {/* Counter & Navigation Controls */}
+        <div className="flex items-center gap-4">
+          <div className="text-xs font-semibold text-slate-500">
+            {t('common.pagination.showing')} <b className="text-slate-900">{totalItems === 0 ? 0 : startIndex + 1}</b> {t('common.pagination.to')}{' '}
+            <b className="text-slate-900">{Math.min(startIndex + effectivePageSize, totalItems)}</b>{' '}
+            {t('common.pagination.of')} <b className="text-slate-900">{totalItems}</b> {itemLabel ? (typeof itemLabel === 'string' && itemLabel.includes('.') ? t(itemLabel) : itemLabel) : ''}
+          </div>
 
-        {pageSize !== 0 && totalPages > 1 && (
+          {/* Navigation Controls: Always consistently visible across all pages for unified UX */}
           <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => setCurrentPage && setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage <= 1}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
+              disabled={currentPage <= 1 || pageSize === 0 || totalPages <= 1}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer shadow-2xs"
+              title={t('common.pagination.previous')}
             >
               <ChevronLeft className="w-3.5 h-3.5" />
-              Précédent
+              <span className="hidden sm:inline">{t('common.pagination.previous')}</span>
             </button>
 
-            <span className="px-2 font-mono text-xs font-bold text-slate-600">
-              {currentPage} / {totalPages}
+            <span className="px-2.5 py-1 font-mono text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg select-none">
+              {pageSize === 0 ? '1 / 1' : `${currentPage} / ${totalPages || 1}`}
             </span>
 
             <button
               type="button"
               onClick={() => setCurrentPage && setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage >= totalPages}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
+              disabled={pageSize === 0 || totalPages <= 1 || currentPage >= totalPages}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer shadow-2xs"
+              title={t('common.pagination.next')}
             >
-              Suivant
+              <span className="hidden sm:inline">{t('common.pagination.next')}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
-        )}
-      </div>
+        </div>
     </div>
   );
 }

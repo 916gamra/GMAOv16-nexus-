@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import TablePaginationCard from '../../../components/common/TablePaginationCard';
 import GmaoIndustrialDataGrid from '../../../components/common/GmaoIndustrialDataGrid.jsx';
+import { useI18n } from '../../../../i18n/I18nContext';
 import {
   Wrench,
   Plus,
@@ -28,6 +29,7 @@ export default function MatricesActionsTab({
   panneCategories = {},
   showToast,
 }) {
+  const { t } = useI18n();
   // View mode state: 'excel' (Tableau) | 'grid' (Cartes)
   const [displayMode, setDisplayMode] = useState('excel');
 
@@ -141,7 +143,7 @@ export default function MatricesActionsTab({
     () => [
       {
         key: 'panneKey',
-        label: 'ANOMALIE / PANNE CIBLÉE',
+        label: t('corrective.actions.col_panne', 'ANOMALIE / PANNE CIBLÉE'),
         colLetter: 'Col A',
         icon: ShieldAlert,
         render: (item) => {
@@ -161,7 +163,7 @@ export default function MatricesActionsTab({
       },
       {
         key: 'actions',
-        label: 'ACTIONS & SOLUTIONS TYPES DÉFINIES',
+        label: t('corrective.actions.col_action', 'ACTIONS & SOLUTIONS TYPES DÉFINIES'),
         colLetter: 'Col B',
         icon: Wrench,
         render: (item) => {
@@ -197,7 +199,7 @@ export default function MatricesActionsTab({
                       type="button"
                       onClick={() => handleOpenEditAction(panneKey, actIdx, act)}
                       className="p-1 text-slate-400 hover:text-blue-700 hover:bg-blue-50 rounded cursor-pointer"
-                      title="Modifier"
+                      title={t('corrective.actions.edit_title', 'Modifier')}
                     >
                       <Edit2 className="w-3 h-3" />
                     </button>
@@ -205,7 +207,7 @@ export default function MatricesActionsTab({
                       type="button"
                       onClick={() => setActionToDelete({ panneKey, actionIndex: actIdx, actionText: act })}
                       className="p-1 text-slate-400 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
-                      title="Supprimer"
+                      title={t('corrective.actions.delete_title', 'Supprimer')}
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -214,13 +216,13 @@ export default function MatricesActionsTab({
               ))}
             </div>
           ) : (
-            <span className="text-slate-400 italic text-xs">Aucune action définie</span>
+            <span className="text-slate-400 italic text-xs">{t('corrective.actions.empty', 'Aucune action définie')}</span>
           );
         },
       },
       {
         key: 'nb_actions',
-        label: 'NB ACTIONS',
+        label: t('corrective.actions.item_label', 'NB ACTIONS'),
         colLetter: 'Col C',
         icon: Wrench,
         align: 'center',
@@ -232,7 +234,7 @@ export default function MatricesActionsTab({
       },
       {
         key: 'actions_gmao',
-        label: 'ACTIONS GMAO',
+        label: t('common.actions', 'ACTIONS GMAO'),
         colLetter: 'Col D',
         icon: Zap,
         align: 'center',
@@ -242,7 +244,7 @@ export default function MatricesActionsTab({
               type="button"
               onClick={() => handleOpenAddModal(item.panneKey)}
               className="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[10.5px] border border-emerald-200 transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
-              title="Ajouter une action à cette anomalie"
+              title={t('corrective.actions.add_title', 'Ajouter une action à cette anomalie')}
             >
               <Plus className="w-3 h-3" />
               <span>Action</span>
@@ -258,7 +260,7 @@ export default function MatricesActionsTab({
                 }
               }}
               className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10.5px] transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
-              title="Créer une Demande d'Intervention directe"
+              title={t('corrective.pannes.preset_action', 'Créer une Demande d\'Intervention directe')}
             >
               <Plus className="w-3 h-3" />
               <span>DI</span>
@@ -267,7 +269,7 @@ export default function MatricesActionsTab({
         ),
       },
     ],
-    [copiedIndex, formatPanneName, handleCopyText, onAddDemandeWithPreset]
+    [copiedIndex, formatPanneName, handleCopyText, onAddDemandeWithPreset, t]
   );
 
   return (
@@ -278,24 +280,29 @@ export default function MatricesActionsTab({
         <div className="flex items-center gap-2 flex-wrap text-xs text-slate-600">
           <span className="font-bold text-slate-800 flex items-center gap-1.5">
             <Wrench className="w-4 h-4 text-emerald-600" />
-            <span>Matrices des Actions Correctives</span>
+            <span>{t('corrective.actions.title', 'Matrices des Actions Correctives')}</span>
           </span>
 
           <span className="text-slate-300">|</span>
 
           <span>
             {totalItems > 0 ? (
-              <>
-                Affichage de <b>{startIndex + 1}</b> à <b>{endIndex}</b> sur <b>{totalItems}</b> matrices
-              </>
+              t('corrective.actions.display_count', 'Affichage de {{start}} à {{end}} sur {{total}} matrices', {
+                start: startIndex + 1,
+                end: endIndex,
+                total: totalItems,
+              })
             ) : (
-              'Aucune matrice trouvée'
+              t('corrective.actions.empty', 'Aucune matrice trouvée')
             )}
           </span>
 
           {totalItems < totalActionsKeysCount && (
             <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
-              Filtre actif ({totalItems} / {totalActionsKeysCount})
+              {t('components.group.active_filter_with_counts', 'Filtre actif ({{filtered}} / {{total}})', {
+                filtered: totalItems,
+                total: totalActionsKeysCount,
+              })}
             </span>
           )}
         </div>
@@ -306,10 +313,10 @@ export default function MatricesActionsTab({
             type="button"
             onClick={() => handleOpenAddModal()}
             className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-            title="Ajouter une nouvelle action corrective pour une anomalie"
+            title={t('corrective.actions.add_title', 'Ajouter une nouvelle action corrective')}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Nouvelle Action</span>
+            <span>{t('corrective.actions.add_button', 'Nouvelle Action')}</span>
           </button>
 
           <div className="inline-flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 shadow-2xs">
@@ -321,10 +328,10 @@ export default function MatricesActionsTab({
                   ? 'bg-white text-slate-900 shadow-2xs border border-slate-200 font-black'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
-              title="Affichage en tableau Excel avec 20 lignes fixes"
+              title={t('corrective.pannes.view_table', 'Vue Tableau')}
             >
               <Table className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Tableau Excel</span>
+              <span>{t('corrective.pannes.view_table', 'Tableau Excel')}</span>
             </button>
 
             <button
@@ -335,10 +342,10 @@ export default function MatricesActionsTab({
                   ? 'bg-white text-slate-900 shadow-2xs border border-slate-200 font-black'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
-              title="Affichage en cartes / grille"
+              title={t('corrective.pannes.view_cards', 'Vue Cartes')}
             >
               <LayoutGrid className="w-3.5 h-3.5 text-blue-600" />
-              <span>Cartes / Grille</span>
+              <span>{t('corrective.pannes.view_cards', 'Cartes / Grille')}</span>
             </button>
           </div>
         </div>

@@ -19,6 +19,7 @@ import PannesCatalogTab from './referentiel/PannesCatalogTab';
 import TravauxStandardTab from './referentiel/TravauxStandardTab';
 import MatricesActionsTab from './referentiel/MatricesActionsTab';
 import EquipeIntervenantsTab from './referentiel/EquipeIntervenantsTab';
+import { useI18n } from '../../../i18n/I18nContext';
 
 const CATEGORY_META = {
   E: { label: 'Électrique', color: 'bg-amber-100 text-amber-900 border-amber-300', dot: 'bg-amber-500' },
@@ -67,6 +68,7 @@ export default function ReferentielPannesTravauxTab({
   zones = [],
   showToast,
 }) {
+  const { t } = useI18n();
   const [internalSubTab, setInternalSubTab] = useState('pannes'); // 'pannes', 'travaux', 'actions', 'intervenants'
   const subTab = activeSubTab || internalSubTab;
   const setSubTab = (val) => {
@@ -143,12 +145,13 @@ export default function ReferentielPannesTravauxTab({
         const q = searchQuery.toLowerCase();
         const matchName = item.name.toLowerCase().includes(q);
         const matchCode = item.code.toLowerCase().includes(q);
-        const matchCat = (CATEGORY_META[item.category]?.label || '').toLowerCase().includes(q);
+        const translatedCat = t(`corrective.categories.${item.category}`, CATEGORY_META[item.category]?.label || '').toLowerCase();
+        const matchCat = (CATEGORY_META[item.category]?.label || '').toLowerCase().includes(q) || translatedCat.includes(q);
         return matchName || matchCode || matchCat;
       }
       return true;
     });
-  }, [flatPannes, selectedCategory, searchQuery]);
+  }, [flatPannes, selectedCategory, searchQuery, t]);
 
   // 3. Filtered Travaux à Faire
   const filteredTravaux = useMemo(() => {
@@ -189,9 +192,9 @@ export default function ReferentielPannesTravauxTab({
       navigator.clipboard.writeText(text);
       setCopiedIndex(idx);
       setTimeout(() => setCopiedIndex(null), 2000);
-      showToast?.('Texte copié dans le presse-papier !', 'success');
+      showToast?.(t('corrective.catalogue.toast_copied', 'Texte copié dans le presse-papier !'), 'success');
     } catch {
-      showToast?.('Impossible de copier le texte', 'error');
+      showToast?.(t('corrective.catalogue.toast_copy_error', 'Impossible de copier le texte'), 'error');
     }
   };
 
@@ -201,15 +204,20 @@ export default function ReferentielPannesTravauxTab({
       if (typeof onForceSyncSeed === 'function') {
         const res = onForceSyncSeed();
         showToast?.(
-          `Données réelles synchronisées avec succès : ${res?.interventionsCount || 1705} Interventions, ${res?.travauxCount || 114} Travaux, ${res?.pannesCount || 282} Pannes, ${res?.actionsCount || 71} Actions !`,
+          t('corrective.catalogue.toast_sync_success_detailed', `Données réelles synchronisées avec succès : {{interventions}} Interventions, {{travaux}} Travaux, {{pannes}} Pannes, {{actions}} Actions !`, {
+            interventions: res?.interventionsCount || 1705,
+            travaux: res?.travauxCount || 114,
+            pannes: res?.pannesCount || 282,
+            actions: res?.actionsCount || 71
+          }),
           'success'
         );
       } else {
-        showToast?.('Synchronisation effectuée avec succès !', 'success');
+        showToast?.(t('corrective.catalogue.toast_sync_success', 'Synchronisation effectuée avec succès !'), 'success');
       }
     } catch (e) {
       console.error(e);
-      showToast?.('Erreur lors de la synchronisation', 'error');
+      showToast?.(t('corrective.catalogue.toast_sync_error', 'Erreur lors de la synchronisation'), 'error');
     } finally {
       setTimeout(() => setIsSyncing(false), 500);
     }
@@ -222,7 +230,7 @@ export default function ReferentielPannesTravauxTab({
       // Sheet 1: Pannes
       const pannesData = flatPannes.map((p) => ({
         Catégorie_Code: p.category,
-        Catégorie_Nom: CATEGORY_META[p.category]?.label || p.category,
+        Catégorie_Nom: t(`corrective.categories.${p.category}`, CATEGORY_META[p.category]?.label || p.category),
         Anomalie_Code: p.code,
         Anomalie_Libellé: p.name,
         Nombre_Actions_Standard: p.actions.length,
@@ -264,10 +272,10 @@ export default function ReferentielPannesTravauxTab({
       XLSX.utils.book_append_sheet(wb, wsTech, 'Intervenants_Equipe');
 
       XLSX.writeFile(wb, `GMAO_Referentiel_Pannes_Travaux_${new Date().toISOString().split('T')[0]}.xlsx`);
-      showToast?.('Export Excel du catalogue complet généré avec succès (.xlsx)', 'success');
+      showToast?.(t('corrective.catalogue.toast_export_success', 'Export Excel du catalogue complet généré avec succès (.xlsx)'), 'success');
     } catch (e) {
       console.error(e);
-      showToast?.('Erreur lors de l\'export Excel', 'error');
+      showToast?.(t('corrective.catalogue.toast_export_error', 'Erreur lors de l\'export Excel'), 'error');
     }
   };
 
@@ -276,7 +284,7 @@ export default function ReferentielPannesTravauxTab({
     const list = [
       {
         value: 'ALL',
-        label: `Toutes les Catégories (${totalPannesCount})`,
+        label: `${t('components.family.all_groups', 'Toutes les Catégories')} (${totalPannesCount})`,
         badge: totalPannesCount,
         badgeColor: 'bg-slate-100 text-slate-800 border-slate-300',
       },
@@ -294,7 +302,7 @@ export default function ReferentielPannesTravauxTab({
     });
 
     return list;
-  }, [allCategories, panneCategories, totalPannesCount]);
+  }, [allCategories, panneCategories, totalPannesCount, t]);
 
   return (
     <div className="space-y-6">
@@ -311,17 +319,22 @@ export default function ReferentielPannesTravauxTab({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-lg font-black text-slate-900 tracking-tight">
-                    Catalogue & Référentiel Données GMAO (الكواليس)
+                    {t('corrective.catalogue.title', 'Catalogue & Référentiel Données GMAO (الكواليس)')}
                   </h3>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 font-mono">
-                    الصفحة الثانوية (الكواليس)
+                  <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 font-mono font-black">
+                    {t('corrective.catalogue.secondary_page', 'Page Secondaire (Coulisses)')}
                   </span>
                   <span className="px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-800 border border-slate-300 font-mono">
-                    Accès Responsables & Administrateurs
+                    {t('corrective.catalogue.access_restricted', 'Accès Responsables & Administrateurs')}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
-                  Espace réservé à la configuration et sauvegarde des référentiels maîtres : <b>{totalPannesCount} pannes cataloguées</b>, <b>{totalTravauxCount} tâches standards</b>, <b>{totalActionsKeysCount} matrices d'actions correctives</b> et <b>{totalIntervenantsCount} techniciens habilités</b>.
+                  {t('corrective.catalogue.subtitle_with_counts', "Espace réservé à la configuration et sauvegarde des référentiels maîtres : {{pannes}} pannes cataloguées, {{travaux}} tâches standards, {{actions}} matrices d'actions correctives et {{intervenants}} techniciens habilités.", {
+                    pannes: totalPannesCount,
+                    travaux: totalTravauxCount,
+                    actions: totalActionsKeysCount,
+                    intervenants: totalIntervenantsCount
+                  })}
                 </p>
               </div>
             </div>
@@ -333,19 +346,19 @@ export default function ReferentielPannesTravauxTab({
                 className={`h-9 px-3.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs transition flex items-center gap-2 cursor-pointer shadow-2xs active:scale-95 ${
                   isSyncing ? 'opacity-70 animate-pulse' : ''
                 }`}
-                title="Forcer la synchronisation et recharger les données d'usine complètes"
+                title={t('corrective.catalogue.sync_data', 'Resynchroniser le Référentiel')}
               >
                 <RefreshCw className={`w-3.5 h-3.5 text-amber-700 ${isSyncing ? 'animate-spin' : ''}`} />
-                <span>{isSyncing ? 'Synchronisation...' : 'Actualiser Données Usine'}</span>
+                <span>{isSyncing ? t('corrective.catalogue.sync_data_loading', 'Synchronisation...') : t('corrective.catalogue.sync_data', 'Actualiser Données Usine')}</span>
               </button>
 
               <button
                 onClick={handleExportExcel}
                 className="h-9 px-3.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold text-xs transition flex items-center gap-2 cursor-pointer shadow-2xs active:scale-95"
-                title="Exporter l'ensemble du référentiel vers Excel"
+                title={t('corrective.catalogue.export_excel', 'Exporter le Référentiel (.xlsx)')}
               >
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Export Référentiel (.xlsx)</span>
+                <span>{t('corrective.catalogue.export_excel', 'Export Référentiel (.xlsx)')}</span>
               </button>
             </div>
           </div>
@@ -364,11 +377,11 @@ export default function ReferentielPannesTravauxTab({
               }`}
             >
               <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">
-                <span>Pannes Répertoriées</span>
+                <span>{t('corrective.catalogue.kpi_pannes_title', 'Pannes Répertoriées')}</span>
                 <ShieldAlert className="w-4 h-4 text-amber-600" />
               </div>
               <div className="text-2xl font-black text-slate-900 font-mono">{totalPannesCount}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">10 catégories industrielles</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">{t('corrective.catalogue.kpi_pannes_desc', '10 catégories industrielles')}</div>
             </div>
 
             <div
@@ -383,11 +396,11 @@ export default function ReferentielPannesTravauxTab({
               }`}
             >
               <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">
-                <span>Travaux Standard</span>
+                <span>{t('corrective.catalogue.kpi_travaux_title', 'Travaux Standard')}</span>
                 <BookOpen className="w-4 h-4 text-blue-600" />
               </div>
               <div className="text-2xl font-black text-slate-900 font-mono">{totalTravauxCount}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Ordres & tâches d'atelier</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">{t('corrective.catalogue.kpi_travaux_desc', 'Ordres & tâches d\'atelier')}</div>
             </div>
 
             <div
@@ -402,11 +415,11 @@ export default function ReferentielPannesTravauxTab({
               }`}
             >
               <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">
-                <span>Matrices Actions</span>
+                <span>{t('corrective.catalogue.kpi_actions_title', 'Matrices Actions')}</span>
                 <Wrench className="w-4 h-4 text-emerald-600" />
               </div>
               <div className="text-2xl font-black text-slate-900 font-mono">{totalActionsKeysCount}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Pannes avec solutions types</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">{t('corrective.catalogue.kpi_actions_desc', 'Pannes avec solutions types')}</div>
             </div>
 
             <div
@@ -421,11 +434,11 @@ export default function ReferentielPannesTravauxTab({
               }`}
             >
               <div className="flex items-center justify-between text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">
-                <span>Équipe Intervenants</span>
+                <span>{t('corrective.catalogue.kpi_intervenants_title', 'Équipe Intervenants')}</span>
                 <Users className="w-4 h-4 text-purple-600" />
               </div>
               <div className="text-2xl font-black text-slate-900 font-mono">{totalIntervenantsCount}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">Fiches techniciens usine</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">{t('corrective.catalogue.kpi_intervenants_desc', 'Fiches techniciens usine')}</div>
             </div>
           </div>
         </div>
@@ -441,15 +454,15 @@ export default function ReferentielPannesTravauxTab({
             </div>
             <div>
               <h3 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
-                <span>Filtres & Recherche Avancée</span>
+                <span>{t('components.group.filters_title', 'Filtres & Recherche Avancée')}</span>
                 <span className="px-2 py-0.5 rounded-md text-[10.5px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200/80">
                   {subTab === 'pannes'
-                    ? `${filteredPannes.length} / ${totalPannesCount} Pannes`
+                    ? `${filteredPannes.length} / ${totalPannesCount} ${t('corrective.catalogue.tab_pannes', 'Pannes')}`
                     : subTab === 'travaux'
-                    ? `${filteredTravaux.length} / ${totalTravauxCount} Travaux`
+                    ? `${filteredTravaux.length} / ${totalTravauxCount} ${t('corrective.catalogue.tab_travaux', 'Travaux')}`
                     : subTab === 'actions'
-                    ? `${filteredActionsMatrix.length} / ${totalActionsKeysCount} Matrices`
-                    : `${filteredIntervenants.length} / ${totalIntervenantsCount} Intervenants`}
+                    ? `${filteredActionsMatrix.length} / ${totalActionsKeysCount} ${t('corrective.catalogue.tab_actions', 'Matrices')}`
+                    : `${filteredIntervenants.length} / ${totalIntervenantsCount} ${t('corrective.catalogue.tab_intervenants', 'Intervenants')}`}
                 </span>
               </h3>
             </div>
@@ -464,10 +477,10 @@ export default function ReferentielPannesTravauxTab({
                 setSelectedCategory('ALL');
               }}
               className="px-3 py-1.5 rounded-xl border border-rose-200/90 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 animate-in fade-in"
-              title="Réinitialiser tous les filtres"
+              title={t('components.group.reset_filters', 'Réinitialiser tous les filtres')}
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Réinitialiser</span>
+              <span className="hidden sm:inline">{t('components.group.reset_filters', 'Réinitialiser')}</span>
             </button>
           )}
         </div>
@@ -477,9 +490,9 @@ export default function ReferentielPannesTravauxTab({
           {/* Omni Search Input */}
           <div className={subTab === 'pannes' ? 'sm:col-span-1 lg:col-span-2' : 'w-full'}>
             <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800 font-mono">
-              <span>Recherche Multi-Critères</span>
+              <span>{t('components.group.search_title', 'Recherche Multi-Critères')}</span>
               <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200/80">
-                Mots-Clés / Codes
+                {t('components.group.search_badge', 'Mots-Clés / Codes')}
               </span>
             </div>
             <div className="relative">
@@ -490,15 +503,15 @@ export default function ReferentielPannesTravauxTab({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={`Rechercher dans ${
+                placeholder={
                   subTab === 'pannes'
-                    ? 'les 282 pannes cataloguées...'
+                    ? t('corrective.pannes.search_placeholder', 'Rechercher dans les pannes cataloguées...')
                     : subTab === 'travaux'
-                    ? 'les 114 travaux standards...'
+                    ? t('corrective.travaux.search_placeholder', 'Rechercher dans les travaux standards...')
                     : subTab === 'actions'
-                    ? 'les 71 matrices d\'actions...'
-                    : 'les techniciens habilités...'
-                }`}
+                    ? t('corrective.actions.search_placeholder', 'Rechercher dans les matrices d\'actions...')
+                    : t('corrective.intervenants.search_placeholder', 'Rechercher dans les techniciens habilités...')
+                }
                 className="w-full h-10 pl-10 pr-8 rounded-xl border border-slate-200/90 bg-slate-50/80 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all shadow-inner"
               />
               {searchQuery && (
@@ -518,16 +531,16 @@ export default function ReferentielPannesTravauxTab({
           {subTab === 'pannes' && (
             <div>
               <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800 font-mono">
-                <span>Catégorie D'Anomalie</span>
+                <span>{t('corrective.pannes.col_category', 'Catégorie D\'Anomalie')}</span>
                 <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200/80">
-                  10 Familles
+                  {t('corrective.pannes.category_families', 'Families')}
                 </span>
               </div>
               <CustomSelect
                 value={selectedCategory}
                 onChange={(val) => setSelectedCategory(val)}
                 options={categoryOptions}
-                placeholder="Sélectionner une catégorie..."
+                placeholder={t('components.family.group_select_label', 'Sélectionner une catégorie...')}
                 prefixIcon={ShieldAlert}
                 prefixIconClassName="text-amber-600"
                 className="h-10 text-xs font-semibold"
@@ -541,7 +554,7 @@ export default function ReferentielPannesTravauxTab({
           <div className="pt-3 border-t border-slate-100/90 flex items-center gap-1.5 flex-wrap">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1 flex items-center gap-1 font-mono">
               <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
-              Filtre Rapide :
+              {t('corrective.catalogue.fast_filter', 'Filtre Rapide :')}
             </span>
 
             <button
@@ -553,7 +566,7 @@ export default function ReferentielPannesTravauxTab({
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
               }`}
             >
-              Toutes ({totalPannesCount})
+              {t('corrective.catalogue.filter_all', 'Toutes')} ({totalPannesCount})
             </button>
 
             {allCategories.map((cat) => {
@@ -572,7 +585,7 @@ export default function ReferentielPannesTravauxTab({
                   }`}
                 >
                   <span className={`w-2 h-2 rounded-full ${meta.dot || 'bg-slate-400'}`} />
-                  <span>{meta.label}</span>
+                  <span>{t(`corrective.categories.${cat}`, meta.label)}</span>
                   <span className="px-1.5 py-0.2 text-[9.5px] font-mono font-bold rounded-md bg-white/80 border border-slate-200/50">
                     {count}
                   </span>

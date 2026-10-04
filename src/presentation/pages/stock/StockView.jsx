@@ -10,10 +10,11 @@ import { multiTokenSearch } from '../../../utils/searchUtils';
 import { usePermission } from '../../components/common/PermissionGate.jsx';
 import Action3DButton from '../../components/common/Action3DButton';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
+import IndustrialFilterCard, { FilterField, FilterSearchInput } from '../../components/common/IndustrialFilterCard';
+import { useI18n } from '../../../i18n/I18nContext';
 import { contextMenu } from '../../../services/ContextMenuService';
 import { Logger } from '../../../core/logger/LoggerService.js';
 import {
-  Search,
   AlertTriangle,
   CheckCircle2,
   XCircle,
@@ -34,8 +35,6 @@ import {
   Edit,
   Inbox,
   Calculator,
-  RotateCcw,
-  FileSpreadsheet,
 } from 'lucide-react';
 
 const TYPE_STYLES = {
@@ -80,6 +79,7 @@ export default function StockView({
   stockKPIs = { total: 0, alertes: 0, ruptures: 0, ok: 0, totalSorties: 0, totalEntrees: 0 },
   onNavigateToType: _onNavigateToType = () => {},
 }) {
+  const { t } = useI18n();
   const stockItems = propStockItems || [];
   
   const [stockEmplacementFilter, setStockEmplacementFilter] = useState('ALL');
@@ -303,6 +303,111 @@ export default function StockView({
     setSortOrder('asc');
   };
 
+  const stockFilterPresets = useMemo(() => [
+    {
+      key: 'ALL',
+      label: t('common.filters.all'),
+      count: stockItems.length,
+      activeBg: 'bg-slate-900 text-white shadow-xs',
+      onClick: () => {
+        setActiveKpiFilter('ALL');
+        setStockAlertOnly(false);
+      },
+      isActive: activeKpiFilter === 'ALL' && !stockAlertOnly,
+    },
+    {
+      key: 'OK',
+      label: t('stock.status_ok', 'Stock Normal'),
+      count: stockKPIs.ok || 0,
+      activeBg: 'bg-emerald-600 text-white shadow-xs',
+      colorDot: 'bg-emerald-500',
+      onClick: () => {
+        setActiveKpiFilter('OK');
+        setStockAlertOnly(false);
+      },
+      isActive: activeKpiFilter === 'OK',
+    },
+    {
+      key: 'ALERTE',
+      label: t('stock.status_alert', 'Alerte Seuil'),
+      count: stockKPIs.alertes || 0,
+      activeBg: 'bg-amber-600 text-white shadow-xs',
+      colorDot: 'bg-amber-500',
+      onClick: () => {
+        setActiveKpiFilter('ALERTE');
+        setStockAlertOnly(false);
+      },
+      isActive: activeKpiFilter === 'ALERTE',
+    },
+    {
+      key: 'RUPTURE',
+      label: t('stock.status_rupture', 'Rupture Stock'),
+      count: stockKPIs.ruptures || 0,
+      activeBg: 'bg-rose-600 text-white shadow-xs',
+      colorDot: 'bg-rose-500',
+      onClick: () => {
+        setActiveKpiFilter('RUPTURE');
+        setStockAlertOnly(false);
+      },
+      isActive: activeKpiFilter === 'RUPTURE',
+    },
+    {
+      key: 'ALL_ALERTS',
+      label: t('stock.all_alerts', 'Toutes Alertes'),
+      count: (stockKPIs.ruptures || 0) + (stockKPIs.alertes || 0),
+      activeBg: 'bg-violet-600 text-white shadow-xs',
+      colorDot: 'bg-violet-500',
+      onClick: () => {
+        setStockAlertOnly(true);
+        setActiveKpiFilter('ALL');
+      },
+      isActive: stockAlertOnly && activeKpiFilter === 'ALL',
+    },
+  ], [stockItems.length, stockKPIs, activeKpiFilter, stockAlertOnly, setActiveKpiFilter, setStockAlertOnly, t]);
+
+  const activeStockFilterChips = useMemo(() => {
+    const chips = [];
+    if (localSearch) {
+      chips.push({
+        key: 'search',
+        label: `${t('common.filters.search')}: "${localSearch}"`,
+        onRemove: () => {
+          setLocalSearch('');
+          setStockSearch('');
+        },
+      });
+    }
+    if (stockTypeFilter !== 'ALL') {
+      chips.push({
+        key: 'type',
+        label: `${t('stock.piece_type', 'Type')}: ${stockTypeFilter}`,
+        onRemove: () => setStockTypeFilter('ALL'),
+      });
+    }
+    if (activeKpiFilter !== 'ALL') {
+      chips.push({
+        key: 'state',
+        label: `${t('common.filters.state')} ${activeKpiFilter}`,
+        onRemove: () => setActiveKpiFilter('ALL'),
+      });
+    }
+    if (stockAlertOnly && activeKpiFilter === 'ALL') {
+      chips.push({
+        key: 'alerts',
+        label: t('stock.all_alerts', 'Toutes Alertes'),
+        onRemove: () => setStockAlertOnly(false),
+      });
+    }
+    if (stockEmplacementFilter !== 'ALL') {
+      chips.push({
+        key: 'emplacement',
+        label: `${t('stock.emplacement', 'Emplacement')}: ${stockEmplacementFilter}`,
+        onRemove: () => setStockEmplacementFilter('ALL'),
+      });
+    }
+    return chips;
+  }, [localSearch, stockTypeFilter, activeKpiFilter, stockAlertOnly, stockEmplacementFilter, setStockSearch, setActiveKpiFilter, setStockTypeFilter, setStockAlertOnly, setStockEmplacementFilter, t]);
+
   const handleExportExcel = () => {
     try {
       const headers = [
@@ -371,23 +476,23 @@ export default function StockView({
       [
         {
           id: 'edit',
-          label: 'Modifier l’article',
+          label: t('stock.context.edit', 'Modifier l’article'),
           onClick: () => handleOpenEditArticle(item),
         },
         {
           id: 'quick-sortie',
-          label: 'Sortie directe (Sortie PDR)',
+          label: t('stock.context.quick_sortie', 'Sortie directe (Sortie PDR)'),
           onClick: () => handleOpenQuickModal(item, 'Sortie', 'CORRECTIVE'),
         },
         {
           id: 'quick-entree',
-          label: 'Entrée directe (Réapprovisionnement)',
+          label: t('stock.context.quick_entree', 'Entrée directe (Réapprovisionnement)'),
           onClick: () => handleOpenQuickModal(item, 'Entrée', 'REAPPRO'),
         },
         { separator: true },
         {
           id: 'copy-ref',
-          label: `Copier la référence (${item.ref})`,
+          label: t('stock.context.copy_ref', { ref: item.ref }),
           onClick: () => {
             if (navigator.clipboard) {
               navigator.clipboard.writeText(item.ref);
@@ -403,14 +508,14 @@ export default function StockView({
     () => [
       {
         key: 'ref',
-        label: 'REF',
+        label: t('stock.fields.ref', 'REF'),
         colLetter: 'B',
         icon: Tag,
         sortable: true,
       },
       {
         key: 'designation',
-        label: 'DÉSIGNATION',
+        label: t('stock.fields.designation', 'DÉSIGNATION'),
         colLetter: 'C',
         icon: Package,
         sortable: true,
@@ -418,21 +523,21 @@ export default function StockView({
       },
       {
         key: 'type',
-        label: 'TYPE',
+        label: t('stock.fields.type', 'TYPE'),
         colLetter: 'D',
         icon: Boxes,
         sortable: true,
       },
       {
         key: 'stockInitial',
-        label: 'INITIAL',
+        label: t('stock.fields.initial', 'INITIAL'),
         colLetter: 'E',
         sortable: true,
         align: 'right',
       },
       {
         key: 'entrees',
-        label: 'ENTRÉES',
+        label: t('stock.fields.entrees', 'ENTRÉES'),
         colLetter: 'F',
         icon: TrendingUp,
         sortable: true,
@@ -440,7 +545,7 @@ export default function StockView({
       },
       {
         key: 'sorties',
-        label: 'SORTIES',
+        label: t('stock.fields.sorties', 'SORTIES'),
         colLetter: 'G',
         icon: TrendingDown,
         sortable: true,
@@ -448,21 +553,21 @@ export default function StockView({
       },
       {
         key: 'stockActuel',
-        label: 'ACTUEL',
+        label: t('stock.fields.current', 'ACTUEL'),
         colLetter: 'H',
         sortable: true,
         align: 'right',
       },
       {
         key: 'seuil',
-        label: 'SEUIL',
+        label: t('stock.fields.threshold', 'SEUIL'),
         colLetter: 'I',
         sortable: true,
         align: 'right',
       },
       {
         key: 'alerte',
-        label: 'ALERTE',
+        label: t('stock.fields.alert', 'ALERTE'),
         colLetter: 'J',
         icon: Radio,
         sortable: true,
@@ -470,7 +575,7 @@ export default function StockView({
       },
       {
         key: 'emplacement',
-        label: 'EMPLACEMENT',
+        label: t('stock.fields.emplacement', 'EMPLACEMENT'),
         colLetter: 'K',
         icon: MapPin,
         sortable: true,
@@ -482,7 +587,7 @@ export default function StockView({
         headerClassName: 'min-w-[130px] font-bold text-slate-400 tracking-widest select-none',
       },
     ],
-    []
+    [t]
   );
 
   return (
@@ -500,14 +605,10 @@ export default function StockView({
 
           <div>
             <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <span>Stock Actuel & Catalogue Pièces de Rechange (PDR)</span>
+              <span>{t('stock.title_full', 'Stock Actuel & Catalogue Pièces de Rechange (PDR)')}</span>
             </h2>
             <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-              Tableau central miroir de <b className="text-slate-800">Stock_Actuel (Excel B → K)</b>. Calcul temps réel :{' '}
-              <b className="text-emerald-700 font-mono font-semibold">
-                Stock Actuel = Initial (E) + Entrées (F) - Sorties (G)
-              </b>{' '}
-              avec menu d'actions et flux directs (Sortie, Entrée, Ajustement, et Édition de fiche).
+              {t('stock.banner_desc', 'Tableau central miroir de Stock_Actuel (Excel B → K). Calcul temps réel : Stock Actuel = Initial (E) + Entrées (F) - Sorties (G) avec menu d\'actions et flux directs.')}
             </p>
           </div>
         </div>
@@ -516,7 +617,7 @@ export default function StockView({
           {/* 3D Formula Circular Trigger Button */}
           <FormulasModalButton
             onClick={() => setShowFormulasModal(true)}
-            title="Formules Excel (Col. B → K)"
+            title={t('stock.formulas_button', 'Formules Excel (Col. B → K)')}
           />
 
           {/* 3D Primary Add Article Button */}
@@ -526,7 +627,7 @@ export default function StockView({
             icon={Package}
             showAddBadge={true}
             onClick={onOpenAddArticle}
-            title="Nouvel Article"
+            title={t('stock.new_article_button', 'Nouvel Article')}
           />
         </div>
       </div>
@@ -542,199 +643,41 @@ export default function StockView({
         setStockAlertOnly={setStockAlertOnly}
       />
 
-      {/* 4. Filter & Search Bar (Unified Mature Design System) */}
-      <div className="relative z-30 bg-white border border-slate-200 rounded-2xl p-4 md:p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out space-y-4">
-        {/* Filter Card Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-200/80 flex items-center justify-center text-cyan-700 shadow-2xs">
-              <SlidersHorizontal className="w-4 h-4 text-cyan-700" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-900">
-                  Filtres & Recherche Avancée
-                </span>
-                {/* User's favorite detailed count badge placed right next to title */}
-                <span className="bg-cyan-50 text-cyan-800 px-3 py-1 rounded-lg text-xs font-bold border border-cyan-200/70 shadow-2xs">
-                  {effectiveFiltered.length} article{effectiveFiltered.length > 1 ? 's' : ''} affiché{effectiveFiltered.length > 1 ? 's' : ''} / {stockItems.length}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400">
-                Catalogue Pièces de Rechange • Liaisons Excel Colonnes B → K
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-end sm:self-auto">
-            <button
-              type="button"
-              onClick={handleExportExcel}
-              className="h-8 px-3 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-              title="Exporter les articles filtrés vers Excel / CSV"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="hidden sm:inline">Export Excel</span>
-            </button>
-
-            {/* Quick Reset Button (Circular Iconic) */}
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={clearAllFilters}
-                className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in"
-                title="Réinitialiser tous les filtres actifs"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Quick Operational Status Presets */}
-        <div className="flex items-center gap-2 flex-wrap text-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 mr-1">
-            <AlertTriangle className="w-3 h-3 text-slate-400" />
-            État Stock :
-          </span>
-          {[
-            {
-              key: 'ALL',
-              label: 'Tous Articles',
-              count: stockItems.length,
-              activeBg: 'bg-slate-900 text-white shadow-xs',
-              colorDot: null,
-              onClick: () => {
-                setActiveKpiFilter('ALL');
-                setStockAlertOnly(false);
-              },
-              isActive: activeKpiFilter === 'ALL' && !stockAlertOnly,
-            },
-            {
-              key: 'OK',
-              label: 'Stock Normal',
-              count: stockKPIs.ok || 0,
-              activeBg: 'bg-emerald-600 text-white shadow-xs',
-              colorDot: 'bg-emerald-500',
-              onClick: () => {
-                setActiveKpiFilter('OK');
-                setStockAlertOnly(false);
-              },
-              isActive: activeKpiFilter === 'OK',
-            },
-            {
-              key: 'ALERTE',
-              label: 'Alerte Seuil',
-              count: stockKPIs.alertes || 0,
-              activeBg: 'bg-amber-600 text-white shadow-xs',
-              colorDot: 'bg-amber-500',
-              onClick: () => {
-                setActiveKpiFilter('ALERTE');
-                setStockAlertOnly(false);
-              },
-              isActive: activeKpiFilter === 'ALERTE',
-            },
-            {
-              key: 'RUPTURE',
-              label: 'Rupture Stock',
-              count: stockKPIs.ruptures || 0,
-              activeBg: 'bg-rose-600 text-white shadow-xs',
-              colorDot: 'bg-rose-500',
-              onClick: () => {
-                setActiveKpiFilter('RUPTURE');
-                setStockAlertOnly(false);
-              },
-              isActive: activeKpiFilter === 'RUPTURE',
-            },
-            {
-              key: 'ALL_ALERTS',
-              label: 'Toutes Alertes',
-              count: (stockKPIs.ruptures || 0) + (stockKPIs.alertes || 0),
-              activeBg: 'bg-violet-600 text-white shadow-xs',
-              colorDot: 'bg-violet-500',
-              onClick: () => {
-                setStockAlertOnly(true);
-                setActiveKpiFilter('ALL');
-              },
-              isActive: stockAlertOnly && activeKpiFilter === 'ALL',
-            },
-          ].map((preset) => (
-            <button
-              key={preset.key}
-              type="button"
-              onClick={preset.onClick}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                preset.isActive
-                  ? preset.activeBg
-                  : 'bg-slate-100/80 hover:bg-slate-200/80 text-slate-700'
-              }`}
-            >
-              {preset.colorDot && (
-                <span
-                  className={`w-2 h-2 rounded-full ${preset.colorDot} ${
-                    preset.isActive ? 'ring-2 ring-white/50' : ''
-                  }`}
-                />
-              )}
-              <span>{preset.label}</span>
-              <span
-                className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
-                  preset.isActive
-                    ? 'bg-white/20 text-white'
-                    : 'bg-white text-slate-600 border border-slate-200/60'
-                }`}
-              >
-                {preset.count}
-              </span>
-            </button>
-          ))}
-        </div>
-
+      {/* 4. Central Unified Industrial Filter & Search Card */}
+      <IndustrialFilterCard
+        title={t('common.filters.title')}
+        subtitle={t('stock.filters_subtitle', 'Catalogue Pièces de Rechange • Liaisons Excel Colonnes B → K')}
+        color="cyan"
+        filteredCount={effectiveFiltered.length}
+        totalCount={stockItems.length}
+        hasActiveFilters={hasActiveFilters}
+        onReset={clearAllFilters}
+        onExportExcel={handleExportExcel}
+        exportLabel={t('common.filters.export_excel')}
+        presets={stockFilterPresets}
+        presetsLabel={t('common.filters.state')}
+        activeFilters={activeStockFilterChips}
+        onClearAll={clearAllFilters}
+      >
         {/* 5-Column Multi-Criteria Filter Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 items-end">
           {/* 1. Omni-Text Search */}
-          <div className="w-full sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Recherche</span>
-              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200/80">
-                Col. B+C
-              </span>
-            </div>
-            <div className="relative">
-              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 shadow-2xs pointer-events-none">
-                <Search className="w-3 h-3" />
-              </div>
-              <input
-                type="text"
-                placeholder="Ref, désignation, emplacement..."
-                value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
-                className="w-full h-9 pl-9 pr-7 rounded-xl border border-slate-200 bg-slate-50/70 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-colors"
-              />
-              {localSearch && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLocalSearch('');
-                    setStockSearch('');
-                  }}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 cursor-pointer"
-                  title="Effacer la recherche"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
+          <FilterSearchInput
+            value={localSearch}
+            onChange={setLocalSearch}
+            onClear={() => {
+              setLocalSearch('');
+              setStockSearch('');
+            }}
+            placeholder={t('stock.search_placeholder', 'Ref, désignation, emplacement...')}
+            colBadge="Col. B+C"
+            colBadgeColor="slate"
+            focusRingColor="focus:ring-cyan-500"
+            className="w-full sm:col-span-2 lg:col-span-1"
+          />
 
           {/* 2. Type de Pièce (Col. D) */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Type de Pièce</span>
-              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-cyan-50 text-cyan-700 border border-cyan-200/80">
-                Col. D
-              </span>
-            </div>
+          <FilterField label={t('stock.piece_type', 'Type de Pièce')} colBadge="Col. D" colBadgeColor="cyan">
             <CustomSelect
               value={stockTypeFilter}
               prefixIcon={
@@ -744,10 +687,10 @@ export default function StockView({
               }
               onChange={(val) => setStockTypeFilter(val)}
               options={[
-                { value: 'ALL', label: `Tous les Types (${types.length})` },
-                ...types.map((t) => {
-                  const val = typeof t === 'string' ? t : t.id_type || t.libelle;
-                  const label = typeof t === 'string' ? t : t.libelle || t.id_type;
+                { value: 'ALL', label: `${t('stock.all_types', 'Tous les Types')} (${types.length})` },
+                ...types.map((tItem) => {
+                  const val = typeof tItem === 'string' ? tItem : tItem.id_type || tItem.libelle;
+                  const label = typeof tItem === 'string' ? tItem : tItem.libelle || tItem.id_type;
                   return {
                     value: val,
                     label: `${label}`,
@@ -755,16 +698,10 @@ export default function StockView({
                 }),
               ]}
             />
-          </div>
+          </FilterField>
 
           {/* 3. État / Alerte (Col. J) */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>État / Alerte</span>
-              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
-                Col. J
-              </span>
-            </div>
+          <FilterField label={t('stock.state_alert', 'État / Alerte')} colBadge="Col. J" colBadgeColor="amber">
             <CustomSelect
               value={activeKpiFilter !== 'ALL' ? activeKpiFilter : stockAlertOnly ? 'ALL_ALERTS' : 'ALL'}
               prefixIcon={
@@ -785,23 +722,17 @@ export default function StockView({
                 }
               }}
               options={[
-                { value: 'ALL', label: 'Tous États' },
-                { value: 'OK', label: '🟢 Stock Normal (OK)' },
-                { value: 'ALERTE', label: '🟡 Alerte Seuil' },
-                { value: 'RUPTURE', label: '🔴 Rupture de Stock' },
-                { value: 'ALL_ALERTS', label: '⚡ Toutes Alertes' },
+                { value: 'ALL', label: t('stock.all_states', 'Tous États') },
+                { value: 'OK', label: t('stock.state_ok', '🟢 Stock Normal (OK)') },
+                { value: 'ALERTE', label: t('stock.state_alert_opt', '🟡 Alerte Seuil') },
+                { value: 'RUPTURE', label: t('stock.state_rupture_opt', '🔴 Rupture de Stock') },
+                { value: 'ALL_ALERTS', label: t('stock.all_alerts', '⚡ Toutes Alertes') },
               ]}
             />
-          </div>
+          </FilterField>
 
           {/* 4. Emplacement (Col. K) */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Emplacement</span>
-              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200/80">
-                Col. K
-              </span>
-            </div>
+          <FilterField label={t('stock.emplacement', 'Emplacement')} colBadge="Col. K" colBadgeColor="purple">
             <CustomSelect
               value={stockEmplacementFilter}
               prefixIcon={
@@ -811,19 +742,19 @@ export default function StockView({
               }
               onChange={(val) => setStockEmplacementFilter(val)}
               options={[
-                { value: 'ALL', label: 'Tous Emplacements' },
+                { value: 'ALL', label: t('stock.all_emplacements', 'Tous Emplacements') },
                 ...emplacements.map((emp) => ({
                   value: emp,
                   label: emp,
                 })),
               ]}
             />
-          </div>
+          </FilterField>
 
           {/* 5. Sort Menu Button & Popover */}
           <div className="relative" ref={sortMenuRef}>
             <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Tri & Ordre</span>
+              <span>{t('common.filters.sort_and_order', 'Tri & Ordre')}</span>
               <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
                 Col. B→K
               </span>
@@ -842,8 +773,8 @@ export default function StockView({
                   <ArrowUpDown className="w-3 h-3" />
                 </span>
                 <span className="truncate">
-                  Tri : <b className="font-mono text-slate-900">{sortField.slice(0, 10).toUpperCase()}</b> (
-                  {sortOrder === 'asc' ? 'A→Z' : 'Z→A'})
+                  {t('common.filters.sort_prefix', 'Tri :')} <b className="font-mono text-slate-900">{sortField.slice(0, 10).toUpperCase()}</b> (
+                  {sortOrder === 'asc' ? t('common.filters.asc', 'A→Z') : t('common.filters.desc', 'Z→A')})
                 </span>
               </div>
               <ChevronDown
@@ -855,21 +786,21 @@ export default function StockView({
             {showSortMenu && (
               <div className="absolute right-0 mt-1 w-64 bg-white rounded-2xl border border-slate-200 shadow-xl z-50 p-2.5 space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  <span>Sélectionner la Colonne de Tri</span>
+                  <span>{t('common.filters.sort_columns_title', 'Sélectionner la Colonne de Tri')}</span>
                   <span>B→K</span>
                 </div>
                 <div className="grid grid-cols-1 gap-1 text-xs max-h-60 overflow-y-auto pr-0.5">
                   {[
-                    { key: 'ref', label: 'REF (Col. B)' },
-                    { key: 'designation', label: 'Désignation (Col. C)' },
-                    { key: 'type', label: 'Type de Pièce (Col. D)' },
-                    { key: 'stockInitial', label: 'Stock Initial (Col. E)' },
-                    { key: 'entrees', label: 'Entrées Réappro (Col. F)' },
-                    { key: 'sorties', label: 'Sorties Totales (Col. G)' },
-                    { key: 'stockActuel', label: 'Stock Actuel (Col. H)' },
-                    { key: 'seuil', label: 'Seuil Critique (Col. I)' },
-                    { key: 'alerte', label: 'Alerte & État (Col. J)' },
-                    { key: 'emplacement', label: 'Emplacement (Col. K)' },
+                    { key: 'ref', label: t('stock.columns.ref', 'REF (Col. B)') },
+                    { key: 'designation', label: t('stock.columns.designation', 'Désignation (Col. C)') },
+                    { key: 'type', label: t('stock.columns.type', 'Type de Pièce (Col. D)') },
+                    { key: 'stockInitial', label: t('stock.columns.initial', 'Stock Initial (Col. E)') },
+                    { key: 'entrees', label: t('stock.columns.entrees', 'Entrées Réappro (Col. F)') },
+                    { key: 'sorties', label: t('stock.columns.sorties', 'Sorties Totales (Col. G)') },
+                    { key: 'stockActuel', label: t('stock.columns.actuel', 'Stock Actuel (Col. H)') },
+                    { key: 'seuil', label: t('stock.columns.seuil', 'Seuil Critique (Col. I)') },
+                    { key: 'alerte', label: t('stock.columns.alerte', 'Alerte & État (Col. J)') },
+                    { key: 'emplacement', label: t('stock.columns.emplacement', 'Emplacement (Col. K)') },
                   ].map((col) => (
                     <button
                       key={col.key}
@@ -899,85 +830,11 @@ export default function StockView({
             )}
           </div>
         </div>
-
-        {/* Active Filter Chips Bar */}
-        {hasActiveFilters && (
-          <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 flex-wrap gap-2">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-bold text-slate-400 text-[11px] uppercase tracking-wider">
-                Filtres actifs :
-              </span>
-              {localSearch && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-800 font-bold text-[11px] border border-slate-200">
-                  <span>Recherche: &quot;{localSearch}&quot;</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLocalSearch('');
-                      setStockSearch('');
-                    }}
-                    className="hover:text-rose-600 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {stockTypeFilter !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-50 text-cyan-700 font-bold text-[11px] border border-cyan-200">
-                  <span>Type: {stockTypeFilter}</span>
-                  <button
-                    type="button"
-                    onClick={() => setStockTypeFilter('ALL')}
-                    className="hover:text-cyan-900 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {activeKpiFilter !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 font-bold text-[11px] border border-amber-200">
-                  <span>État: {activeKpiFilter}</span>
-                  <button
-                    type="button"
-                    onClick={() => setActiveKpiFilter('ALL')}
-                    className="hover:text-amber-900 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {stockAlertOnly && activeKpiFilter === 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-50 text-rose-700 font-bold text-[11px] border border-rose-200">
-                  <span>Toutes Alertes</span>
-                  <button
-                    type="button"
-                    onClick={() => setStockAlertOnly(false)}
-                    className="hover:text-rose-900 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {stockEmplacementFilter !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-50 text-purple-700 font-bold text-[11px] border border-purple-200">
-                  <span>Emplacement: {stockEmplacementFilter}</span>
-                  <button
-                    type="button"
-                    onClick={() => setStockEmplacementFilter('ALL')}
-                    className="hover:text-purple-900 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      </IndustrialFilterCard>
 
       {/* Unified Industrial Data Grid */}
       <GmaoIndustrialDataGrid
-        title="Tableau Stock_Actuel • Ordre Excel Row 3 : B → K"
+        title={t('stock.grid_title', 'Tableau Stock_Actuel • Ordre Excel Row 3 : B → K')}
         icon={<Package className="w-4 h-4 text-cyan-600" />}
         excelMapping="N° | Ref (B) | Désignation (C) | Type (D) | Initial (E) | Entrées (F) | Sorties (G) | Actuel (H) | Seuil (I) | Alerte (J) | Emplacement (K)"
         bannerColor="slate"
@@ -992,7 +849,7 @@ export default function StockView({
         startIndex={startIndex}
         showRowNumber={true}
         emptyIcon={<Package className="w-8 h-8 text-slate-300" />}
-        emptyMessage="Aucun article trouvé"
+        emptyMessage={t('stock.empty_message', 'Aucun article trouvé')}
         pagination={{
           currentPage,
           setCurrentPage,
@@ -1001,7 +858,7 @@ export default function StockView({
           totalItems,
           pageSizeOptions: [20, 50, 100, 200, 0],
           color: 'cyan',
-          itemLabel: 'articles',
+          itemLabel: t('stock.items_label', 'articles'),
         }}
         renderRow={(item, idx) => {
           const rowNum = startIndex + idx + 1;
@@ -1056,7 +913,7 @@ export default function StockView({
                             }
                           }}
                           className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition cursor-pointer shadow-2xs ${getTypeStyle(item.type)}`}
-                          title="Filtrer par ce Type"
+                          title={t('stock.filter_by_type_tooltip', 'Filtrer par ce Type')}
                         >
                           <span>{item.type || (typeObj ? typeObj.libelle : item.id_type)}</span>
                         </button>
@@ -1094,19 +951,19 @@ export default function StockView({
                         {domainItem.getCriticite() === 'RUPTURE' && (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-rose-50 text-rose-700 border border-rose-300">
                             <XCircle className="w-3.5 h-3.5" />
-                            <span>RUPTURE</span>
+                            <span>{t('stock.status_rupture', 'RUPTURE')}</span>
                           </span>
                         )}
                         {domainItem.getCriticite() === 'ALERTE' && (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-300">
                             <AlertTriangle className="w-3.5 h-3.5" />
-                            <span>ALERTE</span>
+                            <span>{t('stock.status_alert', 'ALERTE')}</span>
                           </span>
                         )}
                         {domainItem.getCriticite() === 'OK' && (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300">
                             <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>OK</span>
+                            <span>{t('stock.status_ok', 'OK')}</span>
                           </span>
                         )}
                       </td>
@@ -1115,7 +972,7 @@ export default function StockView({
                       <td className="py-3 px-3.5 font-mono text-slate-700 whitespace-nowrap">
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 text-xs font-semibold">
                           <MapPin className="w-3 h-3 text-purple-500" />
-                          <span>{item.emplacement || 'Non assigné'}</span>
+                          <span>{item.emplacement || t('stock.not_assigned', 'Non assigné')}</span>
                         </span>
                       </td>
 
@@ -1126,10 +983,10 @@ export default function StockView({
                           <button
                             onClick={() => handleOpenQuickModal(item, 'Sortie Interne', 'CORRECTIVE')}
                             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95"
-                            title="Sortie Rapide / Intervention"
+                            title={t('stock.quick_sortie_title', 'Sortie Rapide / Intervention')}
                           >
                             <TrendingDown className="w-3.5 h-3.5 text-rose-400" />
-                            <span>Sortie</span>
+                            <span>{t('stock.actions.quick_sortie', 'Sortie')}</span>
                           </button>
 
                           {/* Quick Dropdown Actions Button */}
@@ -1144,7 +1001,7 @@ export default function StockView({
                                   ? 'bg-cyan-100 text-cyan-900 border-cyan-400 shadow-2xs'
                                   : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                               }`}
-                              title="Menu des Flux & Actions rapides"
+                              title={t('stock.actions_menu_title', 'Menu des Flux & Actions rapides')}
                             >
                               <MoreVertical className="w-3.5 h-3.5" />
                             </button>
@@ -1153,7 +1010,7 @@ export default function StockView({
                             {isMenuOpen && (
                               <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 p-2 space-y-1 text-left animate-in fade-in slide-in-from-top-2 duration-150">
                                 <div className="px-2.5 py-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-                                  <span>FLUX & ACTIONS PDR</span>
+                                  <span>{t('stock.flux_menu_header', 'FLUX & ACTIONS PDR')}</span>
                                   <span className="font-mono text-cyan-800">{item.ref}</span>
                                 </div>
 
@@ -1167,8 +1024,8 @@ export default function StockView({
                                     <TrendingDown className="w-3.5 h-3.5" />
                                   </div>
                                   <div>
-                                    <div className="font-bold">Sortie Interne</div>
-                                    <div className="text-[10px] text-slate-400">Corrective, Préventive, Usage</div>
+                                    <div className="font-bold">{t('stock.actions.quick_sortie', 'Sortie Interne')}</div>
+                                    <div className="text-[10px] text-slate-400">{t('stock.actions.quick_sortie_sub', 'Corrective, Préventive, Usage')}</div>
                                   </div>
                                 </button>
 
@@ -1182,8 +1039,8 @@ export default function StockView({
                                     <TrendingUp className="w-3.5 h-3.5" />
                                   </div>
                                   <div>
-                                    <div className="font-bold">Entrée Interne</div>
-                                    <div className="text-[10px] text-slate-400">Retour Atelier, Récupération</div>
+                                    <div className="font-bold">{t('stock.actions.quick_entree', 'Entrée Interne')}</div>
+                                    <div className="text-[10px] text-slate-400">{t('stock.actions.quick_entree_sub', 'Retour Atelier, Récupération')}</div>
                                   </div>
                                 </button>
 
@@ -1197,8 +1054,8 @@ export default function StockView({
                                     <Inbox className="w-3.5 h-3.5" />
                                   </div>
                                   <div>
-                                    <div className="font-bold">Entrée Externe</div>
-                                    <div className="text-[10px] text-slate-400">Réappro Fournisseur (+ Qté)</div>
+                                    <div className="font-bold">{t('stock.actions.external_entree', 'Entrée Externe')}</div>
+                                    <div className="text-[10px] text-slate-400">{t('stock.actions.external_entree_sub', 'Réappro Fournisseur (+ Qté)')}</div>
                                   </div>
                                 </button>
 
@@ -1212,8 +1069,8 @@ export default function StockView({
                                     <SlidersHorizontal className="w-3.5 h-3.5" />
                                   </div>
                                   <div>
-                                    <div className="font-bold">Ajuster le Stock</div>
-                                    <div className="text-[10px] text-slate-400">Corriger valeur réelle / écart</div>
+                                    <div className="font-bold">{t('stock.actions.adjust_stock', 'Ajuster le Stock')}</div>
+                                    <div className="text-[10px] text-slate-400">{t('stock.actions.adjust_stock_sub', 'Corriger valeur réelle / écart')}</div>
                                   </div>
                                 </button>
 
@@ -1229,8 +1086,8 @@ export default function StockView({
                                         <Edit className="w-3.5 h-3.5" />
                                       </div>
                                       <div>
-                                        <div className="font-bold text-slate-800">Modifier l'Article</div>
-                                        <div className="text-[10px] text-slate-400">Désignation, Seuil, Emplacement</div>
+                                        <div className="font-bold text-slate-800">{t('stock.actions.edit_article', 'Modifier l\'Article')}</div>
+                                        <div className="text-[10px] text-slate-400">{t('stock.actions.edit_article_sub', 'Désignation, Seuil, Emplacement')}</div>
                                       </div>
                                     </button>
                                   </div>

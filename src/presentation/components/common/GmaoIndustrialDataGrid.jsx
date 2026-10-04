@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { ArrowUpDown, ArrowUp, ArrowDown, Inbox } from 'lucide-react';
 import TableSkeletonRows from './TableSkeletonRows.jsx';
 import TablePaginationCard from './TablePaginationCard.jsx';
+import { useI18n } from '../../../i18n/I18nContext';
 
 /**
  * 🏛️ GMAO Industrial Data Grid (Unified Master Table Component)
@@ -34,7 +35,7 @@ export default function GmaoIndustrialDataGrid({
   showRowNumber = true,
   minWidth = 'min-w-[980px]',
   maxHeight = 'max-h-[62vh]',
-  emptyMessage = 'Aucun enregistrement trouvé',
+  emptyMessage = '',
   emptyIcon = null,
   emptyAction = null,
   renderRow = null,
@@ -42,6 +43,8 @@ export default function GmaoIndustrialDataGrid({
   tableClassName = '',
   containerClassName = '',
 }) {
+  const { t } = useI18n();
+
   const bannerColorStyles = {
     indigo: 'bg-indigo-50/40 text-indigo-950 text-slate-500 border-indigo-100/60',
     blue: 'bg-blue-50/40 text-blue-950 text-slate-500 border-blue-100/60',
@@ -79,6 +82,7 @@ export default function GmaoIndustrialDataGrid({
   };
 
   const totalCols = columns.length + (showRowNumber ? 1 : 0);
+  const resolvedEmptyMessage = emptyMessage || t('common.empty_message', 'Aucun enregistrement trouvé');
 
   return (
     <div className={`space-y-4 ${containerClassName}`}>
@@ -139,7 +143,7 @@ export default function GmaoIndustrialDataGrid({
                       className={`py-3 px-3.5 select-none transition ${alignmentClass} ${
                         isSortable ? 'cursor-pointer hover:bg-slate-200/80 group' : ''
                       } ${col.headerClassName || ''}`}
-                      title={isSortable ? `Cliquer pour trier par ${col.label}` : undefined}
+                      title={isSortable ? `${t('common.filters.sort_by', 'Trier par')} ${typeof col.label === 'string' ? col.label : col.key}` : undefined}
                     >
                       <div className={`flex items-center gap-1.5 ${justifyClass}`}>
                         {renderColumnIcon(HeaderIcon)}
@@ -166,7 +170,7 @@ export default function GmaoIndustrialDataGrid({
                   <td colSpan={totalCols} className="py-16 text-center text-slate-400">
                     <div className="flex flex-col items-center justify-center gap-2">
                       {emptyIcon || <Inbox className="w-8 h-8 text-slate-300 stroke-1" />}
-                      <span className="font-semibold text-xs text-slate-500">{emptyMessage}</span>
+                      <span className="font-semibold text-xs text-slate-500">{resolvedEmptyMessage}</span>
                       {emptyAction}
                     </div>
                   </td>

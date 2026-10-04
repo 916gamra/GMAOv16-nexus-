@@ -24,6 +24,7 @@ import ErrorBoundary from '../../components/common/ErrorBoundary';
 import PreventiveService from '../../../application/services/PreventiveService';
 import TabMainView from './components/TabMainView';
 import TaskImportModal from './components/TaskImportModal';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function PreventiveView({
   tasks = [],
@@ -51,6 +52,7 @@ export default function PreventiveView({
   preventiveRecommendations = [],
   onAddAction = null,
 }) {
+  const { t } = useI18n();
   const [showFormulasModal, setShowFormulasModal] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -155,14 +157,14 @@ export default function PreventiveView({
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                  Planification & Matrice Préventive 52 Semaines (GMAO)
+                  {t('preventive.title')}
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-50 text-indigo-800 border border-indigo-200 shadow-2xs">
-                  CYCLE INDUSTRIEL 2025-2026
+                  {t('preventive.cycle')}
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-                Matrice annuelle, Ordres de Travail (OT) & Exécution du programme de maintenance préventive.
+                {t('preventive.subtitle')}
               </p>
             </div>
           </div>

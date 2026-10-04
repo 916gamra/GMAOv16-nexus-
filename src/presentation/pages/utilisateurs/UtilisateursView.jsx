@@ -39,6 +39,7 @@ import {
   getTemplatesForUser,
   formatTemplateLabels,
 } from '../../../data/responsableTemplates';
+import { useTranslation } from '../../../i18n/I18nContext';
 
 export default function UtilisateursView({
   technicians,
@@ -52,6 +53,7 @@ export default function UtilisateursView({
   onDeleteOperation,
   onOpenAddZoneModal,
 }) {
+  const { t } = useTranslation();
   const [localSearch, setLocalSearch] = useState('');
   const [search, setSearch] = useState('');
 
@@ -455,7 +457,7 @@ export default function UtilisateursView({
     () => [
       {
         key: 'id',
-        label: 'IDENTIFIANT',
+        label: t('utilisateurs.columns.id'),
         colLetter: 'B',
         icon: Hash,
         sortable: true,
@@ -468,7 +470,7 @@ export default function UtilisateursView({
       },
       {
         key: 'nom',
-        label: 'NOM COMPLET',
+        label: t('utilisateurs.columns.user'),
         colLetter: 'C',
         icon: User,
         sortable: true,
@@ -516,7 +518,7 @@ export default function UtilisateursView({
       },
       {
         key: 'type',
-        label: 'PROFIL & RÔLE',
+        label: t('utilisateurs.columns.perimeter'),
         colLetter: 'D',
         icon: ShieldCheck,
         sortable: true,
@@ -564,7 +566,7 @@ export default function UtilisateursView({
       },
       {
         key: 'id_zone',
-        label: "ZONE(S) D'AFFECTATION",
+        label: t('utilisateurs.columns.zones'),
         colLetter: 'E',
         icon: MapPin,
         sortable: true,
@@ -599,7 +601,7 @@ export default function UtilisateursView({
       },
       {
         key: 'specialite',
-        label: 'SPÉCIALITÉ / DOMAINE',
+        label: t('utilisateurs.columns.specialite'),
         colLetter: 'F',
         icon: Wrench,
         render: (user) => (
@@ -613,7 +615,7 @@ export default function UtilisateursView({
       },
       {
         key: 'actions',
-        label: '•••',
+        label: t('utilisateurs.columns.actions'),
         align: 'center',
         headerClassName: 'w-24 text-center font-bold text-slate-400 tracking-widest select-none',
         render: (user) => (
@@ -679,11 +681,10 @@ export default function UtilisateursView({
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900 tracking-tight">
-                Registre des Utilisateurs & Membres
+                {t('utilisateurs.title')}
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Gérez les techniciens de maintenance, les opérateurs de ligne et les responsables (RESP)
-                dans un répertoire unifié.
+                {t('utilisateurs.subtitle')}
               </p>
             </div>
           </div>
@@ -691,7 +692,7 @@ export default function UtilisateursView({
           <div className="flex items-center gap-2 shrink-0">
             <FormulasModalButton
               onClick={() => setShowFormulasModal(true)}
-              title="Formules Excel (Codification Utilisateurs)"
+              title={t('utilisateurs.buttons.view_formulas')}
             />
 
             <Action3DButton
@@ -713,7 +714,7 @@ export default function UtilisateursView({
                 setUserToEdit(null);
                 setShowAddModal(true);
               }}
-              title="Ajouter un utilisateur"
+              title={t('utilisateurs.buttons.add_user')}
             />
           </div>
         </div>
@@ -724,12 +725,12 @@ export default function UtilisateursView({
           <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                Total Membres
+                {t('utilisateurs.stats.total_users')}
               </span>
               <span className="text-2xl font-black text-slate-900 mt-1 block font-mono">
                 {combinedUsers.length}
               </span>
-              <span className="text-[10px] text-slate-400 mt-0.5 block">Membres enregistrés</span>
+              <span className="text-[10px] text-slate-400 mt-0.5 block">{t('utilisateurs.stats.registered_members')}</span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
               <Users className="w-5 h-5" />
@@ -740,12 +741,12 @@ export default function UtilisateursView({
           <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider block">
-                Techniciens (TECH)
+                {t('utilisateurs.stats.technicians')}
               </span>
               <span className="text-2xl font-black text-slate-900 mt-1 block font-mono">
                 {technicians.length}
               </span>
-              <span className="text-[10px] text-blue-500 mt-0.5 block">Maintenance & SAV</span>
+              <span className="text-[10px] text-blue-500 mt-0.5 block">{t('utilisateurs.stats.technicians_sub')}</span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
               <Wrench className="w-5 h-5" />
@@ -756,12 +757,12 @@ export default function UtilisateursView({
           <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">
-                Opérateurs (OP)
+                {t('utilisateurs.stats.operators')}
               </span>
               <span className="text-2xl font-black text-slate-900 mt-1 block font-mono">
                 {operations.filter((o) => o.type_profil === 'OPERATEUR').length}
               </span>
-              <span className="text-[10px] text-indigo-500 mt-0.5 block">Ligne de Production</span>
+              <span className="text-[10px] text-indigo-500 mt-0.5 block">{t('utilisateurs.stats.operators_sub')}</span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
               <ClipboardList className="w-5 h-5" />
@@ -772,7 +773,7 @@ export default function UtilisateursView({
           <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block">
-                Responsables (RESP)
+                {t('utilisateurs.stats.responsables')}
               </span>
               <span className="text-2xl font-black text-slate-900 mt-1 block font-mono">
                 {
@@ -785,7 +786,7 @@ export default function UtilisateursView({
                   ).length
                 }
               </span>
-              <span className="text-[10px] text-rose-500 mt-0.5 block">RMT • RZN • RPD • RMG</span>
+              <span className="text-[10px] text-rose-500 mt-0.5 block">{t('utilisateurs.stats.responsables_sub')}</span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
               <ShieldCheck className="w-5 h-5" />
@@ -804,14 +805,14 @@ export default function UtilisateursView({
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                    Filtres & Recherche Avancée
+                    {t('utilisateurs.filters.title')}
                   </span>
                   <span className="bg-amber-50 text-amber-800 px-2.5 py-0.5 rounded-lg text-[11px] font-bold border border-amber-200/70 shadow-2xs font-mono">
                     {filtered.length} / {combinedUsers.length}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400 font-medium">
-                  Référentiel des Techniciens, Opérateurs et Responsables • Colonnes A → J
+                  {t('utilisateurs.filters.subtitle')}
                 </p>
               </div>
             </div>
@@ -821,10 +822,10 @@ export default function UtilisateursView({
               <button
                 onClick={handleExportExcel}
                 className="h-8 px-3 rounded-xl border border-emerald-200/80 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-                title="Exporter le tableau vers Excel / CSV"
+                title={t('utilisateurs.buttons.export_excel')}
               >
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Export Excel</span>
+                <span>{t('utilisateurs.buttons.export_excel')}</span>
               </button>
 
               {/* Circular Reset Button */}
@@ -837,7 +838,7 @@ export default function UtilisateursView({
                     setSortField('nom');
                     setSortOrder('asc');
                   }}
-                  title="Réinitialiser tous les filtres actifs"
+                  title={t('utilisateurs.filters.reset_tooltip')}
                   className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in shrink-0"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -851,7 +852,7 @@ export default function UtilisateursView({
             <div className="relative w-full">
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                  RECHERCHE LIBRE
+                  {t('utilisateurs.filters.search_label')}
                 </label>
                 <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
                   Col. B+C+E
@@ -863,7 +864,7 @@ export default function UtilisateursView({
                 </span>
                 <input
                   type="text"
-                  placeholder="Rechercher par nom, ID, zone..."
+                  placeholder={t('utilisateurs.filters.search_placeholder')}
                   value={localSearch}
                   onChange={(e) => setLocalSearch(e.target.value)}
                   className="w-full h-10 pl-9 pr-8 text-xs font-medium text-slate-800 placeholder-slate-400 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-500/20 transition"
@@ -883,7 +884,7 @@ export default function UtilisateursView({
             <div className="w-full">
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                  RÔLE / PROFIL
+                  {t('utilisateurs.filters.role_label')}
                 </label>
                 <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
                   Col. D
@@ -896,10 +897,10 @@ export default function UtilisateursView({
                   </span>
                 }
                 options={[
-                  { value: 'ALL', label: 'Tous les Profils (D)' },
-                  { value: 'TECHNICIEN', label: '[D] Techniciens (TECH)' },
-                  { value: 'OPERATEUR', label: '[D] Opérateurs (OP)' },
-                  { value: 'RESPONSABLE', label: '[D] Tous les Responsables (RESP)' },
+                  { value: 'ALL', label: t('utilisateurs.filters.all_profiles') },
+                  { value: 'TECHNICIEN', label: `[D] ${t('utilisateurs.filters.technicians')}` },
+                  { value: 'OPERATEUR', label: `[D] ${t('utilisateurs.filters.operators')}` },
+                  { value: 'RESPONSABLE', label: `[D] ${t('utilisateurs.filters.responsables')}` },
                   { value: 'RMT', label: '• [RMT] Responsable Maintenance' },
                   { value: 'RZN', label: '• [RZN] Responsable Zone' },
                   { value: 'RPD', label: '• [RPD] Responsable Production' },
@@ -914,7 +915,7 @@ export default function UtilisateursView({
             <div className="w-full">
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                  ZONE D'AFFECTATION
+                  {t('utilisateurs.filters.zone_label')}
                 </label>
                 <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
                   Col. E
@@ -927,7 +928,7 @@ export default function UtilisateursView({
                   </span>
                 }
                 options={[
-                  { value: 'ALL', label: 'Toutes les Zones (E)' },
+                  { value: 'ALL', label: t('utilisateurs.filters.all_zones') },
                   ...zones.map((z, zIdx) => ({
                     value: z.id_zone || `zone-${zIdx}`,
                     label: `[E] ${z.libelle || z.id_zone || ''} (${z.id_zone || zIdx})`,
@@ -942,10 +943,10 @@ export default function UtilisateursView({
             <div className="w-full relative" ref={sortMenuRef}>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                  TRI DES ENREGISTREMENTS
+                  {t('utilisateurs.filters.sort_label')}
                 </label>
                 <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                  Ordre A-Z
+                  {t('utilisateurs.filters.order_asc')}
                 </span>
               </div>
               <button
@@ -961,8 +962,8 @@ export default function UtilisateursView({
                     <ArrowUpDown className="w-3 h-3" />
                   </span>
                   <span>
-                    Tri : <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
-                    {sortOrder === 'asc' ? 'A→Z' : 'Z→A'})
+                    {t('utilisateurs.filters.sort_label')} : <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
+                    {sortOrder === 'asc' ? t('utilisateurs.filters.order_asc') : t('utilisateurs.filters.order_desc')})
                   </span>
                 </div>
                 <ChevronDown
@@ -975,7 +976,7 @@ export default function UtilisateursView({
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                     <span className="flex items-center gap-1.5 text-slate-700 font-semibold">
                       <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />
-                      Trier par
+                      {t('utilisateurs.filters.sort_by')}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 gap-1 text-xs">
@@ -994,7 +995,7 @@ export default function UtilisateursView({
                           : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      <span>Identifiant (B)</span>
+                      <span>{t('utilisateurs.filters.id_col')}</span>
                       {sortField === 'id' &&
                         (sortOrder === 'asc' ? (
                           <ArrowUp className="w-3 h-3 text-indigo-600 shrink-0" />
@@ -1018,7 +1019,7 @@ export default function UtilisateursView({
                           : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      <span>Nom Complet (C)</span>
+                      <span>{t('utilisateurs.filters.name_col')}</span>
                       {sortField === 'nom' &&
                         (sortOrder === 'asc' ? (
                           <ArrowUp className="w-3 h-3 text-indigo-600 shrink-0" />
@@ -1042,7 +1043,7 @@ export default function UtilisateursView({
                           : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      <span>Profil & Rôle (D)</span>
+                      <span>{t('utilisateurs.filters.profile_col')}</span>
                       {sortField === 'type' &&
                         (sortOrder === 'asc' ? (
                           <ArrowUp className="w-3 h-3 text-indigo-600 shrink-0" />
@@ -1066,7 +1067,7 @@ export default function UtilisateursView({
                           : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      <span>Zone d&apos;Affectation (E)</span>
+                      <span>{t('utilisateurs.filters.zone_col')}</span>
                       {sortField === 'id_zone' &&
                         (sortOrder === 'asc' ? (
                           <ArrowUp className="w-3 h-3 text-indigo-600 shrink-0" />
@@ -1083,11 +1084,11 @@ export default function UtilisateursView({
           {/* Active Filter Chips */}
           {(localSearch || profileFilter !== 'ALL' || zoneFilter !== 'ALL') && (
             <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 text-xs">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Filtres actifs :</span>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t('utilisateurs.filters.active_filters')}</span>
               {localSearch && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-semibold">
                   <Search className="w-3 h-3 text-indigo-600" />
-                  Recherche: &quot;{localSearch}&quot;
+                  {t('utilisateurs.filters.filter_search')}: &quot;{localSearch}&quot;
                   <button
                     onClick={() => setLocalSearch('')}
                     className="hover:bg-indigo-200/60 p-0.5 rounded-full transition cursor-pointer"
@@ -1099,7 +1100,7 @@ export default function UtilisateursView({
               {profileFilter !== 'ALL' && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-semibold">
                   <User className="w-3 h-3 text-indigo-600" />
-                  Profil: {profileFilter}
+                  {t('utilisateurs.filters.filter_profile')}: {profileFilter}
                   <button
                     onClick={() => setProfileFilter('ALL')}
                     className="hover:bg-indigo-200/60 p-0.5 rounded-full transition cursor-pointer"
@@ -1111,7 +1112,7 @@ export default function UtilisateursView({
               {zoneFilter !== 'ALL' && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-semibold">
                   <MapPin className="w-3 h-3 text-indigo-600" />
-                  Zone: {zoneFilter}
+                  {t('utilisateurs.filters.filter_zone')}: {zoneFilter}
                   <button
                     onClick={() => setZoneFilter('ALL')}
                     className="hover:bg-indigo-200/60 p-0.5 rounded-full transition cursor-pointer"
@@ -1126,7 +1127,7 @@ export default function UtilisateursView({
 
         {/* Unified Industrial Data Grid */}
         <GmaoIndustrialDataGrid
-          title="Tableau Utilisateurs • Colonnes B → F"
+          title={t('utilisateurs.table.title')}
           icon={<Users className="w-4 h-4 text-indigo-600" />}
           excelMapping="id_user (B) | nom (C) | type_profil (D) | id_zone (E) | specialite (F)"
           bannerColor="indigo"
@@ -1139,7 +1140,7 @@ export default function UtilisateursView({
           startIndex={startIndex}
           showRowNumber={true}
           emptyIcon={<Users className="w-8 h-8 text-slate-300" />}
-          emptyMessage="Aucun utilisateur trouvé"
+          emptyMessage={t('utilisateurs.table.empty_msg')}
           pagination={{
             currentPage,
             setCurrentPage,
@@ -1148,7 +1149,7 @@ export default function UtilisateursView({
             totalItems,
             pageSizeOptions: [20, 50, 100, 200, 0],
             color: 'indigo',
-            itemLabel: 'membres',
+            itemLabel: t('utilisateurs.table.item_label'),
           }}
         />
 
@@ -1160,8 +1161,8 @@ export default function UtilisateursView({
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <Users className="w-4 h-4 text-indigo-600" />
                   {userToEdit
-                    ? 'Modifier la Fiche Utilisateur'
-                    : 'Enregistrer un nouvel Utilisateur'}
+                    ? t('utilisateurs.modal.edit_title')
+                    : t('utilisateurs.modal.add_title')}
                 </h3>
                 <button
                   type="button"
@@ -1177,13 +1178,13 @@ export default function UtilisateursView({
                 {/* Mode Select (Enabled ONLY for creation, disabled for editing) */}
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                    Type de Profil / Rôle
+                    {t('utilisateurs.modal.profile_type')}
                   </label>
                   <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-200/60 rounded-xl border border-slate-200/80">
                     {[
-                      { key: 'TECHNICIEN', label: 'Technicien', sub: '(TECH)' },
-                      { key: 'OPERATEUR', label: 'Opérateur', sub: '(OP)' },
-                      { key: 'RESPONSABLE', label: 'Responsable', sub: '(RESP)' },
+                      { key: 'TECHNICIEN', label: t('utilisateurs.modal.technician_tab'), sub: '(TECH)' },
+                      { key: 'OPERATEUR', label: t('utilisateurs.modal.operator_tab'), sub: '(OP)' },
+                      { key: 'RESPONSABLE', label: t('utilisateurs.modal.responsable_tab'), sub: '(RESP)' },
                     ].map((item, itmIdx) => (
                       <button
                         key={`profile-tab-${item.key || itmIdx}`}
@@ -1213,13 +1214,13 @@ export default function UtilisateursView({
                 {userToEdit ? (
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                      Identifiant Unique (ID)
+                      {t('utilisateurs.modal.unique_id')}
                     </label>
                     <div className="w-full h-10 px-3 bg-slate-100 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-700 flex items-center shadow-2xs">
                       {userToEdit.id}
                     </div>
                     <p className="text-[10px] text-slate-400 mt-1">
-                      Identifiant permanent non modifiable en mode édition.
+                      {t('utilisateurs.modal.id_readonly_text')}
                     </p>
                   </div>
                 ) : (
@@ -1229,8 +1230,8 @@ export default function UtilisateursView({
                     onChangeCode={(code) => setForm((prev) => ({ ...prev, customCode: code }))}
                     autoGeneratedCode={modalAutoNextId}
                     takenNumbers={modalTakenNumbers}
-                    label="Code Utilisateur"
-                    helperText={`Généré automatiquement selon le profil (${form.type}) avec choix libre de numéro (01-99)`}
+                    label={t('utilisateurs.modal.code_user')}
+                    helperText={`${t('utilisateurs.modal.auto_id_helper')} (${form.type})`}
                   />
                 )}
 
@@ -1239,10 +1240,10 @@ export default function UtilisateursView({
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        Templates & Domaines de Responsabilité (Multi-sélection)
+                        {t('utilisateurs.modal.templates_label')}
                       </label>
                       <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
-                        {(form.templates || []).length} actif(s)
+                        {(form.templates || []).length}
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -1303,7 +1304,7 @@ export default function UtilisateursView({
                       })}
                     </div>
                     <p className="text-[10px] text-slate-400 mt-1">
-                      Un responsable peut cumuler plusieurs templates (ex: RMT + RZN).
+                      {t('utilisateurs.modal.resp_templates_note')}
                     </p>
                   </div>
                 )}
@@ -1311,14 +1312,14 @@ export default function UtilisateursView({
                 {/* Name */}
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                    Nom Complet du Membre
+                    {t('utilisateurs.modal.full_name')}
                   </label>
                   <input
                     type="text"
                     required
                     value={form.nom}
                     onChange={(e) => setForm({ ...form, nom: e.target.value })}
-                    placeholder="Ex: Rachid Belkacem"
+                    placeholder={t('utilisateurs.modal.full_name_placeholder')}
                     className="w-full h-10 px-3 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:bg-white transition"
                   />
                 </div>
@@ -1329,7 +1330,7 @@ export default function UtilisateursView({
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
                         <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                          Zones sous Responsabilité
+                          {t('utilisateurs.modal.zones_assignment')}
                         </label>
                         {onOpenAddZoneModal && (
                           <button
@@ -1338,7 +1339,7 @@ export default function UtilisateursView({
                             className="text-[10px] text-indigo-600 hover:text-indigo-800 hover:underline font-bold flex items-center gap-0.5 cursor-pointer"
                           >
                             <Plus className="w-3 h-3" />
-                            <span>Nouvelle zone</span>
+                            <span>{t('utilisateurs.modal.new_zone')}</span>
                           </button>
                         )}
                       </div>
@@ -1358,7 +1359,7 @@ export default function UtilisateursView({
                             : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                         }`}
                       >
-                        ALL (Toutes Zones)
+                        {t('utilisateurs.modal.all_zones_btn')}
                       </button>
                     </div>
 
@@ -1395,7 +1396,7 @@ export default function UtilisateursView({
                 ) : (
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center justify-between">
-                      <span>Affectation de Zone</span>
+                      <span>{t('utilisateurs.modal.single_zone_assignment')}</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -1405,7 +1406,7 @@ export default function UtilisateursView({
                         className="text-[10px] text-indigo-600 hover:underline font-bold inline-flex items-center gap-0.5"
                       >
                         <Plus className="w-3 h-3" />
-                        <span>Nouvelle zone</span>
+                        <span>{t('utilisateurs.modal.new_zone')}</span>
                       </button>
                     </label>
                     <select
@@ -1426,13 +1427,13 @@ export default function UtilisateursView({
                 {form.type === 'TECHNICIEN' && (
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                      Spécialité Technique
+                      {t('utilisateurs.modal.specialty')}
                     </label>
                     <input
                       type="text"
                       value={form.specialite}
                       onChange={(e) => setForm({ ...form, specialite: e.target.value })}
-                      placeholder="Ex: Hydraulique & Pneumatique"
+                      placeholder={t('utilisateurs.modal.specialty_placeholder')}
                       className="w-full h-10 px-3 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 focus:bg-white transition"
                     />
                   </div>
@@ -1444,13 +1445,13 @@ export default function UtilisateursView({
                     onClick={() => setShowAddModal(false)}
                     className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer"
                   >
-                    Annuler
+                    {t('utilisateurs.buttons.cancel')}
                   </button>
                   <button
                     type="submit"
                     className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition cursor-pointer shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out"
                   >
-                    {userToEdit ? 'Sauvegarder' : "Créer l'utilisateur"}
+                    {userToEdit ? t('utilisateurs.buttons.save') : t('utilisateurs.buttons.create')}
                   </button>
                 </div>
               </form>
@@ -1466,10 +1467,9 @@ export default function UtilisateursView({
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <div className="text-center">
-                <h4 className="text-sm font-black text-slate-900">Supprimer l&apos;Utilisateur ?</h4>
+                <h4 className="text-sm font-black text-slate-900">{t('utilisateurs.modal.delete_title')}</h4>
                 <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                  Confirmez-vous la suppression de <b>{userToDelete.nom}</b> ? Cette opération
-                  supprimera définitivement sa fiche.
+                  {t('utilisateurs.modal.delete_confirm_msg')}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1478,14 +1478,14 @@ export default function UtilisateursView({
                   onClick={() => setUserToDelete(null)}
                   className="flex-1 py-2 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
                 >
-                  Annuler
+                  {t('utilisateurs.buttons.cancel')}
                 </button>
                 <button
                   type="button"
                   onClick={confirmDelete}
                   className="flex-1 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out"
                 >
-                  Supprimer
+                  {t('utilisateurs.buttons.confirm_delete')}
                 </button>
               </div>
             </div>
@@ -1504,20 +1504,20 @@ export default function UtilisateursView({
                   </div>
                   <div>
                     <h3 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
-                      <span>Formules Excel Miroir — Utilisateurs</span>
+                      <span>{t('utilisateurs.formulas.title')}</span>
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-                        Techniciens & Opérations
+                        {t('utilisateurs.formulas.badge')}
                       </span>
                     </h3>
                     <p className="text-xs text-slate-500">
-                      Règles d'Auto-ID, filtres par profil et liaisons zones dans Excel
+                      {t('utilisateurs.formulas.subtitle')}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowFormulasModal(false)}
                   className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shrink-0"
-                  title="Fermer"
+                  title={t('utilisateurs.buttons.close')}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -1530,17 +1530,17 @@ export default function UtilisateursView({
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 truncate">
                       <Wrench className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                      <span className="truncate">Auto-ID Technicien</span>
+                      <span className="truncate">{t('utilisateurs.formulas.tech_id_title')}</span>
                     </div>
                     <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-100/80 text-blue-800 border border-blue-200 shrink-0">
-                      Feuille Tech
+                      {t('utilisateurs.formulas.tech_id_sheet')}
                     </span>
                   </div>
                   <div className="font-mono text-xs text-blue-800 font-bold bg-white p-2 rounded-lg border border-blue-100">
                     ="TECH-" & TEXT(COUNTIF(Tech[ID],"TECH-*")+1, "00")
                   </div>
                   <p className="text-[10.5px] text-slate-500 leading-tight">
-                    Génération séquentielle du matricule technique (e.g. TECH-01, TECH-02).
+                    {t('utilisateurs.formulas.tech_id_desc')}
                   </p>
                 </div>
 
@@ -1549,17 +1549,17 @@ export default function UtilisateursView({
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 truncate">
                       <ClipboardList className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span className="truncate">Auto-ID Opérateur</span>
+                      <span className="truncate">{t('utilisateurs.formulas.op_id_title')}</span>
                     </div>
                     <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100/80 text-emerald-800 border border-emerald-200 shrink-0">
-                      Feuille Op
+                      {t('utilisateurs.formulas.op_id_sheet')}
                     </span>
                   </div>
                   <div className="font-mono text-xs text-emerald-800 font-bold bg-white p-2 rounded-lg border border-emerald-100">
                     ="OP-" & TEXT(COUNTIF(Op[Type],"OPERATEUR")+1, "00")
                   </div>
                   <p className="text-[10.5px] text-slate-500 leading-tight">
-                    Incrémentation automatique des identifiants des opérateurs de chaîne de production.
+                    {t('utilisateurs.formulas.op_id_desc')}
                   </p>
                 </div>
 
@@ -1568,17 +1568,17 @@ export default function UtilisateursView({
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 truncate">
                       <Crown className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                      <span className="truncate">Auto-ID Responsable</span>
+                      <span className="truncate">{t('utilisateurs.formulas.resp_id_title')}</span>
                     </div>
                     <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-100/80 text-purple-800 border border-purple-200 shrink-0">
-                      Feuille Op / RESP
+                      {t('utilisateurs.formulas.resp_id_sheet')}
                     </span>
                   </div>
                   <div className="font-mono text-xs text-purple-800 font-bold bg-white p-2 rounded-lg border border-purple-100">
                     ="RESP-" & TEXT(COUNTIF(Op[Type],"RESPONSABLE")+1, "00")
                   </div>
                   <p className="text-[10.5px] text-slate-500 leading-tight">
-                    Codification des chefs d'équipe, responsables zone, maintenance et généraux.
+                    {t('utilisateurs.formulas.resp_id_desc')}
                   </p>
                 </div>
 
@@ -1587,17 +1587,17 @@ export default function UtilisateursView({
                   <div className="flex items-center justify-between gap-2">
                     <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 truncate">
                       <MapPin className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                      <span className="truncate">Liaison Zone & Responsabilité</span>
+                      <span className="truncate">{t('utilisateurs.formulas.zone_link_title')}</span>
                     </div>
                     <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-100/80 text-amber-800 border border-amber-200 shrink-0">
-                      Col. [id_zone]
+                      {t('utilisateurs.formulas.zone_link_col')}
                     </span>
                   </div>
                   <div className="font-mono text-xs text-amber-800 font-bold bg-white p-2 rounded-lg border border-amber-100">
                     =[@id_zone] → Zone!B:B
                   </div>
                   <p className="text-[10.5px] text-slate-500 leading-tight">
-                    Rattachement automatique de chaque profil à une zone spécifique ou à un périmètre multi-zones (ALL).
+                    {t('utilisateurs.formulas.zone_link_desc')}
                   </p>
                 </div>
               </div>
@@ -1605,13 +1605,13 @@ export default function UtilisateursView({
               {/* Modal Footer */}
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                 <span className="text-[11px] text-slate-400 font-medium">
-                  Conforme à 100% avec le fichier Excel modèle <span className="font-mono text-slate-600">GMAO_Light_Template_V2</span>
+                  {t('utilisateurs.formulas.footer_note')}
                 </span>
                 <button
                   onClick={() => setShowFormulasModal(false)}
                   className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer"
                 >
-                  Fermer
+                  {t('utilisateurs.buttons.close')}
                 </button>
               </div>
             </div>

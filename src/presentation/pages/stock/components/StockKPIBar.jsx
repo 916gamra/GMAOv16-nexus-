@@ -1,4 +1,5 @@
 import { Package, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { useI18n } from '../../../../i18n/I18nContext';
 
 export default function StockKPIBar({
   stockItems = [],
@@ -9,6 +10,8 @@ export default function StockKPIBar({
   stockAlertOnly,
   setStockAlertOnly,
 }) {
+  const { t } = useI18n();
+
   return (
     <div id="stock-kpis-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
       {/* Card 1: Total Références */}
@@ -26,13 +29,13 @@ export default function StockKPIBar({
       >
         <div>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-            Catalogue Global
+            {t('stock.kpis.global_catalog', 'Catalogue Global')}
           </span>
           <span className="text-2xl font-black text-slate-900 mt-0.5 block font-mono">
             {stockItems.length}
           </span>
           <span className="text-[11px] text-slate-500 mt-0.5 block">
-            {types.length} Types & Familles de pièces
+            {t('stock.kpis.types_count', { count: types.length })}
           </span>
         </div>
         <div className="w-11 h-11 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center shrink-0 border border-cyan-200/60 group-hover:scale-110 group-hover:border-cyan-300 transition-transform duration-300">
@@ -55,13 +58,15 @@ export default function StockKPIBar({
       >
         <div>
           <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">
-            Stock Conforme (OK)
+            {t('stock.kpis.conforming_stock', 'Stock Conforme (OK)')}
           </span>
           <span className="text-2xl font-black text-emerald-700 mt-0.5 block font-mono">
             {stockKPIs.ok || 0}
           </span>
           <span className="text-[11px] text-emerald-600/80 mt-0.5 block">
-            {stockItems.length > 0 ? Math.round(((stockKPIs.ok || 0) / stockItems.length) * 100) : 0}% des articles stables
+            {t('stock.kpis.stable_percent', {
+              percent: stockItems.length > 0 ? Math.round(((stockKPIs.ok || 0) / stockItems.length) * 100) : 0,
+            })}
           </span>
         </div>
         <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/60 group-hover:scale-110 group-hover:border-emerald-300 transition-transform duration-300">
@@ -84,13 +89,13 @@ export default function StockKPIBar({
       >
         <div>
           <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block">
-            Sous Seuil (ALERTE)
+            {t('stock.kpis.under_threshold', 'Sous Seuil (ALERTE)')}
           </span>
           <span className="text-2xl font-black text-amber-700 mt-0.5 block font-mono">
             {stockKPIs.alertes || 0}
           </span>
           <span className="text-[11px] text-amber-600/80 mt-0.5 block">
-            Réapprovisionnement requis
+            {t('stock.kpis.reorder_required', 'Réapprovisionnement requis')}
           </span>
         </div>
         <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/60 group-hover:scale-110 group-hover:border-amber-300 transition-transform duration-300">
@@ -113,13 +118,13 @@ export default function StockKPIBar({
       >
         <div>
           <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block">
-            Rupture Totale
+            {t('stock.kpis.total_rupture', 'Rupture Totale')}
           </span>
           <span className="text-2xl font-black text-rose-700 mt-0.5 block font-mono">
             {stockKPIs.ruptures || 0}
           </span>
           <span className="text-[11px] text-rose-600/80 mt-0.5 block">
-            Stock = 0 (Bloquant)
+            {t('stock.kpis.stock_zero', 'Stock = 0 (Bloquant)')}
           </span>
         </div>
         <div className="w-11 h-11 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center shrink-0 border border-rose-200/60 group-hover:scale-110 group-hover:border-rose-300 transition-transform duration-300">

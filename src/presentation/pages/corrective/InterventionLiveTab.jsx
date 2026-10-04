@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { CorrectiveCalculationService } from '../../../domain/corrective/services/CorrectiveCalculationService';
 import { stockIndexStore } from '../../../application/StockIndexStore';
+import { useI18n } from '../../../i18n/I18nContext';
 
 export default function InterventionLiveTab({
   interventions = [],
@@ -29,6 +30,7 @@ export default function InterventionLiveTab({
   onAddActionForPanne: _onAddActionForPanne,
   showToast,
 }) {
+  const { t } = useI18n();
   // Sync with reactive StockIndexStore for real-time stock balances
   useSyncExternalStore(stockIndexStore.subscribeAll, stockIndexStore.getGlobalVersion);
 
@@ -290,17 +292,17 @@ export default function InterventionLiveTab({
           <Play className="w-8 h-8 fill-current text-amber-600" />
         </div>
         <h3 className="text-lg font-black text-slate-900 tracking-tight">
-          Aucun Bon de Travail en Cours de Chronométrage
+          {t('corrective.live.no_live')}
         </h3>
         <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-          Sélectionnez un Bon de Travail (BT) dans la liste pour démarrer l'intervention d'atelier et lancer le calcul automatique du temps effectif.
+          {t('corrective.live.select_bt')}
         </p>
         <button
           onClick={() => onNavigateToTab?.('corrective_bt')}
           className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition cursor-pointer shadow-md shadow-amber-600/25 active:scale-95 inline-flex items-center gap-2"
         >
           <Wrench className="w-4 h-4" />
-          <span>Consulter les Bons de Travail (BT)</span>
+          <span>{t('corrective.tabs.bt')}</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -319,7 +321,7 @@ export default function InterventionLiveTab({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-base font-black text-slate-900 tracking-tight">
-                  Chronomètre d'Atelier & Session Live
+                  {t('corrective.live.title')}
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
                   EN DIRECT

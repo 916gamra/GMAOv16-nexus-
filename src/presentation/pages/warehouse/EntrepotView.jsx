@@ -6,17 +6,12 @@ import { storageService } from '../../../utils/storageService';
 import { useSmartTableLoader } from '../../hooks/useSmartTableLoader';
 import { Logger } from '../../../core/logger/LoggerService.js';
 import {
-  Boxes,
   Plus,
-  Search,
   MapPin,
   Layers,
   CheckCircle2,
   Trash2,
   Edit2,
-  ChevronLeft,
-  ChevronRight,
-  SlidersHorizontal,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -27,13 +22,8 @@ import {
   Check,
   X,
   Zap,
-  Flame,
   Copy,
-  Activity,
-  TrendingUp,
   Calculator,
-  RotateCcw,
-  FileSpreadsheet,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CubeIcon } from '../../components/common/icons/CubeIcon';
@@ -41,8 +31,11 @@ import { LayersIcon } from '../../components/common/icons/LayersIcon';
 import { usePermission } from '../../components/common/PermissionGate.jsx';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
 import Action3DButton from '../../components/common/Action3DButton';
+import TablePaginationCard from '../../components/common/TablePaginationCard';
+import IndustrialFilterCard, { FilterField, FilterSearchInput } from '../../components/common/IndustrialFilterCard';
 import ComponentsTable from './components/ComponentsTable';
 import PartsTable from './components/PartsTable';
+import { useTranslation } from '../../../i18n/I18nContext';
 
 export default function EntrepotView({
   warehouseItems = [],
@@ -86,6 +79,7 @@ export default function EntrepotView({
   onNavigateToZone,
   onNavigateToMachine,
 }) {
+  const { t } = useTranslation();
   const families = compFamilies && compFamilies.length > 0 ? compFamilies : propFamilies;
   const templates = compTemplates && compTemplates.length > 0 ? compTemplates : propTemplates;
   const types = partTypes && partTypes.length > 0 ? partTypes : propTypes;
@@ -885,7 +879,6 @@ export default function EntrepotView({
   }, [filteredItems, sortField, sortOrder]);
 
   const totalItems = sortedData.length;
-  const totalPages = pageSize === 0 ? 1 : Math.ceil(totalItems / pageSize) || 1;
   const effectivePageSize = pageSize === 0 ? totalItems : pageSize;
   const startIndex = (currentPage - 1) * effectivePageSize;
   const rawDisplayedData =
@@ -978,6 +971,119 @@ export default function EntrepotView({
     setSortOrder('asc');
   };
 
+  const entrepotFilterPresets = useMemo(() => [
+    {
+      key: 'ALL',
+      label: t('entrepot.filters.all_statuses'),
+      count: warehouseItems.length,
+      colorDot: null,
+      isActive: currentStatusFilter === 'ALL',
+      onClick: () => changeStatusFilter('ALL'),
+    },
+    {
+      key: 'En service',
+      label: t('entrepot.filters.in_service'),
+      count: kpis.enService,
+      colorDot: 'bg-emerald-500',
+      isActive: currentStatusFilter === 'En service',
+      onClick: () => changeStatusFilter('En service'),
+    },
+    {
+      key: 'En stock (Disponible)',
+      label: t('entrepot.filters.in_stock'),
+      count: kpis.enStock,
+      colorDot: 'bg-blue-500',
+      isActive: currentStatusFilter === 'En stock (Disponible)',
+      onClick: () => changeStatusFilter('En stock (Disponible)'),
+    },
+    {
+      key: 'En révision / Externe',
+      label: t('entrepot.filters.under_revision'),
+      count: kpis.enRevision,
+      colorDot: 'bg-amber-500',
+      isActive: currentStatusFilter === 'En révision / Externe',
+      onClick: () => changeStatusFilter('En révision / Externe'),
+    },
+    {
+      key: 'Hors service',
+      label: 'Hors Service',
+      count: warehouseItems.filter(
+        (i) =>
+          String(i.status || '').toLowerCase().includes('hors') ||
+          String(i.status || '').toLowerCase().includes('hs')
+      ).length,
+      colorDot: 'bg-rose-500',
+      isActive: currentStatusFilter === 'Hors service',
+      onClick: () => changeStatusFilter('Hors service'),
+    },
+  ], [warehouseItems, kpis, currentStatusFilter, changeStatusFilter, t]);
+
+  const activeEntrepotFilterChips = useMemo(() => {
+    const chips = [];
+    if (localSearch) {
+      chips.push({
+        key: 'search',
+        label: `${t('entrepot.filters.filter_search')}: "${localSearch}"`,
+        onRemove: () => {
+          setLocalSearch('');
+          if (setWhSearch) setWhSearch('');
+        },
+      });
+    }
+    if (currentNatureFilter !== 'ALL') {
+      chips.push({
+        key: 'nature',
+        label: isComponentNature(currentNatureFilter)
+          ? t('entrepot.tabs.components')
+          : t('entrepot.tabs.parts'),
+        onRemove: () => changeNatureFilter('ALL'),
+      });
+    }
+    if (currentFamilyFilter !== 'ALL') {
+      chips.push({
+        key: 'family',
+        label: `${t('entrepot.filters.filter_family')}: ${currentFamilyFilter}`,
+        onRemove: () => changeFamilyFilter('ALL'),
+      });
+    }
+    if (currentTypeFilter !== 'ALL') {
+      chips.push({
+        key: 'type',
+        label: `${t('entrepot.filters.filter_type')}: ${currentTypeFilter}`,
+        onRemove: () => changeTypeFilter('ALL'),
+      });
+    }
+    if (currentRattachementFilter !== 'ALL') {
+      chips.push({
+        key: 'rattachement',
+        label: `${t('entrepot.filters.filter_rattachement')}: ${currentRattachementFilter}`,
+        onRemove: () => changeRattachementFilter('ALL'),
+      });
+    }
+    if (currentStatusFilter !== 'ALL') {
+      chips.push({
+        key: 'status',
+        label: `${t('entrepot.filters.filter_status')}: ${currentStatusFilter}`,
+        onRemove: () => changeStatusFilter('ALL'),
+      });
+    }
+    return chips;
+  }, [
+    localSearch,
+    currentNatureFilter,
+    currentFamilyFilter,
+    currentTypeFilter,
+    currentRattachementFilter,
+    currentStatusFilter,
+    setWhSearch,
+    changeNatureFilter,
+    changeFamilyFilter,
+    changeTypeFilter,
+    changeRattachementFilter,
+    changeStatusFilter,
+    t,
+  ]);
+
   const handleExportExcel = () => {
     try {
       const headers = [
@@ -1041,16 +1147,14 @@ export default function EntrepotView({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                Entrepôt : Components & Parts
+                {t('entrepot.title')}
               </h2>
               <span className="px-2.5 py-0.5 text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full">
-                {warehouseItems.length} Enregistrés
+                {t('entrepot.registered_count', { count: warehouseItems.length })}
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-              Inventaire physique & réconciliation de l'entrepôt. Gestion unifiée des{' '}
-              <b className="text-blue-700 font-bold">Components Machines</b> et des{' '}
-              <b className="text-indigo-700 font-bold">Parts de Rechange</b>.
+              {t('entrepot.subtitle')}
             </p>
           </div>
         </div>
@@ -1061,7 +1165,7 @@ export default function EntrepotView({
           <div className="flex items-center justify-end gap-2.5">
             <FormulasModalButton
               onClick={() => setShowFormulasModal(true)}
-              title="Formules Excel (Dual-Twin Entrepôt)"
+              title={t('entrepot.buttons.view_formulas')}
             />
 
             {canCreateStock && (
@@ -1079,7 +1183,7 @@ export default function EntrepotView({
                     icon={activeWarehouseTab === 'COMPONENTS' ? CubeIcon : LayersIcon}
                     showAddBadge={true}
                     onClick={handleOpenAddModal}
-                    title={activeWarehouseTab === 'COMPONENTS' ? 'Nouveau Component (Moteur, Pompe...)' : 'Nouveau Part (Pièce de Rechange)'}
+                    title={activeWarehouseTab === 'COMPONENTS' ? t('entrepot.buttons.add_component') : t('entrepot.buttons.add_part')}
                   />
                 </motion.div>
               </AnimatePresence>
@@ -1098,7 +1202,7 @@ export default function EntrepotView({
               }`}
             >
               <CubeIcon className={`w-4 h-4 shrink-0 ${activeWarehouseTab === 'COMPONENTS' ? 'text-blue-600' : 'text-slate-500'}`} />
-              <span className="truncate">Components ({kpis.components})</span>
+              <span className="truncate">{t('entrepot.tabs.components')} ({kpis.components})</span>
             </button>
 
             <button
@@ -1111,7 +1215,7 @@ export default function EntrepotView({
               }`}
             >
               <LayersIcon className={`w-4 h-4 shrink-0 ${activeWarehouseTab === 'PARTS' ? 'text-indigo-600' : 'text-slate-500'}`} />
-              <span className="truncate">Parts ({kpis.parts})</span>
+              <span className="truncate">{t('entrepot.tabs.parts')} ({kpis.parts})</span>
             </button>
           </div>
         </div>
@@ -1133,13 +1237,13 @@ export default function EntrepotView({
         >
           <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-              Inventaire Global
+              {t('entrepot.stats.global_inventory')}
             </span>
             <span className="text-2xl font-black text-slate-900 mt-0.5 block font-mono">
               {kpis.total}
             </span>
             <span className="text-[11px] text-slate-500 mt-0.5 block">
-              Components & Parts
+              {t('entrepot.stats.global_sub')}
             </span>
           </div>
           <div className="w-11 h-11 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0 border border-teal-200/60">
@@ -1161,13 +1265,13 @@ export default function EntrepotView({
         >
           <div>
             <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">
-              Components (Twin Machine)
+              {t('entrepot.stats.components_title')}
             </span>
             <span className="text-2xl font-black text-blue-700 mt-0.5 block font-mono">
               {kpis.components}
             </span>
             <span className="text-[11px] text-slate-500 mt-0.5 block">
-              Moteurs, Pompes, Extincteurs (Ensembles)
+              {t('entrepot.stats.components_sub')}
             </span>
           </div>
           <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 border border-blue-200/60">
@@ -1189,13 +1293,13 @@ export default function EntrepotView({
         >
           <div>
             <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">
-              Parts (Twin Stock)
+              {t('entrepot.stats.parts_title')}
             </span>
             <span className="text-2xl font-black text-indigo-700 mt-0.5 block font-mono">
               {kpis.parts}
             </span>
             <span className="text-[11px] text-slate-500 mt-0.5 block">
-              Pièces détachées & Parts (Entrepôt)
+              {t('entrepot.stats.parts_sub')}
             </span>
           </div>
           <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0 border border-indigo-200/60">
@@ -1216,13 +1320,13 @@ export default function EntrepotView({
         >
           <div>
             <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">
-              En Service Actif
+              {t('entrepot.stats.active_service')}
             </span>
             <span className="text-2xl font-black text-emerald-700 mt-0.5 block font-mono">
               {kpis.enService}
             </span>
             <span className="text-[11px] text-slate-500 mt-0.5 block">
-              Montés sur Machines / Lignes
+              {t('entrepot.stats.active_service_sub')}
             </span>
           </div>
           <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/60">
@@ -1231,180 +1335,41 @@ export default function EntrepotView({
         </div>
       </div>
 
-      {/* 4. Filter & Search Bar (Smart Filter Card Design System) */}
-      <div className="relative z-30 bg-white border border-slate-200 rounded-2xl p-4 md:p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 space-y-4">
-        {/* Header Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-teal-500/10 border border-teal-200/80 flex items-center justify-center text-teal-700 shadow-2xs">
-              <SlidersHorizontal className="w-4 h-4 text-teal-700" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Filtres & Recherche Avancée
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                  {filteredItems.length} / {warehouseItems.length}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400">
-                Inventaire Twin • Liaisons Excel Colonnes A → H
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-end sm:self-auto">
-            <button
-              type="button"
-              onClick={handleExportExcel}
-              className="h-8 px-3 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-              title="Exporter les éléments filtrés vers Excel / CSV"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="hidden sm:inline">Export Excel</span>
-            </button>
-
-            {/* Quick Reset Button (Circular Iconic) */}
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={clearAllFilters}
-                className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in"
-                title="Réinitialiser tous les filtres actifs"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Status Presets Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs no-scrollbar">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 mr-1 shrink-0">
-            <Activity className="w-3 h-3 text-slate-400" />
-            Statut :
-          </span>
-          {[
-            {
-              key: 'ALL',
-              label: 'Toutes',
-              count: warehouseItems.length,
-              colorDot: null,
-            },
-            {
-              key: 'En service',
-              label: 'En Service',
-              count: kpis.enService,
-              colorDot: 'bg-emerald-500',
-            },
-            {
-              key: 'En stock (Disponible)',
-              label: 'En Stock',
-              count: kpis.enStock,
-              colorDot: 'bg-blue-500',
-            },
-            {
-              key: 'En révision / Externe',
-              label: 'En Révision',
-              count: kpis.enRevision,
-              colorDot: 'bg-amber-500',
-            },
-            {
-              key: 'Hors service',
-              label: 'Hors Service',
-              count: warehouseItems.filter(
-                (i) =>
-                  String(i.status || '').toLowerCase().includes('hors') ||
-                  String(i.status || '').toLowerCase().includes('hs')
-              ).length,
-              colorDot: 'bg-rose-500',
-            },
-          ].map((preset) => {
-            const isSelected =
-              preset.key === 'ALL'
-                ? currentStatusFilter === 'ALL'
-                : currentStatusFilter === preset.key;
-            return (
-              <button
-                key={preset.key}
-                type="button"
-                onClick={() => changeStatusFilter(preset.key)}
-                className={`h-7 px-2.5 rounded-lg text-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                  isSelected
-                    ? 'bg-slate-900 text-white shadow-xs font-bold'
-                    : 'bg-slate-100/80 hover:bg-slate-200/80 text-slate-700 font-medium'
-                }`}
-              >
-                {preset.colorDot && (
-                  <span
-                    className={`w-2 h-2 rounded-full ${preset.colorDot} ${
-                      isSelected ? 'ring-2 ring-white/50' : ''
-                    }`}
-                  />
-                )}
-                <span>{preset.label}</span>
-                <span
-                  className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-bold ${
-                    isSelected
-                      ? 'bg-white/20 text-white'
-                      : 'bg-white text-slate-600 border border-slate-200/60'
-                  }`}
-                >
-                  {preset.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
+      {/* 4. Central Unified Industrial Filter & Search Card */}
+      <IndustrialFilterCard
+        title={t('common.filters.title')}
+        subtitle={t('entrepot.filters.subtitle')}
+        color="teal"
+        filteredCount={filteredItems.length}
+        totalCount={warehouseItems.length}
+        hasActiveFilters={hasActiveFilters}
+        onReset={clearAllFilters}
+        onExportExcel={handleExportExcel}
+        exportLabel={t('entrepot.filters.export_excel')}
+        presets={entrepotFilterPresets}
+        presetsLabel={t('entrepot.filters.status_label')}
+        activeFilters={activeEntrepotFilterChips}
+        onClearAll={clearAllFilters}
+      >
         {/* 5-Column Multi-Criteria Filter Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 items-end">
           {/* 1. Omni-Text Search */}
-          <div className="w-full sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Recherche</span>
-              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200/80">
-                Omni
-              </span>
-            </div>
-            <div className="relative">
-              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                <span className="w-5 h-5 rounded-md bg-slate-100 border border-slate-300/80 flex items-center justify-center text-slate-700 shadow-2xs">
-                  <Search className="w-3 h-3" />
-                </span>
-              </div>
-              <input
-                type="text"
-                placeholder="Code, Nom, Réf, Empl..."
-                value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
-                className="w-full h-9 pl-9 pr-7 rounded-xl border border-slate-200 bg-slate-50/70 text-xs font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-colors"
-              />
-              {localSearch && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLocalSearch('');
-                    if (setWhSearch) setWhSearch('');
-                  }}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 cursor-pointer"
-                  title="Effacer la recherche"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
+          <FilterSearchInput
+            value={localSearch}
+            onChange={setLocalSearch}
+            onClear={() => {
+              setLocalSearch('');
+              if (setWhSearch) setWhSearch('');
+            }}
+            placeholder={t('entrepot.filters.search_placeholder')}
+            colBadge="Omni"
+            colBadgeColor="slate"
+            focusRingColor="focus:ring-teal-500"
+            className="w-full sm:col-span-2 lg:col-span-1"
+          />
 
           {/* 2. Nature Twin Filter (Col. B) */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Nature Twin</span>
-              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-teal-50 text-teal-700 border border-teal-200/80">
-                Col. B
-              </span>
-            </div>
+          <FilterField label={t('entrepot.modal.nature')} colBadge="Col. B" colBadgeColor="teal">
             <CustomSelect
               value={currentNatureFilter}
               prefixIcon={
@@ -1417,21 +1382,19 @@ export default function EntrepotView({
                 setActiveKpiFilter('ALL');
               }}
               options={[
-                { value: 'ALL', label: 'Toutes Natures (Dual Twin)', badge: '[B]', badgeColor: 'bg-teal-50 text-teal-800' },
-                { value: 'COMPONENT', label: 'Components (Machine / Ensemble)', badge: '[B]', badgeColor: 'bg-blue-50 text-blue-800' },
-                { value: 'PART', label: 'Parts (Stock / Rechange)', badge: '[B]', badgeColor: 'bg-indigo-50 text-indigo-800' },
+                { value: 'ALL', label: t('entrepot.filters.all_statuses'), badge: '[B]', badgeColor: 'bg-teal-50 text-teal-800' },
+                { value: 'COMPONENT', label: t('entrepot.modal.nature_component'), badge: '[B]', badgeColor: 'bg-blue-50 text-blue-800' },
+                { value: 'PART', label: t('entrepot.modal.nature_part'), badge: '[B]', badgeColor: 'bg-indigo-50 text-indigo-800' },
               ]}
             />
-          </div>
+          </FilterField>
 
           {/* 3. Classification (Famille or Type) (Col. D / Col. B) */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>{isPartNature(currentNatureFilter) ? 'Type de Part' : 'Type Composant'}</span>
-              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-cyan-50 text-cyan-700 border border-cyan-200/80">
-                {isPartNature(currentNatureFilter) ? 'Col. B' : 'Col. D'}
-              </span>
-            </div>
+          <FilterField
+            label={isPartNature(currentNatureFilter) ? t('entrepot.modal.type') : t('entrepot.filters.family_label')}
+            colBadge={isPartNature(currentNatureFilter) ? 'Col. B' : 'Col. D'}
+            colBadgeColor="cyan"
+          >
             {isPartNature(currentNatureFilter) ? (
               <CustomSelect
                 value={currentTypeFilter}
@@ -1442,7 +1405,7 @@ export default function EntrepotView({
                 }
                 onChange={(val) => changeTypeFilter(val)}
                 options={[
-                  { value: 'ALL', label: `Tous Types (${types.length})` },
+                  { value: 'ALL', label: `${t('entrepot.filters.all_types')} (${types.length})` },
                   ...types.map((t) => ({
                     value: t.id_type,
                     label: `${t.libelle} (${t.id_type})`,
@@ -1462,7 +1425,7 @@ export default function EntrepotView({
                   if (changeTemplateFilter) changeTemplateFilter('ALL');
                 }}
                 options={[
-                  { value: 'ALL', label: `Toutes Familles (${families.length})` },
+                  { value: 'ALL', label: `${t('entrepot.filters.all_families')} (${families.length})` },
                   ...families.map((f) => ({
                     value: f.id_family,
                     label: `${f.libelle} (${f.id_family})`,
@@ -1470,16 +1433,10 @@ export default function EntrepotView({
                 ]}
               />
             )}
-          </div>
+          </FilterField>
 
           {/* 4. Rattachement & Emplacement (Col. E) */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Rattachement</span>
-              <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200/80">
-                Col. E
-              </span>
-            </div>
+          <FilterField label={t('entrepot.filters.rattachement_label')} colBadge="Col. E" colBadgeColor="purple">
             <CustomSelect
               value={currentRattachementFilter}
               prefixIcon={
@@ -1489,18 +1446,18 @@ export default function EntrepotView({
               }
               onChange={(val) => changeRattachementFilter(val)}
               options={[
-                { value: 'ALL', label: 'Tous Rattachements' },
-                { value: 'MACHINE', label: '🏭 Rattaché à une Machine', badge: '[E]', badgeColor: 'bg-teal-50 text-teal-800' },
-                { value: 'ZONE', label: '📍 Rattaché à une Zone / Atelier', badge: '[F]', badgeColor: 'bg-purple-50 text-purple-800' },
-                { value: 'ENTREPOT', label: '🏢 Entrepôt Central (Stock)', badge: '[E]', badgeColor: 'bg-slate-100 text-slate-800' },
+                { value: 'ALL', label: t('entrepot.filters.all_rattachements') },
+                { value: 'MACHINE', label: '🏭 Machine', badge: '[E]', badgeColor: 'bg-teal-50 text-teal-800' },
+                { value: 'ZONE', label: '📍 Zone / Atelier', badge: '[F]', badgeColor: 'bg-purple-50 text-purple-800' },
+                { value: 'ENTREPOT', label: '🏢 Entrepôt Central', badge: '[E]', badgeColor: 'bg-slate-100 text-slate-800' },
               ]}
             />
-          </div>
+          </FilterField>
 
           {/* 5. Sort Menu Button & Popover */}
           <div className="relative" ref={sortMenuRef}>
             <div className="flex items-center justify-between mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-800">
-              <span>Tri & Ordre</span>
+              <span>{t('entrepot.filters.sort_label')}</span>
               <span className="px-1.5 py-0.2 rounded text-[9.5px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80">
                 Ordre
               </span>
@@ -1519,8 +1476,8 @@ export default function EntrepotView({
                   <ArrowUpDown className="w-3 h-3" />
                 </span>
                 <span className="truncate">
-                  Tri : <b className="font-mono text-slate-900">{sortField.slice(0, 10).toUpperCase()}</b> (
-                  {sortOrder === 'asc' ? 'A→Z' : 'Z→A'})
+                  {t('entrepot.filters.sort_by')} <b className="font-mono text-slate-900">{sortField.slice(0, 10).toUpperCase()}</b> (
+                  {sortOrder === 'asc' ? t('entrepot.filters.order_asc') : t('entrepot.filters.order_desc')})
                 </span>
               </div>
               <ChevronDown
@@ -1532,19 +1489,19 @@ export default function EntrepotView({
             {showSortMenu && (
               <div className="absolute right-0 mt-1 w-64 bg-white rounded-2xl border border-slate-200 shadow-xl z-50 p-2.5 space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  <span>Sélectionner la Colonne de Tri</span>
+                  <span>{t('entrepot.filters.sort_label')}</span>
                   <span>A→H</span>
                 </div>
                 <div className="grid grid-cols-1 gap-1 text-xs max-h-60 overflow-y-auto pr-0.5">
                   {[
-                    { key: 'id_warehouse_item', label: 'Code Élément (A)' },
-                    { key: 'nature', label: 'Nature Twin (B)' },
-                    { key: 'designation', label: 'Désignation (C)' },
-                    { key: 'id_family', label: 'Famille / Type (D/B)' },
-                    { key: 'rattachement_type', label: 'Rattachement (E)' },
-                    { key: 'emplacement', label: 'Emplacement (E)' },
-                    { key: 'status', label: 'Statut Opérationnel (G)' },
-                    { key: 'stockActuel', label: 'Stock Actuel (H)' },
+                    { key: 'id_warehouse_item', label: t('entrepot.filters.code_col') },
+                    { key: 'nature', label: t('entrepot.modal.nature') },
+                    { key: 'designation', label: t('entrepot.filters.designation_col') },
+                    { key: 'id_family', label: t('entrepot.filters.family_col') },
+                    { key: 'rattachement_type', label: t('entrepot.filters.rattachement_col') },
+                    { key: 'emplacement', label: t('entrepot.filters.location_col') },
+                    { key: 'status', label: t('entrepot.filters.status_col') },
+                    { key: 'stockActuel', label: t('entrepot.filters.stock_col') },
                   ].map((col) => (
                     <button
                       key={col.key}
@@ -1574,105 +1531,7 @@ export default function EntrepotView({
             )}
           </div>
         </div>
-
-        {/* Active Filter Chips Bar */}
-        {hasActiveFilters && (
-          <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 flex-wrap gap-2">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-bold text-slate-600 text-[11px]">Filtres actifs :</span>
-              {localSearch && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 font-mono text-[11px] font-semibold text-slate-800 border border-slate-200">
-                  <span>Recherche: "{localSearch}"</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLocalSearch('');
-                      if (setWhSearch) setWhSearch('');
-                    }}
-                    className="hover:text-rose-600 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {currentNatureFilter !== 'ALL' && (
-                <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg font-bold text-[11px] border ${
-                    isComponentNature(currentNatureFilter)
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                  }`}
-                >
-                  {isComponentNature(currentNatureFilter) ? (
-                    <span className="inline-flex items-center gap-1">
-                      <CubeIcon className="w-3 h-3 text-blue-600" /> Components
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1">
-                      <CubeIcon className="w-3 h-3 text-indigo-600" /> Parts
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => changeNatureFilter('ALL')}
-                    className="hover:opacity-75 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {currentFamilyFilter !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-50 text-cyan-700 font-bold text-[11px] border border-cyan-200">
-                  <span>Famille: {currentFamilyFilter}</span>
-                  <button
-                    type="button"
-                    onClick={() => changeFamilyFilter('ALL')}
-                    className="hover:text-cyan-900 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {currentTypeFilter !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 font-bold text-[11px] border border-indigo-200">
-                  <span>Type: {currentTypeFilter}</span>
-                  <button
-                    type="button"
-                    onClick={() => changeTypeFilter('ALL')}
-                    className="hover:text-indigo-900 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {currentRattachementFilter !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-50 text-purple-700 font-bold text-[11px] border border-purple-200">
-                  <span>Rattachement: {currentRattachementFilter}</span>
-                  <button
-                    type="button"
-                    onClick={() => changeRattachementFilter('ALL')}
-                    className="hover:text-purple-900 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-              {currentStatusFilter !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-[11px] border border-slate-200">
-                  <span>Statut: {currentStatusFilter}</span>
-                  <button
-                    type="button"
-                    onClick={() => changeStatusFilter('ALL')}
-                    className="hover:text-slate-900 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      </IndustrialFilterCard>
 
       {/* 5. Main Table (Dedicated Components Table or Parts Table with Smooth Transition) */}
       <AnimatePresence mode="wait">
@@ -1746,68 +1605,20 @@ export default function EntrepotView({
       </AnimatePresence>
 
       {/* Pagination Footer */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-slate-600">Lignes par page :</span>
-          <div className="flex bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-            {[25, 50, 100, 200, 0].map((size) => (
-              <button
-                key={size}
-                type="button"
-                onClick={() => {
-                  setPageSize(size);
-                  setCurrentPage(1);
-                }}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                  pageSize === size
-                    ? 'bg-white text-teal-800 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out border border-slate-200/50'
-                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                }`}
-              >
-                {size === 0 ? 'Tout' : size}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-xs font-semibold text-slate-500">
-            Affichage <b className="text-slate-900">{totalItems === 0 ? 0 : startIndex + 1}</b> à{' '}
-            <b className="text-slate-900">
-              {Math.min(startIndex + effectivePageSize, totalItems)}
-            </b>{' '}
-            sur <b className="text-slate-900">{totalItems}</b>
-          </div>
-
-          {pageSize !== 0 && totalPages > 1 && (
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                Précédent
-              </button>
-
-              <span className="px-2 font-mono text-xs font-bold text-slate-600">
-                {currentPage} / {totalPages}
-              </span>
-
-              <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-semibold transition cursor-pointer"
-              >
-                Suivant
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      <TablePaginationCard
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        totalItems={totalItems}
+        pageSizeOptions={[25, 50, 100, 200, 0]}
+        color={activeWarehouseTab === 'COMPONENTS' ? 'blue' : 'indigo'}
+        itemLabel={
+          activeWarehouseTab === 'COMPONENTS'
+            ? t('entrepot.table.item_label_components')
+            : t('entrepot.table.item_label_parts')
+        }
+      />
 
       {/* 6. ADD MODAL (Dual Twin Architecture) */}
       {showAddModal && (
@@ -1821,10 +1632,10 @@ export default function EntrepotView({
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-slate-900">
-                    Ajouter un Élément à l'Entrepôt
+                    {t('entrepot.modal.add_component_title')}
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Choisissez la nature (Partie ou Composant)
+                    {t('entrepot.modal.nature')}
                   </p>
                 </div>
               </div>
@@ -1842,7 +1653,7 @@ export default function EntrepotView({
               {/* Nature Selector (Dual Twin Toggle) */}
               <div>
                 <label className="text-[11px] font-bold text-slate-700 block mb-1.5">
-                  Nature de l'Élément *
+                  {t('entrepot.modal.nature')} *
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -1855,7 +1666,7 @@ export default function EntrepotView({
                     }`}
                   >
                     <CubeIcon className="w-3.5 h-3.5" />
-                    <span>Component (Twin Machine)</span>
+                    <span>{t('entrepot.modal.nature_component')}</span>
                   </button>
                   <button
                     type="button"
@@ -1867,7 +1678,7 @@ export default function EntrepotView({
                     }`}
                   >
                     <LayersIcon className="w-3.5 h-3.5" />
-                    <span>Part (Twin Stock)</span>
+                    <span>{t('entrepot.modal.nature_part')}</span>
                   </button>
                 </div>
               </div>
@@ -1876,7 +1687,7 @@ export default function EntrepotView({
               <div className="grid grid-cols-3 gap-2.5">
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Code Auto *
+                    {t('entrepot.modal.code_element')} *
                   </label>
                   <input
                     type="text"
@@ -1890,7 +1701,7 @@ export default function EntrepotView({
                 </div>
                 <div className="col-span-2">
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Désignation de l'élément *
+                    {t('entrepot.modal.designation')} *
                   </label>
                   <input
                     type="text"
@@ -1909,15 +1720,15 @@ export default function EntrepotView({
                   <div className="text-[10px] font-bold text-blue-700 uppercase tracking-wider flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <Layers className="w-3.5 h-3.5" />
-                      <span>Classification Component Machine (Twin Model)</span>
+                      <span>{t('entrepot.modal.family')}</span>
                     </div>
                     {addForm.id_family && familyComponentCodes[addForm.id_family] ? (
                       <span className="px-2 py-0.5 rounded-md text-[9.5px] font-mono font-bold bg-blue-100 text-blue-800 border border-blue-200">
-                        Préfixe Type Actif : {familyComponentCodes[addForm.id_family]}
+                        {familyComponentCodes[addForm.id_family]}
                       </span>
                     ) : (
                       <span className="px-2 py-0.5 rounded-md text-[9.5px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                        Nouveau Préfixe de Famille
+                        Nouveau
                       </span>
                     )}
                   </div>
@@ -1925,7 +1736,7 @@ export default function EntrepotView({
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <div>
                       <label className="text-[10.5px] font-semibold text-slate-700 block mb-1">
-                        Type *
+                        {t('entrepot.modal.family')} *
                       </label>
                       <select
                         value={addForm.id_family}
@@ -1942,7 +1753,7 @@ export default function EntrepotView({
 
                     <div>
                       <label className="text-[10.5px] font-semibold text-slate-700 block mb-1">
-                        Code Préfixe Type (Composant) *
+                        {t('entrepot.modal.code_element')} *
                       </label>
                       <div className="relative">
                         <input
@@ -1955,9 +1766,9 @@ export default function EntrepotView({
                         {familyComponentCodes[addForm.id_family] && (
                           <span
                             className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-200"
-                            title="Ce préfixe est enregistré pour ce type"
+                            title="OK"
                           >
-                            ✓ Enregistré
+                            ✓
                           </span>
                         )}
                       </div>
@@ -1965,17 +1776,17 @@ export default function EntrepotView({
 
                     <div>
                       <label className="text-[10.5px] font-semibold text-slate-700 block mb-1">
-                        Désignation Associée
+                        {t('entrepot.modal.template')}
                       </label>
                       <select
                         value={addForm.id_templates}
                         onChange={(e) => handleAddTemplateChange(e.target.value)}
                         className="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-xs focus:border-blue-500 outline-none"
                       >
-                        <option value="">-- Aucune Désignation --</option>
-                        {availableAddTemplates.map((t) => (
-                          <option key={t.id_templates} value={t.id_templates}>
-                            {t.libelle}
+                        <option value="">-- {t('entrepot.filters.all_templates')} --</option>
+                        {availableAddTemplates.map((tObj) => (
+                          <option key={tObj.id_templates} value={tObj.id_templates}>
+                            {tObj.libelle}
                           </option>
                         ))}
                       </select>
@@ -1984,7 +1795,7 @@ export default function EntrepotView({
 
                   <div className="text-[10.5px] text-slate-500 bg-white/70 p-2 rounded-lg border border-blue-100/70 flex items-center justify-between gap-2 flex-wrap">
                     <span className="leading-tight">
-                      Code auto-généré : <b className="text-blue-700 font-bold font-mono">{addForm.id_warehouse_item || '...'}</b> (Famille {addForm.id_family})
+                      Code auto-généré : <b className="text-blue-700 font-bold font-mono">{addForm.id_warehouse_item || '...'}</b>
                     </span>
                     {addForm.id_family && addForm.family_prefix && (
                       <button
@@ -1993,10 +1804,9 @@ export default function EntrepotView({
                           handleCascadeFamilyPrefixUpdate(addForm.id_family, addForm.family_prefix);
                         }}
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-blue-800 bg-blue-100 hover:bg-blue-200 border border-blue-300 transition cursor-pointer"
-                        title="Synchroniser et renommer tous les composants existants de ce type avec ce nouveau préfixe"
                       >
                         <Zap className="w-3 h-3 text-blue-600" />
-                        <span>Mettre à jour tous les composants ({warehouseItems.filter((i) => isComponentNature(i.nature) && i.id_family === addForm.id_family).length})</span>
+                        <span>Mettre à jour</span>
                       </button>
                     )}
                   </div>
@@ -2006,39 +1816,39 @@ export default function EntrepotView({
                   <div className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <CubeIcon className="w-3.5 h-3.5" />
-                      <span>Classification Part Stock (Twin Model)</span>
+                      <span>{t('entrepot.modal.type')}</span>
                     </div>
                     <span className="px-2 py-0.5 rounded-md text-[9.5px] font-mono font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">
-                      Réf PDR Auto-générée : {addForm.id_warehouse_item || 'PART-01'}
+                      Réf: {addForm.id_warehouse_item || 'PART-01'}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-[10.5px] font-semibold text-slate-700 block mb-1">
-                        Type Pièce (Génère la Référence) *
+                        {t('entrepot.modal.type')} *
                       </label>
                       <select
                         value={addForm.id_type}
                         onChange={(e) => handleAddTypeChange(e.target.value)}
                         className="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-xs focus:border-indigo-500 outline-none font-semibold"
                       >
-                        {types.map((t) => (
-                          <option key={t.id_type} value={t.id_type}>
-                            {t.libelle} ({t.id_type})
+                        {types.map((tObj) => (
+                          <option key={tObj.id_type} value={tObj.id_type}>
+                            {tObj.libelle} ({tObj.id_type})
                           </option>
                         ))}
                       </select>
                     </div>
                     <div>
                       <label className="text-[10.5px] font-semibold text-slate-700 block mb-1">
-                        Diagnostic / Réf Rattachée
+                        {t('entrepot.modal.diag')}
                       </label>
                       <select
                         value={addForm.id_diag}
                         onChange={(e) => handleAddDiagChange(e.target.value)}
                         className="w-full h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-xs focus:border-indigo-500 outline-none"
                       >
-                        <option value="">-- Aucun Diagnostic --</option>
+                        <option value="">-- {t('entrepot.modal.diag')} --</option>
                         {availableAddDiags.map((d) => (
                           <option key={d.id_diag} value={d.id_diag}>
                             {d.libelle}
@@ -2047,15 +1857,6 @@ export default function EntrepotView({
                       </select>
                     </div>
                   </div>
-
-                  <div className="text-[10.5px] text-slate-500 bg-white/70 p-2 rounded-lg border border-indigo-100/70 flex items-center justify-between gap-2">
-                    <span className="leading-tight">
-                      Réf Pièce <b className="text-indigo-700 font-bold font-mono">{addForm.id_warehouse_item || '...'}</b> générée automatiquement selon le Type.
-                    </span>
-                    <span className="font-mono text-[10px] font-bold text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200 shrink-0">
-                      Type: {addForm.id_type || 'TYPE'}
-                    </span>
-                  </div>
                 </div>
               )}
 
@@ -2063,30 +1864,30 @@ export default function EntrepotView({
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Rattachement
+                    {t('entrepot.modal.rattachement')}
                   </label>
                   <select
                     value={addForm.rattachement_type}
                     onChange={(e) => setAddForm({ ...addForm, rattachement_type: e.target.value })}
                     className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:border-teal-500 outline-none"
                   >
-                    <option value="MACHINE">Machine</option>
-                    <option value="ZONE">Zone / Atelier</option>
-                    <option value="ENTREPOT">Entrepôt Central (Stock Réserve)</option>
+                    <option value="MACHINE">{t('entrepot.modal.machine')}</option>
+                    <option value="ZONE">{t('entrepot.modal.zone')}</option>
+                    <option value="ENTREPOT">{t('entrepot.modal.location')}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Statut</label>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">{t('entrepot.modal.status')}</label>
                   <select
                     value={addForm.status}
                     onChange={(e) => setAddForm({ ...addForm, status: e.target.value })}
                     className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:border-teal-500 outline-none"
                   >
-                    <option value="En stock (Disponible)">En stock (Disponible)</option>
-                    <option value="En service">En service</option>
-                    <option value="En révision / Externe">En révision / Externe</option>
-                    <option value="Hors service">Hors service</option>
+                    <option value="En stock (Disponible)">{t('entrepot.filters.in_stock')}</option>
+                    <option value="En service">{t('entrepot.filters.in_service')}</option>
+                    <option value="En révision / Externe">{t('entrepot.filters.under_revision')}</option>
+                    <option value="Hors service">Hors Service</option>
                   </select>
                 </div>
               </div>
@@ -2094,7 +1895,7 @@ export default function EntrepotView({
               {addForm.rattachement_type === 'MACHINE' ? (
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Machine Associée
+                    {t('entrepot.modal.machine')}
                   </label>
                   <select
                     value={addForm.id_machine_registered}
@@ -2103,7 +1904,7 @@ export default function EntrepotView({
                     }
                     className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-bold text-purple-800 focus:border-teal-500 outline-none"
                   >
-                    <option value="">-- Sélectionner Machine --</option>
+                    <option value="">-- {t('entrepot.modal.machine')} --</option>
                     {machines.map((m) => (
                       <option key={m.id_machine_registered} value={m.id_machine_registered}>
                         {m.id_machine_registered} - {m.designation}
@@ -2115,7 +1916,7 @@ export default function EntrepotView({
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
                     <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      Emplacement / Rayon
+                      {t('entrepot.modal.location')}
                     </label>
                     <input
                       type="text"
@@ -2127,7 +1928,7 @@ export default function EntrepotView({
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      Quantité Initiale
+                      {t('entrepot.modal.initial_stock')}
                     </label>
                     <input
                       type="number"
@@ -2144,24 +1945,24 @@ export default function EntrepotView({
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Responsable
+                    {t('entrepot.modal.responsible')}
                   </label>
                   <select
                     value={addForm.technician}
                     onChange={(e) => setAddForm({ ...addForm, technician: e.target.value })}
                     className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs focus:border-teal-500 outline-none"
                   >
-                    <option value="">-- Aucun --</option>
-                    {technicians.map((t) => (
-                      <option key={t.id_technician || t.nom} value={t.nom}>
-                        {t.nom} ({t.id_technician})
+                    <option value="">-- {t('entrepot.modal.responsible')} --</option>
+                    {technicians.map((tech) => (
+                      <option key={tech.id_technician || tech.nom} value={tech.nom}>
+                        {tech.nom} ({tech.id_technician})
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Seuil Alerte (Min)
+                    {t('entrepot.modal.threshold')}
                   </label>
                   <input
                     type="number"
@@ -2175,13 +1976,12 @@ export default function EntrepotView({
 
               <div>
                 <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                  Remarques / Observations
+                  {t('entrepot.modal.notes')}
                 </label>
                 <textarea
                   rows="2"
                   value={addForm.remarques}
                   onChange={(e) => setAddForm({ ...addForm, remarques: e.target.value })}
-                  placeholder="Détails techniques, fournisseur, état..."
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:border-teal-500 outline-none"
                 />
               </div>
@@ -2193,14 +1993,14 @@ export default function EntrepotView({
                   onClick={() => setShowAddModal(false)}
                   className="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold cursor-pointer"
                 >
-                  Annuler
+                  {t('entrepot.buttons.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-black text-white font-bold transition shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer flex items-center gap-1.5"
                 >
                   <Check className="w-4 h-4" />
-                  <span>Enregistrer l'Élément</span>
+                  <span>{t('entrepot.buttons.save')}</span>
                 </button>
               </div>
             </form>
@@ -2219,9 +2019,9 @@ export default function EntrepotView({
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-slate-900">
-                    Modifier l'Élément : {toEdit.id_warehouse_item}
+                    {t('entrepot.modal.edit_title')} : {toEdit.id_warehouse_item}
                   </h3>
-                  <p className="text-xs text-slate-500">Mise à jour des paramètres GMAO</p>
+                  <p className="text-xs text-slate-500">{t('entrepot.modal.designation')}</p>
                 </div>
               </div>
               <button
@@ -2236,7 +2036,7 @@ export default function EntrepotView({
             <form onSubmit={handleSubmitEdit} className="p-4 sm:p-5 space-y-4 text-xs">
               <div>
                 <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                  Désignation *
+                  {t('entrepot.modal.designation')} *
                 </label>
                 <input
                   type="text"
@@ -2250,7 +2050,7 @@ export default function EntrepotView({
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Rattachement
+                    {t('entrepot.modal.rattachement')}
                   </label>
                   <select
                     value={editForm.rattachement_type}
@@ -2262,23 +2062,23 @@ export default function EntrepotView({
                     }
                     className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:border-blue-500 outline-none"
                   >
-                    <option value="MACHINE">Machine</option>
-                    <option value="ZONE">Zone / Atelier</option>
-                    <option value="ENTREPOT">Entrepôt Central</option>
+                    <option value="MACHINE">{t('entrepot.modal.machine')}</option>
+                    <option value="ZONE">{t('entrepot.modal.zone')}</option>
+                    <option value="ENTREPOT">{t('entrepot.modal.location')}</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Statut</label>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">{t('entrepot.modal.status')}</label>
                   <select
                     value={editForm.status}
                     onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                     className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:border-blue-500 outline-none"
                   >
-                    <option value="En service">En service</option>
-                    <option value="En stock (Disponible)">En stock (Disponible)</option>
-                    <option value="En révision / Externe">En révision / Externe</option>
-                    <option value="Hors service">Hors service</option>
+                    <option value="En service">{t('entrepot.filters.in_service')}</option>
+                    <option value="En stock (Disponible)">{t('entrepot.filters.in_stock')}</option>
+                    <option value="En révision / Externe">{t('entrepot.filters.under_revision')}</option>
+                    <option value="Hors service">Hors Service</option>
                   </select>
                 </div>
               </div>
@@ -2286,7 +2086,7 @@ export default function EntrepotView({
               {editForm.rattachement_type === 'MACHINE' ? (
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Machine Cible
+                    {t('entrepot.modal.machine')}
                   </label>
                   <select
                     value={editForm.id_machine_registered}
@@ -2298,7 +2098,7 @@ export default function EntrepotView({
                     }
                     className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs font-mono font-bold text-purple-800 focus:border-blue-500 outline-none"
                   >
-                    <option value="">-- Aucune --</option>
+                    <option value="">-- {t('entrepot.modal.machine')} --</option>
                     {machines.map((m) => (
                       <option key={m.id_machine_registered} value={m.id_machine_registered}>
                         {m.id_machine_registered} - {m.designation}
@@ -2310,7 +2110,7 @@ export default function EntrepotView({
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
                     <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      Emplacement / Rayon
+                      {t('entrepot.modal.location')}
                     </label>
                     <input
                       type="text"
@@ -2321,7 +2121,7 @@ export default function EntrepotView({
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      Quantité Initiale
+                      {t('entrepot.modal.initial_stock')}
                     </label>
                     <input
                       type="number"
@@ -2337,24 +2137,24 @@ export default function EntrepotView({
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Responsable
+                    {t('entrepot.modal.responsible')}
                   </label>
                   <select
                     value={editForm.technician}
                     onChange={(e) => setEditForm({ ...editForm, technician: e.target.value })}
                     className="w-full h-9 px-3 rounded-xl border border-slate-200 bg-white text-xs focus:border-blue-500 outline-none"
                   >
-                    <option value="">-- Aucun --</option>
-                    {technicians.map((t) => (
-                      <option key={t.id_technician || t.nom} value={t.nom}>
-                        {t.nom} ({t.id_technician})
+                    <option value="">-- {t('entrepot.modal.responsible')} --</option>
+                    {technicians.map((tech) => (
+                      <option key={tech.id_technician || tech.nom} value={tech.nom}>
+                        {tech.nom} ({tech.id_technician})
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                    Seuil Alerte
+                    {t('entrepot.modal.threshold')}
                   </label>
                   <input
                     type="number"
@@ -2368,7 +2168,7 @@ export default function EntrepotView({
 
               <div>
                 <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                  Remarques / Notes
+                  {t('entrepot.modal.notes')}
                 </label>
                 <textarea
                   rows="2"
@@ -2384,14 +2184,14 @@ export default function EntrepotView({
                   onClick={() => setToEdit(null)}
                   className="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold cursor-pointer"
                 >
-                  Annuler
+                  {t('entrepot.buttons.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-black text-white font-bold transition shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer flex items-center gap-1.5"
                 >
                   <Check className="w-4 h-4" />
-                  <span>Enregistrer Modifications</span>
+                  <span>{t('entrepot.buttons.save')}</span>
                 </button>
               </div>
             </form>
@@ -2407,13 +2207,9 @@ export default function EntrepotView({
               <Trash2 className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-extrabold text-sm text-slate-900">Confirmer la suppression</h3>
+              <h3 className="font-extrabold text-sm text-slate-900">{t('entrepot.modal.delete_title')}</h3>
               <p className="text-xs text-slate-500 mt-1">
-                Êtes-vous sûr de vouloir supprimer l'élément{' '}
-                <span className="font-mono font-bold text-slate-900">
-                  {toDelete.id_warehouse_item}
-                </span>{' '}
-                ({toDelete.designation}) ?
+                {t('entrepot.modal.delete_confirm')}
               </p>
             </div>
             <div className="flex items-center justify-center gap-2 pt-2">
@@ -2422,14 +2218,14 @@ export default function EntrepotView({
                 onClick={() => setToDelete(null)}
                 className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 transition cursor-pointer text-xs"
               >
-                Annuler
+                {t('entrepot.buttons.cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleConfirmDelete}
                 className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold transition cursor-pointer text-xs shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out"
               >
-                Oui, Supprimer
+                {t('entrepot.buttons.delete')}
               </button>
             </div>
           </div>
@@ -2454,7 +2250,7 @@ export default function EntrepotView({
                       </span>
                     )}
                   </h3>
-                  <p className="text-xs text-slate-500">Passeport Technique GMAO & Traçabilité</p>
+                  <p className="text-xs text-slate-500">{t('entrepot.subtitle')}</p>
                 </div>
               </div>
               <button
@@ -2469,22 +2265,22 @@ export default function EntrepotView({
               {/* Identifiers Card (Map Philosophy) */}
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Identifiants Uniques (Philosophie de la Carte)
+                  {t('entrepot.modal.code_element')}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="bg-white p-2 rounded-lg border border-slate-200">
-                    <span className="text-[10px] text-slate-400 block font-semibold">CODE ÉLÉMENT (Maison)</span>
+                    <span className="text-[10px] text-slate-400 block font-semibold">{t('entrepot.modal.code_element')}</span>
                     <span className="font-mono font-bold text-teal-800 text-sm">{selectedDetails.code || selectedDetails.id_warehouse_item}</span>
                   </div>
                   <div className="bg-white p-2 rounded-lg border border-slate-200">
-                    <span className="text-[10px] text-slate-400 block font-semibold">RÉF FABRICANT (Plaque)</span>
+                    <span className="text-[10px] text-slate-400 block font-semibold">{t('entrepot.columns.code_ref')}</span>
                     <span className="font-mono font-bold text-slate-800 text-sm">{selectedDetails.ref || 'N/A'}</span>
                   </div>
                 </div>
                 {selectedDetails.id && (
                   <div className="bg-white p-2 rounded-lg border border-slate-200 flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] text-slate-400 block font-semibold">ID PASSEPORT COMPLET</span>
+                      <span className="text-[10px] text-slate-400 block font-semibold">ID</span>
                       <span className="font-mono text-[11px] font-bold text-slate-700 select-all">{selectedDetails.id}</span>
                     </div>
                     <button
@@ -2501,30 +2297,30 @@ export default function EntrepotView({
 
               {/* Designation */}
               <div className="p-3 bg-slate-50 rounded-xl space-y-1">
-                <div className="text-[10px] font-bold text-slate-400 uppercase">Désignation</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase">{t('entrepot.modal.designation')}</div>
                 <div className="font-semibold text-slate-900">{selectedDetails.designation}</div>
               </div>
 
               {/* Nature and Status */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2.5 bg-slate-50 rounded-xl">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase">Nature (Twin)</div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">{t('entrepot.modal.nature')}</div>
                   <div className="font-bold text-slate-800 flex items-center gap-1.5 mt-0.5">
                     {isComponentNature(selectedDetails.nature) ? (
                       <span className="inline-flex items-center gap-1 text-blue-700">
                         <Layers className="w-3.5 h-3.5 text-blue-600" />
-                        Component (Machine Twin)
+                        {t('entrepot.modal.nature_component')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-indigo-700">
                         <CubeIcon className="w-3.5 h-3.5 text-indigo-600" />
-                        Part (Stock Twin)
+                        {t('entrepot.modal.nature_part')}
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="p-2.5 bg-slate-50 rounded-xl">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase">Statut</div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase">{t('entrepot.modal.status')}</div>
                   <div className="font-bold text-slate-800">{selectedDetails.status}</div>
                 </div>
               </div>
@@ -2532,123 +2328,54 @@ export default function EntrepotView({
               {isComponentNature(selectedDetails.nature) ? (
                 <div className="grid grid-cols-2 gap-2">
                   <div className="p-2.5 bg-blue-50/50 rounded-xl border border-blue-100">
-                    <div className="text-[10px] font-bold text-blue-700 uppercase">Famille [D]</div>
+                    <div className="text-[10px] font-bold text-blue-700 uppercase">{t('entrepot.modal.family')}</div>
                     <div className="font-bold text-slate-800">{selectedDetails.id_family || '--'}</div>
                   </div>
                   <div className="p-2.5 bg-blue-50/50 rounded-xl border border-blue-100">
-                    <div className="text-[10px] font-bold text-blue-700 uppercase">Désignation [E]</div>
+                    <div className="text-[10px] font-bold text-blue-700 uppercase">{t('entrepot.modal.template')}</div>
                     <div className="font-bold text-slate-800">{selectedDetails.id_templates || '--'}</div>
                   </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   <div className="p-2.5 bg-indigo-50/50 rounded-xl border border-indigo-100">
-                    <div className="text-[10px] font-bold text-indigo-700 uppercase">Type Pièce [B]</div>
+                    <div className="text-[10px] font-bold text-indigo-700 uppercase">{t('entrepot.modal.type')}</div>
                     <div className="font-bold text-slate-800">{selectedDetails.id_type || '--'}</div>
                   </div>
                   <div className="p-2.5 bg-indigo-50/50 rounded-xl border border-indigo-100">
-                    <div className="text-[10px] font-bold text-indigo-700 uppercase">Diagnostic / Ref [C]</div>
-                    <div className="font-bold text-slate-800">{selectedDetails.id_diag || 'Spécifique'}</div>
+                    <div className="text-[10px] font-bold text-indigo-700 uppercase">{t('entrepot.modal.diag')}</div>
+                    <div className="font-bold text-slate-800">{selectedDetails.id_diag || '--'}</div>
                   </div>
                 </div>
               )}
 
-              {/* Machine Rattachement & Multi-motor list */}
+              {/* Machine Rattachement */}
               <div className="p-3 bg-slate-50 rounded-xl space-y-2">
-                <div className="text-[10px] font-bold text-slate-400 uppercase">Rattachement Machine / Zone</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase">{t('entrepot.modal.rattachement')}</div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <span className="text-[10px] text-slate-400 block font-medium">Affectation</span>
+                    <span className="text-[10px] text-slate-400 block font-medium">{t('entrepot.modal.rattachement')}</span>
                     <span className="font-bold text-slate-800">
                       {selectedDetails.rattachement_type === 'MACHINE'
-                        ? `Machine : ${selectedDetails.id_machine_registered || selectedDetails.id_machine}`
+                        ? `${t('entrepot.modal.machine')} : ${selectedDetails.id_machine_registered || selectedDetails.id_machine}`
                         : selectedDetails.rattachement_type === 'ZONE'
-                          ? `Zone : ${selectedDetails.id_zone}`
-                          : 'Entrepôt Central'}
+                          ? `${t('entrepot.modal.zone')} : ${selectedDetails.id_zone}`
+                          : t('entrepot.modal.location')}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 block font-medium">Emplacement</span>
+                    <span className="text-[10px] text-slate-400 block font-medium">{t('entrepot.modal.location')}</span>
                     <span className="font-mono font-bold text-slate-800">
                       {selectedDetails.emplacement || '--'}
                     </span>
                   </div>
                 </div>
-                {selectedDetails.rattachement_type === 'MACHINE' && (selectedDetails.id_machine_registered || selectedDetails.id_machine) && (
-                  (() => {
-                    const mId = selectedDetails.id_machine_registered || selectedDetails.id_machine;
-                    const siblingMotors = machineMotorCounts[mId] || [];
-                    if (siblingMotors.length <= 1) return null;
-                    return (
-                      <div className="mt-2 pt-2 border-t border-slate-200">
-                        <div className="text-[10px] font-bold text-purple-700 uppercase flex items-center gap-1">
-                          <Zap className="w-3 h-3 text-purple-600" />
-                          <span>Machine multi-moteurs ({siblingMotors.length} moteurs installés) :</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 mt-1.5">
-                          {siblingMotors.map((mCode, idx) => (
-                            <span
-                              key={idx}
-                              className={`px-2 py-0.5 rounded font-mono text-xs border ${
-                                mCode === (selectedDetails.code || selectedDetails.id_warehouse_item)
-                                  ? 'bg-purple-600 text-white font-bold border-purple-700'
-                                  : 'bg-white text-purple-800 border-purple-200'
-                              }`}
-                            >
-                              {mCode}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()
-                )}
               </div>
-
-              {/* Historique Bobinage (Burned Motors) */}
-              {selectedDetails.historique_bobinage && selectedDetails.historique_bobinage.length > 0 && (
-                <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-300 space-y-2">
-                  <div className="text-[10px] font-bold text-amber-900 uppercase flex items-center gap-1.5">
-                    <Flame className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Historique de Bobinage & Démontage</span>
-                  </div>
-                  <div className="space-y-2">
-                    {selectedDetails.historique_bobinage.map((hist, hIdx) => (
-                      <div key={hIdx} className="bg-white p-2.5 rounded-lg border border-amber-200 space-y-1 text-xs">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-amber-950 flex items-center gap-1">
-                            <Flame className="w-3 h-3 text-amber-600" />
-                            Cause : {hist.cause || 'grille'}
-                          </span>
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
-                            {hist.statut_bobinage || 'Rebobiné'}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 pt-1">
-                          <div>
-                            <span className="text-slate-400 block text-[9.5px]">Démontage:</span>
-                            <span className="font-medium">{hist.date_demontage || '--'} ({hist.technicien_demontage || 'Soufiane'})</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 block text-[9.5px]">Réception:</span>
-                            <span className="font-medium">{hist.date_reception || '--'} ({hist.societe_bobinage || 'STE AMAL'})</span>
-                          </div>
-                        </div>
-                        {hist.observation && (
-                          <div className="text-[11px] text-slate-500 italic bg-amber-50/50 p-1.5 rounded border border-amber-100 mt-1">
-                            Observation : {hist.observation}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {selectedDetails.remarques && (
                 <div className="p-3 bg-slate-50 rounded-xl space-y-1">
                   <div className="text-[10px] font-bold text-slate-400 uppercase">
-                    Remarques / Observations
+                    {t('entrepot.modal.notes')}
                   </div>
                   <div className="text-slate-700">{selectedDetails.remarques}</div>
                 </div>
@@ -2661,7 +2388,7 @@ export default function EntrepotView({
                 onClick={() => setSelectedDetails(null)}
                 className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
               >
-                Fermer
+                {t('entrepot.buttons.close')}
               </button>
             </div>
           </div>
@@ -2694,20 +2421,17 @@ export default function EntrepotView({
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
-                    <span>Formules Excel Miroir — Entrepôt</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-teal-50 text-teal-700 border border-teal-200">
-                      Components & Parts
-                    </span>
+                    <span>{t('entrepot.formulas.title')}</span>
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Règles d'arborescence, codification et calculs automatiques de la feuille Entrepôt
+                    {t('entrepot.formulas.subtitle')}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowFormulasModal(false)}
                 className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition cursor-pointer shrink-0"
-                title="Fermer"
+                title={t('entrepot.buttons.close')}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2720,17 +2444,17 @@ export default function EntrepotView({
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 truncate">
                     <CubeIcon className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                    <span className="truncate">Formule Twin Component</span>
+                    <span className="truncate">{t('entrepot.formulas.f1_title')}</span>
                   </div>
                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-100/80 text-blue-800 border border-blue-200 shrink-0">
-                    Col. [D] + [E]
+                    Col. [H]
                   </span>
                 </div>
                 <div className="font-mono text-xs text-blue-800 font-bold bg-white p-2 rounded-lg border border-blue-100">
                   Code = Auto(Famille, Template)
                 </div>
                 <p className="text-[10.5px] text-slate-500 leading-tight">
-                  Codification automatique des ensembles et sous-systèmes machines selon l'arborescence Type / Désignation.
+                  {t('entrepot.formulas.f1_desc')}
                 </p>
               </div>
 
@@ -2739,55 +2463,17 @@ export default function EntrepotView({
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 truncate">
                     <LayersIcon className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                    <span className="truncate">Formule Twin Part</span>
+                    <span className="truncate">{t('entrepot.formulas.f2_title')}</span>
                   </div>
                   <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-100/80 text-indigo-800 border border-indigo-200 shrink-0">
-                    Col. [B] + [C]
+                    Col. [G]
                   </span>
                 </div>
                 <div className="font-mono text-xs text-indigo-800 font-bold bg-white p-2 rounded-lg border border-indigo-100">
                   Code = Auto(Type, Désignation)
                 </div>
                 <p className="text-[10.5px] text-slate-500 leading-tight">
-                  Génération automatique du code pour les pièces détachées d'entrepôt basées sur le couple Type / Désignation.
-                </p>
-              </div>
-
-              {/* Formule Solde Stock */}
-              <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/90 flex flex-col justify-between gap-2 hover:border-emerald-300 transition">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 truncate">
-                    <TrendingUp className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span className="truncate">Calcul Solde Stock</span>
-                  </div>
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100/80 text-emerald-800 border border-emerald-200 shrink-0">
-                    Col. [H] = E+F−G
-                  </span>
-                </div>
-                <div className="font-mono text-xs text-emerald-800 font-bold bg-white p-2 rounded-lg border border-emerald-100">
-                  Solde = Initial + Entrées - Sorties
-                </div>
-                <p className="text-[10.5px] text-slate-500 leading-tight">
-                  Mise à jour dynamique de la quantité disponible dans le magasin d'entrepôt.
-                </p>
-              </div>
-
-              {/* Formule Rattachement */}
-              <div className="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/90 flex flex-col justify-between gap-2 hover:border-purple-300 transition">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 truncate">
-                    <Boxes className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                    <span className="truncate">Rattachement Dynamique</span>
-                  </div>
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-purple-100/80 text-purple-800 border border-purple-200 shrink-0">
-                    Col. [E] + [F]
-                  </span>
-                </div>
-                <div className="font-mono text-xs text-purple-800 font-bold bg-white p-2 rounded-lg border border-purple-100">
-                  Machine ⟷ Zone ⟷ Entrepôt
-                </div>
-                <p className="text-[10.5px] text-slate-500 leading-tight">
-                  Liaison automatique de chaque article à une machine enregistrée ou une zone d'affectation par défaut.
+                  {t('entrepot.formulas.f2_desc')}
                 </p>
               </div>
             </div>
@@ -2795,13 +2481,13 @@ export default function EntrepotView({
             {/* Modal Footer */}
             <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
               <span className="text-[11px] text-slate-400 font-medium">
-                Conforme à 100% avec le fichier Excel modèle <span className="font-mono text-slate-600">GMAO_Light_Template_V2</span>
+                {t('entrepot.formulas.footer_note')}
               </span>
               <button
                 onClick={() => setShowFormulasModal(false)}
                 className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out cursor-pointer"
               >
-                Fermer
+                {t('entrepot.buttons.close')}
               </button>
             </div>
           </div>

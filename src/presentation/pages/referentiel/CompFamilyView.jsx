@@ -7,6 +7,7 @@ import { SpokeIcon } from '../../components/common/icons/SpokeIcon';
 import { CubeIcon } from '../../components/common/icons/CubeIcon';
 import { CubePlusIcon } from '../../components/common/icons/CubePlusIcon';
 import CustomSelect from '../../components/common/CustomSelect';
+import { useI18n } from '../../../i18n/I18nContext';
 import {
   Search,
   ArrowRight,
@@ -43,6 +44,7 @@ export default function CompFamilyView({
   onNavigateToEntrepotByFamily,
   onNavigateToCompGroups,
 }) {
+  const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [internalGroupFilter, setInternalGroupFilter] = useState('');
   const activeGroupFilter = groupFilter !== undefined && setGroupFilter ? groupFilter : internalGroupFilter;
@@ -193,7 +195,7 @@ export default function CompFamilyView({
     () => [
       {
         key: 'id_family',
-        label: 'ID FAMILLE',
+        label: t('components.family.col_id', 'ID FAMILLE'),
         colLetter: 'A',
         icon: Tag,
         sortable: true,
@@ -205,7 +207,7 @@ export default function CompFamilyView({
       },
       {
         key: 'id_groupe',
-        label: 'GROUPE (NIV 1)',
+        label: t('components.family.col_group', 'GROUPE (NIV 1)'),
         icon: Boxes,
         sortable: true,
         render: (f) =>
@@ -225,7 +227,7 @@ export default function CompFamilyView({
       },
       {
         key: 'libelle',
-        label: 'LIBELLÉ FAMILLE',
+        label: t('components.family.col_libelle', 'LIBELLÉ FAMILLE'),
         colLetter: 'B',
         icon: SpokeIcon,
         sortable: true,
@@ -235,7 +237,7 @@ export default function CompFamilyView({
       },
       {
         key: 'componentCode',
-        label: 'PRÉFIXE CODE',
+        label: t('components.family.col_prefix', 'PRÉFIXE CODE'),
         colLetter: 'C',
         icon: Calculator,
         sortable: true,
@@ -248,7 +250,7 @@ export default function CompFamilyView({
       },
       {
         key: 'templates_count',
-        label: 'DÉSIGNATIONS COMPOSANTS',
+        label: t('components.family.col_templates', 'DÉSIGNATIONS COMPOSANTS'),
         colLetter: 'D',
         icon: CubeIcon,
         render: (f) => {
@@ -257,10 +259,10 @@ export default function CompFamilyView({
             <button
               onClick={() => onNavigateToCompTemplates && onNavigateToCompTemplates(f.id_family)}
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-teal-50 text-teal-800 hover:bg-teal-100 border border-teal-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
-              title="Voir les désignations de ce type de composants"
+              title={t('components.family.view_designations', 'Voir les désignations de ce type de composants')}
             >
               <CubeIcon className="w-3.5 h-3.5 text-teal-600" />
-              <span>{tCount} désignations</span>
+              <span>{tCount} {t('components.family.designation_unit', 'désignations')}</span>
               <ArrowRight className="w-3 h-3 text-teal-600 group-hover:translate-x-0.5 transition-transform" />
             </button>
           );
@@ -268,7 +270,7 @@ export default function CompFamilyView({
       },
       {
         key: 'warehouse_items',
-        label: 'COMPOSANTS EN ENTREPÔT',
+        label: t('components.family.col_warehouse', 'COMPOSANTS EN ENTREPÔT'),
         colLetter: 'E',
         icon: Warehouse,
         render: (f) => {
@@ -279,10 +281,10 @@ export default function CompFamilyView({
             <button
               onClick={() => onNavigateToEntrepotByFamily && onNavigateToEntrepotByFamily(f.id_family)}
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
-              title="Filtrer Entrepôt sur ce type de composants"
+              title={t('components.family.filter_warehouse', 'Filtrer Entrepôt sur ce type de composants')}
             >
               <Warehouse className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{cCount} composants</span>
+              <span>{cCount} {t('components.family.component_unit', 'composants')}</span>
               <ArrowRight className="w-3 h-3 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
             </button>
           );
@@ -311,7 +313,7 @@ export default function CompFamilyView({
                     setActiveActionMenuId(null);
                   }}
                   className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
-                  title="Créer une Désignation rapide pour ce Type"
+                  title={t('components.family.quick_create_title', 'Créer une Désignation rapide pour ce Type')}
                 >
                   <CubePlusIcon className="w-3.5 h-3.5 text-slate-900" />
                 </button>
@@ -326,7 +328,7 @@ export default function CompFamilyView({
                       ? 'bg-slate-100 text-teal-700 font-bold'
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
-                  title="Actions et options de la famille"
+                  title={t('components.family.action_menu_title', 'Actions et options de la famille')}
                 >
                   <MoreVertical className="w-3.5 h-3.5" />
                 </button>
@@ -336,7 +338,7 @@ export default function CompFamilyView({
                 <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-1.5 text-left animate-in fade-in slide-in-from-top-2 duration-150 space-y-0.5">
                   <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Actions Type Composant
+                      {t('components.family.action_menu_header', 'Actions Type Composant')}
                     </span>
                     <span className="text-xs font-mono font-bold text-teal-700 truncate block">
                       {f.id_family} — {f.libelle}
@@ -356,7 +358,7 @@ export default function CompFamilyView({
                     className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
                   >
                     <CubePlusIcon className="w-3.5 h-3.5 text-teal-600" />
-                    <span>Créer une désignation (Niv 3)</span>
+                    <span>{t('components.family.menu_create_designation', 'Créer une désignation (Niv 3)')}</span>
                   </button>
 
                   <button
@@ -368,7 +370,7 @@ export default function CompFamilyView({
                     className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
                   >
                     <CubeIcon className="w-3.5 h-3.5 text-teal-600" />
-                    <span>Voir les désignations</span>
+                    <span>{t('components.family.menu_view_designations', 'Voir les désignations')}</span>
                   </button>
 
                   <button
@@ -380,7 +382,7 @@ export default function CompFamilyView({
                     className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer group"
                   >
                     <Warehouse className="w-3.5 h-3.5 text-indigo-600 group-hover:scale-110 transition-transform" />
-                    <span>Filtrer l&apos;entrepôt ({cCount})</span>
+                    <span>{t('components.family.menu_filter_warehouse', "Filtrer l'entrepôt")} ({cCount})</span>
                   </button>
 
                   <div className="border-t border-slate-100 my-1" />
@@ -394,7 +396,7 @@ export default function CompFamilyView({
                     className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
                   >
                     <Edit2 className="w-3.5 h-3.5 text-teal-600" />
-                    <span>Modifier ce type</span>
+                    <span>{t('components.family.menu_edit', 'Modifier ce type')}</span>
                   </button>
 
                   <button
@@ -406,7 +408,7 @@ export default function CompFamilyView({
                     className="w-full px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                    <span>Supprimer ce type</span>
+                    <span>{t('components.family.menu_delete', 'Supprimer ce type')}</span>
                   </button>
                 </div>
               )}
@@ -415,27 +417,25 @@ export default function CompFamilyView({
         },
       },
     ],
-    [activeActionMenuId, compTemplates, warehouseItems, onNavigateToCompTemplates, onNavigateToEntrepotByFamily, onQuickCreateCompTemplate, setActiveGroupFilter]
+    [t, activeActionMenuId, compTemplates, warehouseItems, onNavigateToCompTemplates, onNavigateToEntrepotByFamily, onQuickCreateCompTemplate, setActiveGroupFilter]
   );
 
   return (
     <AnimatedPage className="space-y-4">
-      {/* Top Banner (BDR Light GMAO Header Card with 3D Tactile Elevation) */}
+      {/* Top Banner */}
       <div className="bg-white p-5 md:p-6 rounded-2xl border border-slate-200/90 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden group/header">
-        {/* Subtle Ambient Gradient Background Highlight */}
         <div className="absolute -top-12 -right-12 w-48 h-48 bg-amber-500/5 rounded-full blur-2xl pointer-events-none group-hover/header:bg-amber-500/10 transition-colors duration-500" />
 
         <div className="min-w-0 flex-1 flex items-start sm:items-center gap-3.5 relative">
-          {/* 3D Elevated Page Badge Icon */}
           <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200/90 shadow-[0_4px_12px_rgba(245,158,11,0.12)] flex items-center justify-center text-amber-700 group-hover/header:scale-105 group-hover/header:border-amber-400/80 transition-all duration-300 shrink-0">
             <SpokeIcon className="w-6 h-6 text-amber-700 transition-transform duration-300 group-hover/header:scale-110" />
           </div>
           <div>
             <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              Types de Composants d&apos;Entrepôt
+              {t('components.family.title', "Types de Composants d'Entrepôt")}
             </h2>
             <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-              Nomenclature des types de sous-systèmes et ensembles stockés en entrepôt (Moteurs, Pompes, Réducteurs...).
+              {t('components.family.subtitle', 'Nomenclature des types de sous-systèmes et ensembles stockés en entrepôt (Moteurs, Pompes, Réducteurs...).')}
             </p>
           </div>
         </div>
@@ -443,7 +443,7 @@ export default function CompFamilyView({
         <div className="flex items-center gap-2.5 shrink-0 relative">
           <FormulasModalButton
             onClick={() => setShowFormulasModal(true)}
-            title="Formules Excel (Types Composants)"
+            title={t('components.family.formulas_button', 'Formules Excel (Types Composants)')}
           />
 
           <Action3DButton
@@ -460,14 +460,14 @@ export default function CompFamilyView({
               });
               setShowAddModal(true);
             }}
-            title="Nouveau Type"
+            title={t('components.family.add_button', 'Nouveau Type')}
           />
         </div>
       </div>
 
       {/* Filter Bar */}
       <div className="relative z-30 bg-white border border-slate-200 rounded-2xl p-4 md:p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out space-y-4">
-        {/* Header Toolbar: Icon + Title + Count Badge + Excel Export + Circular Reset */}
+        {/* Header Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-200/80 flex items-center justify-center text-amber-700 shadow-2xs shrink-0">
@@ -476,14 +476,14 @@ export default function CompFamilyView({
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Filtres & Recherche Avancée
+                  {t('components.family.filter_title', 'Filtres & Recherche Avancée')}
                 </span>
                 <span className="bg-amber-50 text-amber-800 px-2.5 py-0.5 rounded-lg text-[11px] font-bold border border-amber-200/70 shadow-2xs font-mono">
                   {filtered.length} / {compFamilies.length}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium">
-                Référentiel des Types de Composants Entrepôt • Colonnes A → E
+                {t('components.family.filter_subtitle', 'Référentiel des Types de Composants Entrepôt • Colonnes A → E')}
               </p>
             </div>
           </div>
@@ -493,10 +493,10 @@ export default function CompFamilyView({
             <button
               onClick={handleExportExcel}
               className="h-8 px-3 rounded-xl border border-emerald-200/80 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-              title="Exporter le tableau vers Excel / CSV"
+              title={t('common.export_excel_title', 'Exporter le tableau vers Excel / CSV')}
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Export Excel</span>
+              <span>{t('components.family.export_excel', 'Export Excel')}</span>
             </button>
 
             {/* Circular Reset Button */}
@@ -508,7 +508,7 @@ export default function CompFamilyView({
                   setSortField('id_family');
                   setSortOrder('asc');
                 }}
-                title="Réinitialiser tous les filtres actifs"
+                title={t('components.family.reset_filters', 'Réinitialiser tous les filtres actifs')}
                 className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in shrink-0"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -525,7 +525,7 @@ export default function CompFamilyView({
                 <Boxes className="w-3.5 h-3.5" />
               </span>
               <span>
-                Affichage filtré sur le Groupe : <strong className="font-mono font-bold text-indigo-950 px-1.5 py-0.5 rounded bg-white border border-indigo-200">{activeGroupFilter}</strong>
+                {t('components.family.filtered_group_label', 'Affichage filtré sur le Groupe :')} <strong className="font-mono font-bold text-indigo-950 px-1.5 py-0.5 rounded bg-white border border-indigo-200">{activeGroupFilter}</strong>
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -535,13 +535,13 @@ export default function CompFamilyView({
                   className="px-2.5 py-1 text-[11px] font-bold text-indigo-700 hover:text-indigo-900 hover:bg-white/80 rounded-lg transition cursor-pointer flex items-center gap-1 border border-indigo-200/60"
                 >
                   <FolderTree className="w-3 h-3" />
-                  <span>Tous les Groupes</span>
+                  <span>{t('components.family.all_groups', 'Tous les Groupes')}</span>
                 </button>
               )}
               <button
                 onClick={() => setActiveGroupFilter('')}
                 className="p-1 hover:bg-indigo-200/60 text-indigo-600 hover:text-indigo-900 rounded-full transition cursor-pointer"
-                title="Supprimer ce filtre"
+                title={t('common.remove_filter', 'Supprimer ce filtre')}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -554,10 +554,10 @@ export default function CompFamilyView({
           <div className="relative w-full">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                RECHERCHE LIBRE
+                {t('components.family.search_label', 'RECHERCHE LIBRE')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                ID + Libellé
+                {t('components.family.search_fields', 'ID + Libellé')}
               </span>
             </div>
             <div className="relative flex items-center">
@@ -566,7 +566,7 @@ export default function CompFamilyView({
               </span>
               <input
                 type="text"
-                placeholder="Rechercher famille, code, groupe..."
+                placeholder={t('components.family.search_placeholder', 'Rechercher famille, code, groupe...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full h-10 pl-9 pr-8 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
@@ -586,10 +586,10 @@ export default function CompFamilyView({
           <div className="w-full">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                GROUPE COMPOSANT (NIV 1)
+                {t('components.family.group_label', 'GROUPE COMPOSANT (NIV 1)')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
-                Hiérarchie
+                {t('components.family.hierarchy_badge', 'Hiérarchie')}
               </span>
             </div>
             <CustomSelect
@@ -603,7 +603,7 @@ export default function CompFamilyView({
               options={[
                 {
                   value: 'ALL',
-                  label: `Tous les Groupes (${compGroups.length})`,
+                  label: `${t('components.family.group_select_all', 'Tous les Groupes')} (${compGroups.length})`,
                   badge: `${compFamilies.length}`,
                   badgeColor: 'bg-slate-100 text-slate-700 font-bold',
                 },
@@ -624,10 +624,10 @@ export default function CompFamilyView({
           <div className="w-full relative" ref={sortMenuRef}>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                TRI DES ENREGISTREMENTS
+                {t('components.family.sort_label', 'TRI DES ENREGISTREMENTS')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                Ordre A-Z
+                {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
               </span>
             </div>
             <button
@@ -643,7 +643,7 @@ export default function CompFamilyView({
                   <ArrowUpDown className="w-3 h-3" />
                 </span>
                 <span>
-                  Tri : <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
+                  {t('common.sort_by', 'Tri')} : <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
                   {sortOrder === 'asc' ? 'A→Z' : 'Z→A'})
                 </span>
               </div>
@@ -657,7 +657,7 @@ export default function CompFamilyView({
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   <span className="flex items-center gap-1.5 text-slate-700 font-semibold">
                     <SlidersHorizontal className="w-3.5 h-3.5 text-teal-600" />
-                    Trier par
+                    {t('common.sort_options', 'Trier par')}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 gap-1 text-xs">
@@ -676,7 +676,7 @@ export default function CompFamilyView({
                         : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>ID Type (A)</span>
+                    <span>{t('components.family.col_id', 'ID Type')} (A)</span>
                     {sortField === 'id_family' &&
                       (sortOrder === 'asc' ? (
                         <ArrowUp className="w-3.5 h-3.5 text-teal-600 shrink-0" />
@@ -700,7 +700,7 @@ export default function CompFamilyView({
                         : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>Libellé Type (B)</span>
+                    <span>{t('components.family.col_libelle', 'Libellé Type')} (B)</span>
                     {sortField === 'libelle' &&
                       (sortOrder === 'asc' ? (
                         <ArrowUp className="w-3.5 h-3.5 text-teal-600 shrink-0" />
@@ -724,7 +724,7 @@ export default function CompFamilyView({
                         : 'hover:bg-slate-50 text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    <span>Code Composant (C)</span>
+                    <span>{t('components.family.col_prefix', 'Code Composant')} (C)</span>
                     {sortField === 'componentCode' &&
                       (sortOrder === 'asc' ? (
                         <ArrowUp className="w-3.5 h-3.5 text-teal-600 shrink-0" />
@@ -741,10 +741,10 @@ export default function CompFamilyView({
         {/* Active Filter Chips */}
         {search && (
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 text-xs">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Filtre actif :</span>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t('common.active_filter', 'Filtre actif :')}</span>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold">
               <Search className="w-3 h-3 text-teal-600" />
-              Recherche: &quot;{search}&quot;
+              {t('common.search_term', 'Recherche:')} &quot;{search}&quot;
               <button
                 onClick={() => setSearch('')}
                 className="hover:bg-teal-200/60 p-0.5 rounded-full transition cursor-pointer"
@@ -758,7 +758,7 @@ export default function CompFamilyView({
 
       {/* Unified Industrial Data Grid */}
       <GmaoIndustrialDataGrid
-        title="Tableau Types de Composants (Entrepôt) • Nomenclature Hiérarchique"
+        title={t('components.family.grid_title', 'Tableau Types de Composants (Entrepôt) • Nomenclature Hiérarchique')}
         icon={<SpokeIcon className="w-4 h-4 text-teal-600" />}
         excelMapping="id_family (A) | libelle (B) | componentCode (C) | templates (D) | warehouse_items (E)"
         bannerColor="teal"
@@ -771,7 +771,7 @@ export default function CompFamilyView({
         startIndex={startIndex}
         showRowNumber={true}
         emptyIcon={<SpokeIcon className="w-8 h-8 text-slate-300" />}
-        emptyMessage="Aucun type de composant trouvé"
+        emptyMessage={t('components.family.empty', 'Aucun type de composant trouvé')}
         pagination={{
           currentPage,
           setCurrentPage,
@@ -780,7 +780,7 @@ export default function CompFamilyView({
           totalItems,
           pageSizeOptions: [25, 50, 100, 200, 0],
           color: 'teal',
-          itemLabel: 'types',
+          itemLabel: t('components.family.item_label', 'types'),
         }}
       />
 

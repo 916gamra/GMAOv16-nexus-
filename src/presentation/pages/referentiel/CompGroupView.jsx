@@ -3,6 +3,7 @@ import AnimatedPage from '../../components/common/AnimatedPage';
 import Action3DButton from '../../components/common/Action3DButton';
 import FormulasModalButton from '../../components/common/FormulasModalButton';
 import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
+import { useI18n } from '../../../i18n/I18nContext';
 import {
   Search,
   ArrowRight,
@@ -36,6 +37,7 @@ export default function CompGroupView({
   onNavigateToCompFamilies,
   onNavigateToCompTemplates,
 }) {
+  const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [sortField, setSortField] = useState('code');
   const [sortOrder, setSortOrder] = useState('asc');
@@ -266,7 +268,7 @@ export default function CompGroupView({
     () => [
       {
         key: 'code',
-        label: 'CODE GROUPE (MAISON)',
+        label: t('components.group.col_code', 'CODE GROUPE (MAISON)'),
         colLetter: 'A',
         icon: Boxes,
         sortable: true,
@@ -282,7 +284,7 @@ export default function CompGroupView({
       },
       {
         key: 'libelle',
-        label: 'DÉSIGNATION / LIBELLÉ',
+        label: t('components.group.col_libelle', 'DÉSIGNATION / LIBELLÉ'),
         colLetter: 'B',
         icon: FolderTree,
         sortable: true,
@@ -292,7 +294,7 @@ export default function CompGroupView({
       },
       {
         key: 'description',
-        label: 'DESCRIPTION & PÉRIMÈTRE',
+        label: t('components.group.col_description', 'DESCRIPTION & PÉRIMÈTRE'),
         colLetter: 'C',
         render: (group) => (
           <span className="max-w-xs text-slate-500 text-[11px] leading-relaxed line-clamp-2 block">
@@ -302,7 +304,7 @@ export default function CompGroupView({
       },
       {
         key: 'familiesCount',
-        label: 'FAMILLES (NIV 2)',
+        label: t('components.group.col_families', 'FAMILLES (NIV 2)'),
         colLetter: 'D',
         icon: SpokeIcon,
         sortable: true,
@@ -314,10 +316,10 @@ export default function CompGroupView({
             <button
               onClick={() => onNavigateToCompFamilies?.(gId)}
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 text-xs font-semibold transition group/btn shadow-2xs cursor-pointer"
-              title="Voir les familles de ce groupe"
+              title={t('components.group.view_families', 'Voir les familles de ce groupe')}
             >
               <SpokeIcon className="w-3.5 h-3.5 text-amber-700" />
-              <span>{stats.familiesCount} famille(s)</span>
+              <span>{stats.familiesCount} {t('components.group.family_unit', 'famille(s)')}</span>
               <ArrowRight className="w-3 h-3 text-amber-700 group-hover/btn:translate-x-0.5 transition-transform" />
             </button>
           );
@@ -325,7 +327,7 @@ export default function CompGroupView({
       },
       {
         key: 'templatesCount',
-        label: 'TEMPLATES (NIV 3)',
+        label: t('components.group.col_templates', 'TEMPLATES (NIV 3)'),
         colLetter: 'E',
         icon: CubeIcon,
         sortable: true,
@@ -337,10 +339,10 @@ export default function CompGroupView({
             <button
               onClick={() => onNavigateToCompTemplates?.(gId)}
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200 text-xs font-semibold transition group/btn shadow-2xs cursor-pointer"
-              title="Voir les templates de ce groupe"
+              title={t('components.group.view_templates', 'Voir les templates de ce groupe')}
             >
               <CubeIcon className="w-3.5 h-3.5 text-purple-700" />
-              <span>{stats.templatesCount} template(s)</span>
+              <span>{stats.templatesCount} {t('components.group.template_unit', 'template(s)')}</span>
               <ArrowRight className="w-3 h-3 text-purple-700 group-hover/btn:translate-x-0.5 transition-transform" />
             </button>
           );
@@ -348,7 +350,7 @@ export default function CompGroupView({
       },
       {
         key: 'passport_id',
-        label: 'ID PASSPORT',
+        label: t('components.group.col_id', 'ID PASSPORT'),
         colLetter: 'F',
         render: (group) => {
           const gId = group.id || group.id_groupe;
@@ -361,7 +363,7 @@ export default function CompGroupView({
               <button
                 onClick={() => handleCopyId(gId)}
                 className="p-1 text-slate-400 hover:text-slate-700 rounded transition cursor-pointer"
-                title="Copier l'ID Passport"
+                title={t('common.copy_id', 'Copier l\'ID Passport')}
               >
                 {isCopied ? (
                   <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -391,7 +393,7 @@ export default function CompGroupView({
                     setActiveActionMenuId(null);
                   }}
                   className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
-                  title="Voir les familles de ce groupe"
+                  title={t('components.group.view_families', 'Voir les familles de ce groupe')}
                 >
                   <SpokeIcon className="w-3.5 h-3.5 text-indigo-700" />
                 </button>
@@ -406,7 +408,7 @@ export default function CompGroupView({
                       ? 'bg-slate-100 text-indigo-700 font-bold'
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
-                  title="Actions et options du groupe"
+                  title={t('components.group.action_menu_title', 'Actions et options du groupe')}
                 >
                   <MoreVertical className="w-3.5 h-3.5" />
                 </button>
@@ -416,7 +418,7 @@ export default function CompGroupView({
                 <div className="absolute right-0 top-full mt-1.5 w-60 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 p-1.5 text-left animate-in fade-in slide-in-from-top-2 duration-150 space-y-0.5">
                   <div className="px-3 py-2 border-b border-slate-100 mb-1 bg-slate-50/80 rounded-xl">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                      Actions Groupe Composant
+                      {t('components.group.action_menu_header', 'Actions Groupe Composant')}
                     </span>
                     <span className="text-xs font-mono font-bold text-indigo-700 truncate block">
                       {group.code || gId} — {group.libelle}
@@ -433,7 +435,7 @@ export default function CompGroupView({
                   >
                     <div className="flex items-center gap-2.5">
                       <SpokeIcon className="w-3.5 h-3.5 text-amber-600 group-hover:scale-110 transition-transform" />
-                      <span>Voir Familles (Niveau 2)</span>
+                      <span>{t('components.group.menu_view_families', 'Voir Familles (Niveau 2)')}</span>
                     </div>
                     <span className="text-[10px] font-mono text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded font-bold border border-amber-200/60">
                       {stats.familiesCount}
@@ -450,7 +452,7 @@ export default function CompGroupView({
                   >
                     <div className="flex items-center gap-2.5">
                       <CubeIcon className="w-3.5 h-3.5 text-purple-600 group-hover:scale-110 transition-transform" />
-                      <span>Voir Templates (Niveau 3)</span>
+                      <span>{t('components.group.menu_view_templates', 'Voir Templates (Niveau 3)')}</span>
                     </div>
                     <span className="text-[10px] font-mono text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded font-bold border border-purple-200/60">
                       {stats.templatesCount}
@@ -474,7 +476,7 @@ export default function CompGroupView({
                     className="w-full px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
                   >
                     <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Modifier ce groupe</span>
+                    <span>{t('components.group.menu_edit', 'Modifier ce groupe')}</span>
                   </button>
 
                   <button
@@ -486,7 +488,7 @@ export default function CompGroupView({
                     className="w-full px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                    <span>Supprimer ce groupe</span>
+                    <span>{t('components.group.menu_delete', 'Supprimer ce groupe')}</span>
                   </button>
                 </div>
               )}
@@ -495,12 +497,12 @@ export default function CompGroupView({
         },
       },
     ],
-    [copiedId, groupStats, activeActionMenuId, onNavigateToCompFamilies, onNavigateToCompTemplates]
+    [t, copiedId, groupStats, activeActionMenuId, onNavigateToCompFamilies, onNavigateToCompTemplates]
   );
 
   return (
     <AnimatedPage className="space-y-4">
-      {/* Top Banner (Header Card with Tactile Elevation) */}
+      {/* Top Banner */}
       <div className="bg-white p-5 md:p-6 rounded-2xl border border-slate-200/90 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden group/header">
         <div className="absolute -top-12 -right-12 w-48 h-48 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none group-hover/header:bg-indigo-500/10 transition-colors duration-500" />
 
@@ -511,14 +513,14 @@ export default function CompGroupView({
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                Groupes de Composants (Niveau 1)
+                {t('components.group.title', 'Groupes de Composants (Niveau 1)')}
               </h2>
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                Hiérarchie 3 Niveaux
+                {t('components.group.badge', 'Hiérarchie 3 Niveaux')}
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-              Structure de premier niveau (Moteurs, Réducteurs, Pompes, Variateurs...) qui regroupe les familles technologiques et évite l&apos;encombrement dans les Templates.
+              {t('components.group.subtitle', "Structure de premier niveau (Moteurs, Réducteurs, Pompes, Variateurs...) qui regroupe les familles technologiques et évite l'encombrement dans les Templates.")}
             </p>
           </div>
         </div>
@@ -526,7 +528,7 @@ export default function CompGroupView({
         <div className="flex items-center gap-2.5 shrink-0 relative">
           <FormulasModalButton
             onClick={() => setShowFormulasModal(true)}
-            title="Aide & Architecture 4 Niveaux"
+            title={t('components.group.formulas_button', 'Aide & Architecture 4 Niveaux')}
           />
 
           <Action3DButton
@@ -544,14 +546,14 @@ export default function CompGroupView({
               });
               setShowAddModal(true);
             }}
-            title="Nouveau Groupe"
+            title={t('components.group.add_button', 'Nouveau Groupe')}
           />
         </div>
       </div>
 
       {/* Filter Bar */}
       <div className="relative z-30 bg-white border border-slate-200 rounded-2xl p-4 md:p-5 shadow-[0_12px_32px_-6px_rgba(0,0,0,0.12),0_4px_12px_-2px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_-8px_rgba(0,0,0,0.16),0_6px_16px_-3px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 transition-all duration-300 ease-out space-y-4">
-        {/* Header Toolbar: Icon + Title + Count Badge + Excel Export + Circular Reset */}
+        {/* Header Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-200/80 flex items-center justify-center text-indigo-700 shadow-2xs shrink-0">
@@ -560,14 +562,14 @@ export default function CompGroupView({
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Filtres & Recherche Avancée
+                  {t('components.group.filter_title', 'Filtres & Recherche Avancée')}
                 </span>
                 <span className="bg-indigo-50 text-indigo-800 px-2.5 py-0.5 rounded-lg text-[11px] font-bold border border-indigo-200/70 shadow-2xs font-mono">
                   {filtered.length} / {compGroups.length}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium">
-                Nomenclature Niveau 1 • Groupes Composants
+                {t('components.group.filter_subtitle', 'Nomenclature Niveau 1 • Groupes Composants')}
               </p>
             </div>
           </div>
@@ -577,10 +579,10 @@ export default function CompGroupView({
             <button
               onClick={handleExportExcel}
               className="h-8 px-3 rounded-xl border border-emerald-200/80 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-              title="Exporter le tableau vers Excel / CSV"
+              title={t('common.export_excel_title', 'Exporter le tableau vers Excel / CSV')}
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Export Excel</span>
+              <span>{t('components.group.export_excel', 'Export Excel')}</span>
             </button>
 
             {/* Circular Reset Button */}
@@ -591,7 +593,7 @@ export default function CompGroupView({
                   setSortField('code');
                   setSortOrder('asc');
                 }}
-                title="Réinitialiser tous les filtres actifs"
+                title={t('components.group.reset_filters', 'Réinitialiser tous les filtres actifs')}
                 className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in shrink-0"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -605,10 +607,10 @@ export default function CompGroupView({
           <div className="relative w-full">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                RECHERCHE LIBRE
+                {t('components.group.search_label', 'RECHERCHE LIBRE')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                Code + Libellé + ID
+                {t('components.group.search_fields', 'Code + Libellé + ID')}
               </span>
             </div>
             <div className="relative flex items-center">
@@ -617,7 +619,7 @@ export default function CompGroupView({
               </span>
               <input
                 type="text"
-                placeholder="Filtrer par code, libellé, ID passport..."
+                placeholder={t('components.group.search_placeholder', 'Filtrer par code, libellé, ID passport...')}
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -640,10 +642,10 @@ export default function CompGroupView({
           <div className="w-full relative" ref={sortMenuRef}>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                TRI DES ENREGISTREMENTS
+                {t('components.group.sort_label', 'TRI DES ENREGISTREMENTS')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                Ordre A-Z
+                {sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
               </span>
             </div>
             <button
@@ -659,7 +661,7 @@ export default function CompGroupView({
                   <ArrowUpDown className="w-3 h-3" />
                 </span>
                 <span>
-                  Tri : <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
+                  {t('common.sort_by', 'Tri')} : <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
                   {sortOrder === 'asc' ? 'A→Z' : 'Z→A'})
                 </span>
               </div>
@@ -673,15 +675,15 @@ export default function CompGroupView({
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                   <span className="flex items-center gap-1.5 text-slate-700 font-semibold">
                     <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-600" />
-                    Trier par
+                    {t('common.sort_options', 'Trier par')}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 gap-1 text-xs">
                   {[
-                    { field: 'code', label: 'Code Groupe', icon: Boxes },
-                    { field: 'libelle', label: 'Désignation / Libellé', icon: FolderTree },
-                    { field: 'familiesCount', label: 'Nombre de Familles (Niv 2)', icon: SpokeIcon },
-                    { field: 'templatesCount', label: 'Nombre de Templates (Niv 3)', icon: CubeIcon },
+                    { field: 'code', label: t('components.group.col_code', 'Code Groupe'), icon: Boxes },
+                    { field: 'libelle', label: t('components.group.col_libelle', 'Désignation / Libellé'), icon: FolderTree },
+                    { field: 'familiesCount', label: t('components.group.col_families', 'Nombre de Familles (Niv 2)'), icon: SpokeIcon },
+                    { field: 'templatesCount', label: t('components.group.col_templates', 'Nombre de Templates (Niv 3)'), icon: CubeIcon },
                   ].map(({ field, label, icon: ItemIcon }) => {
                     const isActive = sortField === field;
                     return (
@@ -708,7 +710,7 @@ export default function CompGroupView({
                         {isActive && (
                           <span className="flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-100/80 px-2 py-0.5 rounded-full">
                             {sortOrder === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                            {sortOrder === 'asc' ? 'Ascendant' : 'Descendant'}
+                            {sortOrder === 'asc' ? t('common.ascending', 'Ascendant') : t('common.descending', 'Descendant')}
                           </span>
                         )}
                       </button>
@@ -723,7 +725,7 @@ export default function CompGroupView({
 
       {/* Unified Industrial Data Grid */}
       <GmaoIndustrialDataGrid
-        title="Tableau Groupes de Composants (Niveau 1) • Structure Parent Hiérarchique"
+        title={t('components.group.grid_title', 'Tableau Groupes de Composants (Niveau 1) • Structure Parent Hiérarchique')}
         icon={<Boxes className="w-4 h-4 text-indigo-600" />}
         excelMapping="code_groupe (A) | libelle (B) | description (C) | familles_niv2 (D) | templates_niv3 (E) | passport_id (F)"
         bannerColor="indigo"
@@ -736,7 +738,7 @@ export default function CompGroupView({
         startIndex={startIndex}
         showRowNumber={true}
         emptyIcon={<Boxes className="w-8 h-8 text-slate-300" />}
-        emptyMessage="Aucun groupe de composants trouvé"
+        emptyMessage={t('components.group.empty', 'Aucun groupe de composants trouvé')}
         pagination={{
           currentPage,
           setCurrentPage,
@@ -745,7 +747,7 @@ export default function CompGroupView({
           totalItems,
           pageSizeOptions: [20, 50, 100, 200, 0],
           color: 'indigo',
-          itemLabel: 'groupes',
+          itemLabel: t('components.group.item_label', 'groupes'),
         }}
       />
 

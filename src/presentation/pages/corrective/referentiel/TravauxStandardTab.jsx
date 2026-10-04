@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import TablePaginationCard from '../../../components/common/TablePaginationCard';
 import GmaoIndustrialDataGrid from '../../../components/common/GmaoIndustrialDataGrid.jsx';
+import { useI18n } from '../../../../i18n/I18nContext';
 import {
   BookOpen,
   Check,
@@ -27,6 +28,7 @@ export default function TravauxStandardTab({
   onDeleteTravail,
   showToast,
 }) {
+  const { t } = useI18n();
   // View mode state: 'excel' (Tableau) | 'grid' (Cartes)
   const [displayMode, setDisplayMode] = useState('excel');
 
@@ -126,7 +128,7 @@ export default function TravauxStandardTab({
     () => [
       {
         key: 'description',
-        label: 'DESCRIPTION DE LA TÂCHE / TRAVAIL STANDARD (ATELIER)',
+        label: t('corrective.travaux.col_desc', 'DESCRIPTION DE LA TÂCHE / TRAVAIL STANDARD (ATELIER)'),
         colLetter: 'Col B',
         icon: FileText,
         render: (item) => (
@@ -137,7 +139,7 @@ export default function TravauxStandardTab({
       },
       {
         key: 'actions',
-        label: 'ACTIONS GMAO',
+        label: t('common.actions', 'ACTIONS GMAO'),
         colLetter: 'Col C',
         icon: Zap,
         align: 'center',
@@ -169,7 +171,7 @@ export default function TravauxStandardTab({
                 type="button"
                 onClick={() => handleOpenEditModal(travail)}
                 className="p-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-600 transition cursor-pointer border border-slate-200/80"
-                title="Modifier cette tâche standard"
+                title={t('corrective.travaux.edit_title', 'Modifier cette tâche standard')}
               >
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
@@ -178,7 +180,7 @@ export default function TravauxStandardTab({
                 type="button"
                 onClick={() => setTravailToDelete(travail)}
                 className="p-1 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 transition cursor-pointer border border-slate-200/80"
-                title="Supprimer cette tâche du catalogue"
+                title={t('corrective.travaux.delete_title', 'Supprimer cette tâche du catalogue')}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -193,7 +195,7 @@ export default function TravauxStandardTab({
                   }
                 }}
                 className="px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10.5px] transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
-                title="Créer une Demande avec ce travail"
+                title={t('corrective.travaux.preset_action', 'Créer une Demande avec ce travail')}
               >
                 <Plus className="w-3 h-3" />
                 <span>DI</span>
@@ -203,7 +205,7 @@ export default function TravauxStandardTab({
         },
       },
     ],
-    [copiedIndex, handleCopyText, onAddDemandeWithPreset]
+    [copiedIndex, handleCopyText, onAddDemandeWithPreset, t]
   );
 
   return (
@@ -214,24 +216,29 @@ export default function TravauxStandardTab({
         <div className="flex items-center gap-2 flex-wrap text-xs text-slate-600">
           <span className="font-bold text-slate-800 flex items-center gap-1.5">
             <BookOpen className="w-4 h-4 text-blue-600" />
-            <span>Référentiel des Travaux & Tâches Standards</span>
+            <span>{t('corrective.travaux.title', 'Référentiel des Travaux & Tâches Standards')}</span>
           </span>
 
           <span className="text-slate-300">|</span>
 
           <span>
             {totalItems > 0 ? (
-              <>
-                Affichage de <b>{startIndex + 1}</b> à <b>{endIndex}</b> sur <b>{totalItems}</b> tâches standards
-              </>
+              t('corrective.travaux.display_count', 'Affichage de {{start}} à {{end}} sur {{total}} tâches standards', {
+                start: startIndex + 1,
+                end: endIndex,
+                total: totalItems,
+              })
             ) : (
-              'Aucune tâche trouvée'
+              t('corrective.travaux.empty', 'Aucune tâche trouvée')
             )}
           </span>
 
           {totalItems < totalTravauxCount && (
             <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
-              Filtre actif ({totalItems} / {totalTravauxCount})
+              {t('components.group.active_filter_with_counts', 'Filtre actif ({{filtered}} / {{total}})', {
+                filtered: totalItems,
+                total: totalTravauxCount,
+              })}
             </span>
           )}
         </div>
@@ -242,10 +249,10 @@ export default function TravauxStandardTab({
             type="button"
             onClick={handleOpenAddModal}
             className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
-            title="Ajouter une nouvelle tâche standard au catalogue"
+            title={t('corrective.travaux.add_title', 'Ajouter une nouvelle tâche standard')}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Nouvelle Tâche Standard</span>
+            <span>{t('corrective.travaux.add_button', 'Nouvelle Tâche Standard')}</span>
           </button>
 
           <div className="inline-flex items-center p-1 bg-slate-100/90 rounded-xl border border-slate-200/80 shadow-2xs">
@@ -257,10 +264,10 @@ export default function TravauxStandardTab({
                   ? 'bg-white text-slate-900 shadow-2xs border border-slate-200 font-black'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
-              title="Affichage en tableau Excel avec 20 lignes fixes"
+              title={t('corrective.pannes.view_table', 'Vue Tableau')}
             >
               <Table className="w-3.5 h-3.5 text-blue-600" />
-              <span>Tableau Excel</span>
+              <span>{t('corrective.pannes.view_table', 'Tableau Excel')}</span>
             </button>
 
             <button
@@ -271,10 +278,10 @@ export default function TravauxStandardTab({
                   ? 'bg-white text-slate-900 shadow-2xs border border-slate-200 font-black'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
-              title="Affichage en cartes / grille"
+              title={t('corrective.pannes.view_cards', 'Vue Cartes')}
             >
               <LayoutGrid className="w-3.5 h-3.5 text-blue-600" />
-              <span>Cartes / Grille</span>
+              <span>{t('corrective.pannes.view_cards', 'Cartes / Grille')}</span>
             </button>
           </div>
         </div>

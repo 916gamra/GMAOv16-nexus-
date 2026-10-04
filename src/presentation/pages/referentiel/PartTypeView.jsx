@@ -5,6 +5,7 @@ import FormulasModalButton from '../../components/common/FormulasModalButton';
 import GmaoIndustrialDataGrid from '../../components/common/GmaoIndustrialDataGrid.jsx';
 import PartInfoIcon from '../../components/common/icons/PartInfoIcon';
 import { LayersIcon } from '../../components/common/icons/LayersIcon';
+import { useI18n } from '../../../i18n/I18nContext';
 import {
   Search,
   Tag,
@@ -34,6 +35,7 @@ export default function PartTypeView({
   onNavigateToPartDesignations,
   onNavigateToEntrepotByType,
 }) {
+  const { t } = useI18n();
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showFormulasModal, setShowFormulasModal] = useState(false);
@@ -158,7 +160,7 @@ export default function PartTypeView({
     () => [
       {
         key: 'id_type',
-        label: 'ID TYPE',
+        label: t('part_types.col_id', 'ID TYPE'),
         colLetter: 'A',
         icon: Tag,
         sortable: true,
@@ -170,7 +172,7 @@ export default function PartTypeView({
       },
       {
         key: 'libelle',
-        label: 'LIBELLÉ TYPE DE PART',
+        label: t('part_types.col_libelle', 'LIBELLÉ TYPE DE PART'),
         colLetter: 'B',
         icon: LayersIcon,
         sortable: true,
@@ -182,7 +184,7 @@ export default function PartTypeView({
       },
       {
         key: 'part_designations',
-        label: 'DÉSIGNATIONS DE PARTS',
+        label: t('part_types.col_designations', 'DÉSIGNATIONS DE PARTS'),
         colLetter: 'C',
         icon: PartInfoIcon,
         render: (item) => {
@@ -194,10 +196,10 @@ export default function PartTypeView({
                 onNavigateToPartDesignations && onNavigateToPartDesignations(item.id_type)
               }
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-teal-50 text-teal-800 hover:bg-teal-100 border border-teal-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
-              title="Voir les désignations rattachées à ce type de part"
+              title={t('part_types.view_designations', 'Voir les désignations rattachées à ce type de part')}
             >
               <PartInfoIcon className="w-3.5 h-3.5 text-teal-600" />
-              <span>{dCount} désignations</span>
+              <span>{dCount} {t('part_types.designation_unit', 'désignations')}</span>
               <ArrowRight className="w-3 h-3 text-teal-600 group-hover:translate-x-0.5 transition-transform" />
             </button>
           );
@@ -205,7 +207,7 @@ export default function PartTypeView({
       },
       {
         key: 'warehouse_parts',
-        label: 'PARTS EN ENTREPÔT',
+        label: t('part_types.col_warehouse', 'PARTS EN ENTREPÔT'),
         colLetter: 'D',
         icon: Warehouse,
         render: (item) => {
@@ -221,10 +223,10 @@ export default function PartTypeView({
                 onNavigateToEntrepotByType && onNavigateToEntrepotByType(item.id_type)
               }
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold transition group shadow-2xs cursor-pointer"
-              title="Filtrer Entrepôt sur ce type de part"
+              title={t('part_types.filter_warehouse', 'Filtrer Entrepôt sur ce type de part')}
             >
               <Warehouse className="w-3.5 h-3.5 text-emerald-600" />
-              <span>{pCount} parts</span>
+              <span>{pCount} {t('part_types.part_unit', 'parts')}</span>
               <ArrowRight className="w-3 h-3 text-emerald-600 group-hover:translate-x-0.5 transition-transform" />
             </button>
           );
@@ -246,7 +248,7 @@ export default function PartTypeView({
                   }
                 }}
                 className="p-1.5 bg-white hover:bg-slate-100/80 text-slate-800 hover:text-black transition flex items-center justify-center cursor-pointer border-r border-slate-200"
-                title="Voir les désignations rattachées"
+                title={t('part_types.view_designations', 'Voir les désignations rattachées')}
               >
                 <PartInfoIcon className="w-3.5 h-3.5 text-slate-900" />
               </button>
@@ -260,7 +262,7 @@ export default function PartTypeView({
                     ? 'bg-slate-100 text-teal-700 font-bold'
                     : 'text-slate-500 hover:text-slate-800'
                 }`}
-                title="Actions et options"
+                title={t('part_types.action_menu_title', 'Actions et options')}
               >
                 <MoreVertical className="w-3.5 h-3.5" />
               </button>
@@ -270,7 +272,7 @@ export default function PartTypeView({
               <div className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-2xl shadow-xl border border-slate-200/90 z-50 p-1.5 animate-in fade-in zoom-in-95 duration-150 text-left">
                 <div className="px-3 py-2 border-b border-slate-100 mb-1">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Type de Part
+                    {t('part_types.action_menu_header', 'Type de Part')}
                   </span>
                   <span className="text-xs font-mono font-bold text-teal-700 truncate block">
                     {item.id_type} — {item.libelle}
@@ -285,7 +287,7 @@ export default function PartTypeView({
                   className="w-full px-3 py-2 text-xs font-medium text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
                 >
                   <Edit2 className="w-3.5 h-3.5 text-teal-600" />
-                  <span>Modifier ce type</span>
+                  <span>{t('part_types.menu_edit', 'Modifier ce type')}</span>
                 </button>
                 <button
                   type="button"
@@ -296,7 +298,7 @@ export default function PartTypeView({
                   className="w-full px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-xl transition flex items-center gap-2.5 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                  <span>Supprimer ce type</span>
+                  <span>{t('part_types.menu_delete', 'Supprimer ce type')}</span>
                 </button>
               </div>
             )}
@@ -304,7 +306,7 @@ export default function PartTypeView({
         ),
       },
     ],
-    [partDesignations, warehouseItems, activeActionMenuId, onNavigateToPartDesignations, onNavigateToEntrepotByType]
+    [t, partDesignations, warehouseItems, activeActionMenuId, onNavigateToPartDesignations, onNavigateToEntrepotByType]
   );
 
   return (
@@ -321,10 +323,10 @@ export default function PartTypeView({
           </div>
           <div>
             <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              Types de Parts d&apos;Entrepôt
+              {t('nav.type_pdr', 'Types de Parts d’Entrepôt')}
             </h2>
             <p className="text-xs text-slate-500 mt-1 max-w-3xl leading-relaxed">
-              Nomenclature des types et catégories de pièces gérées au sein du groupe entrepôt (Distinctes du Stock).
+              {t('part_types.subtitle', 'Nomenclature des types et catégories de pièces gérées au sein du groupe entrepôt (Distinctes du Stock).')}
             </p>
           </div>
         </div>
@@ -332,7 +334,7 @@ export default function PartTypeView({
         <div className="flex items-center gap-2.5 shrink-0 relative">
           <FormulasModalButton
             onClick={() => setShowFormulasModal(true)}
-            title="Formules Excel (Types de Parts)"
+            title={t('header.formulas_excel', 'Formules Excel (Types de Parts)')}
           />
 
           <Action3DButton
@@ -348,7 +350,7 @@ export default function PartTypeView({
               });
               setShowAddModal(true);
             }}
-            title="Nouveau Type de Part"
+            title={t('common.add', 'Nouveau Type de Part')}
           />
         </div>
       </div>
@@ -364,14 +366,14 @@ export default function PartTypeView({
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                  Filtres & Recherche Avancée
+                  {t('common.filters.title', 'Filtres & Recherche Avancée')}
                 </span>
                 <span className="bg-amber-50 text-amber-800 px-2.5 py-0.5 rounded-lg text-[11px] font-bold border border-amber-200/70 shadow-2xs font-mono">
                   {filtered.length} / {partTypes.length}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium">
-                Référentiel des Types de Pièces / Composants Entrepôt • Colonnes A → D
+                {t('part_types.filters_subtitle', 'Référentiel des Types de Pièces / Composants Entrepôt • Colonnes A → D')}
               </p>
             </div>
           </div>
@@ -381,10 +383,10 @@ export default function PartTypeView({
             <button
               onClick={handleExportExcel}
               className="h-8 px-3 rounded-xl border border-emerald-200/80 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-              title="Exporter le tableau vers Excel / CSV"
+              title={t('common.filters.export_excel', 'Exporter le tableau vers Excel / CSV')}
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Export Excel</span>
+              <span>{t('common.filters.export_excel', 'Export Excel')}</span>
             </button>
 
             {/* Circular Reset Button */}
@@ -395,7 +397,7 @@ export default function PartTypeView({
                   setSortField('id_type');
                   setSortOrder('asc');
                 }}
-                title="Réinitialiser tous les filtres actifs"
+                title={t('common.filters.reset_tooltip', 'Réinitialiser tous les filtres actifs')}
                 className="w-8 h-8 rounded-full border border-rose-200/80 bg-rose-50 hover:bg-rose-100 text-rose-700 transition flex items-center justify-center cursor-pointer shadow-2xs active:scale-95 animate-in fade-in shrink-0"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -409,7 +411,7 @@ export default function PartTypeView({
           <div className="relative w-full">
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                RECHERCHE LIBRE
+                {t('common.filters.search', 'RECHERCHE LIBRE')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
                 Col. A + B
@@ -421,7 +423,7 @@ export default function PartTypeView({
               </span>
               <input
                 type="text"
-                placeholder="Rechercher par ID type de part, libellé..."
+                placeholder={t('common.filters.search_placeholder', 'Rechercher par ID type de part, libellé...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full h-10 pl-9 pr-8 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition"
@@ -441,10 +443,10 @@ export default function PartTypeView({
           <div className="w-full relative" ref={sortMenuRef}>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-800">
-                TRI DES ENREGISTREMENTS
+                {t('common.filters.sort_and_order', 'TRI DES ENREGISTREMENTS')}
               </label>
               <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide bg-slate-100 text-slate-700 border border-slate-200 shadow-2xs">
-                Ordre A-Z
+                {t('common.filters.order', 'Ordre A-Z')}
               </span>
             </div>
             <button
@@ -460,7 +462,7 @@ export default function PartTypeView({
                   <ArrowUpDown className="w-3 h-3" />
                 </span>
                 <span>
-                  Tri : <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
+                  {t('common.filters.sort_prefix', 'Tri :')} <b className="font-mono text-slate-900">{sortField.toUpperCase()}</b> (
                   {sortOrder === 'asc' ? 'A→Z' : 'Z→A'})
                 </span>
               </div>
@@ -551,7 +553,7 @@ export default function PartTypeView({
 
       {/* Unified Industrial Data Grid */}
       <GmaoIndustrialDataGrid
-        title="Tableau Types de Parts (Entrepôt)"
+        title={t('part_types.grid_title', 'Tableau Types de Parts (Entrepôt)')}
         icon={<LayersIcon className="w-4 h-4 text-teal-600" />}
         excelMapping="id_type (A) | libelle (B) | part_designations (C) | warehouse_parts (D)"
         bannerColor="slate"
@@ -564,7 +566,7 @@ export default function PartTypeView({
         startIndex={startIndex}
         showRowNumber={true}
         emptyIcon={<LayersIcon className="w-8 h-8 text-slate-300" />}
-        emptyMessage="Aucun type de part trouvé"
+        emptyMessage={t('part_types.empty', 'Aucun type de part trouvé')}
         pagination={{
           currentPage,
           setCurrentPage,
@@ -573,7 +575,7 @@ export default function PartTypeView({
           totalItems,
           pageSizeOptions: [25, 50, 100, 200, 0],
           color: 'teal',
-          itemLabel: 'types de part',
+          itemLabel: t('part_types.item_label', 'types de part'),
         }}
       />
 
