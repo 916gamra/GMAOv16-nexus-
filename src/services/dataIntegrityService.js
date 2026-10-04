@@ -671,6 +671,69 @@ class DataIntegrityService {
       },
     };
   }
+
+  /**
+   * Dependencies of a machine across modules (Preventive / Corrective / Movements / BOM).
+   * Used before delete to decide hard-delete vs soft-archive.
+   */
+  getMachineDependencies(machineId, {
+    preventiveTasks = [],
+    correctiveInterventions = [],
+    mouvements = [],
+    machineElementsLedger = [],
+  } = {}) {
+    const id = String(machineId || '').trim().toUpperCase();
+    if (!id) {
+      return {
+        machineId,
+        preventiveCount: 0,
+        correctiveCount: 0,
+        movementsCount: 0,
+        bomCount: 0,
+        total: 0,
+        canHardDelete: true,
+        preventiveSample: [],
+        correctiveSample: [],
+      };
+    }
+
+    const matchMachine = (value) => String(value || '').trim().toUpperCase() === id;
+
+    const preventiveHits = (preventiveTasks || []).filter(
+      (t) => matchMachine(t.id_machine) || matchMachine(t.machine_id) || matchMachine(t.code_machine)
+    );
+
+    const correctiveHits = (correctiveInterventions || []).filter(
+      (i) =>
+        matchMachine(i.code_machine) ||
+        matchMachine(i.id_machine) ||
+        matchMachine(i.machine_id) ||
+        matchMachine(i.id_machine_registered)
+    );
+
+    const movementsHits = (mouvements || []).filter(
+      (m) => matchMachine(m.id_machine_registered) || matchMachine(m.machine) || matchMachine(m.code_machine)
+    );
+
+    const bomHits = (machineElementsLedger || []).filter((e) =>
+      matchMachine(e.id_machine_registered)
+    );
+
+    const total =
+      preventiveHits.length + correctiveHits.length + movementsHits.length + bomHits.length;
+
+    return {
+      machineId,
+      preventiveCount: preventiveHits.length,
+      correctiveCount: correctiveHits.length,
+      movementsCount: movementsHits.length,
+      bomCount: bomHits.length,
+      total,
+      canHardDelete: total === 0,
+      preventiveSample: preventiveHits.slice(0, 5).map((t) => t.id || t.code),
+      correctiveSample: correctiveHits.slice(0, 5).map((i) => i.id || i.num_bt || i.code_bon),
+    };
+  }
 }
 
 export const dataIntegrityService = new DataIntegrityService();

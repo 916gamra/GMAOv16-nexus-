@@ -1402,9 +1402,13 @@ export default function MachinesRegisteredView({
                 <Trash2 className="w-6 h-6" />
               </div>
               <h3 className="font-bold text-base text-slate-900">Supprimer la Machine ?</h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Êtes-vous sûr de vouloir supprimer définitivement l'équipement{' '}
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                Êtes-vous sûr de vouloir supprimer l'équipement{' '}
                 <b className="font-mono text-slate-900">{toDelete.id_machine_registered}</b> ({toDelete.designation}) ?
+                <br /><br />
+                <span className="text-[10px] bg-slate-50 border border-slate-100 p-2 rounded-lg block text-slate-600">
+                  <b>Remarque :</b> Si la machine est liée à des tâches préventives, interventions ou mouvements, elle sera <b>archivée</b> (désactivée) au lieu d'être supprimée, afin de préserver l'historique.
+                </span>
               </p>
             </div>
             <div className="flex gap-2 pt-2">

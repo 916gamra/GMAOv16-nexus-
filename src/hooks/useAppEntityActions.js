@@ -38,6 +38,9 @@ export function useAppEntityActions({ gmaoState, showToast, setCurrentTab }) {
     setPartTypes,
     partDesignations,
     setPartDesignations,
+    preventiveTasks,
+    correctiveInterventions,
+    machineElementsLedger,
   } = gmaoState;
 
   const handleAddCompGroup = (newGrp) => {
@@ -141,6 +144,9 @@ export function useAppEntityActions({ gmaoState, showToast, setCurrentTab }) {
     setPartDesignations,
     warehouseItems,
     setWarehouseItems,
+    preventiveTasks,
+    correctiveInterventions,
+    machineElementsLedger: machineElementsLedger || [],
     showToast,
     setCurrentTab,
   });

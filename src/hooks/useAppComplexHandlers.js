@@ -4,6 +4,7 @@ import { MachineApplicationService } from '../application/services/MachineApplic
 import { TaskApplicationService } from '../application/services/TaskApplicationService';
 import { Logger } from '../core/logger/LoggerService';
 import { movementRepository } from '../application/MovementRepository';
+import { dataIntegrityService } from '../services/dataIntegrityService';
 
 export function useAppComplexHandlers({
   zones, setZones,
@@ -22,6 +23,9 @@ export function useAppComplexHandlers({
   setPartTypes,
   setPartDesignations,
   setWarehouseItems,
+  preventiveTasks = [],
+  correctiveInterventions = [],
+  machineElementsLedger = [],
   showToast,
   setCurrentTab,
 }) {
@@ -81,21 +85,46 @@ export function useAppComplexHandlers({
     }
   };
   const handleDeleteMachine = (id) => {
-    const hasMovements = (mouvements || []).some((m) => m.id_machine_registered === id || m.machine === id);
-    if (hasMovements) {
-      // Soft Delete to safeguard historical MTBF, MTTR, and audit ledgers
+    const deps = dataIntegrityService.getMachineDependencies(id, {
+      preventiveTasks,
+      correctiveInterventions,
+      mouvements,
+      machineElementsLedger,
+    });
+
+    if (!deps.canHardDelete) {
+      // Soft-archive to preserve Preventive / Corrective / Movements history
       setMachines((prev) =>
         prev.map((m) =>
           m.id_machine_registered === id
-            ? { ...m, status: 'ARCHIVEE', is_active: false, actif: false, date_archivage: new Date().toISOString() }
+            ? {
+                ...m,
+                status: 'ARCHIVEE',
+                statut: 'Archivée',
+                is_active: false,
+                actif: false,
+                date_archivage: new Date().toISOString(),
+              }
             : m
         )
       );
-      showToast?.(`Machine ${id} archivée (désactivée) afin de préserver l'historique et les calculs MTTR/MTBF.`, 'info');
-    } else {
-      setMachines((prev) => prev.filter((m) => m.id_machine_registered !== id));
-      showToast?.(`Machine ${id} supprimée définitivement.`, 'success');
+
+      const parts = [];
+      if (deps.preventiveCount) parts.push(`${deps.preventiveCount} tâche(s) préventive(s)`);
+      if (deps.correctiveCount) parts.push(`${deps.correctiveCount} intervention(s) corrective(s)`);
+      if (deps.movementsCount) parts.push(`${deps.movementsCount} mouvement(s)`);
+      if (deps.bomCount) parts.push(`${deps.bomCount} élément(s) BOM`);
+
+      showToast?.(
+        `Machine ${id} archivée (non supprimée) car liée à : ${parts.join(', ')}. L'historique est préservé.`,
+        'info'
+      );
+      return;
     }
+
+    // No dependencies → hard delete
+    setMachines((prev) => prev.filter((m) => m.id_machine_registered !== id));
+    showToast?.(`Machine ${id} supprimée définitivement.`, 'success');
   };
 
   const handleUpdateType = (id, updatedType) => {
